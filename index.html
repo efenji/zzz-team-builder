@@ -935,6 +935,37 @@ select {
 }
 .page-nav-btn:hover { color: var(--text); }
 .page-nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.auth-widget { margin-left: auto; display: flex; align-items: center; }
+.auth-user { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px 12px 5px 6px; border-radius: 100px; background: var(--bg3); border: 1px solid var(--border); transition: border-color .15s; }
+.auth-user:hover { border-color: var(--red); }
+.auth-avatar { width: 22px; height: 22px; border-radius: 50%; display: block; }
+.auth-name { font-size: 12px; font-weight: 700; color: var(--text); font-family: 'Barlow Condensed', 'Oswald', sans-serif; letter-spacing: .03em; }
+
+.feed-list { display: flex; flex-direction: column; gap: 14px; max-width: 640px; margin: 0 auto; padding-bottom: 30px; }
+.feed-post { display: flex; gap: 10px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 12px; }
+.feed-post-vote { display: flex; flex-direction: column; align-items: center; gap: 2px; padding-top: 2px; flex-shrink: 0; }
+.vote-btn { background: none; border: none; color: var(--text-mid); font-size: 15px; cursor: pointer; line-height: 1; padding: 3px 7px; border-radius: var(--r-sm); }
+.vote-btn:hover { color: var(--text); background: var(--bg3); }
+.vote-btn.active { color: var(--accent); }
+.vote-score { font-size: 13px; font-weight: 900; font-family: 'Share Tech Mono', monospace; }
+.feed-post-body { flex: 1; min-width: 0; }
+.feed-post-head { display: flex; align-items: center; gap: 7px; margin-bottom: 9px; flex-wrap: wrap; }
+.feed-author-avatar { width: 20px; height: 20px; border-radius: 50%; }
+.feed-author-name { font-size: 11px; color: var(--text-mid); font-weight: 700; }
+.feed-post-title { font-weight: 700; font-size: 14px; margin-left: 2px; }
+.feed-team-preview { margin-bottom: 8px; }
+.feed-team-preview .team-card { cursor: default; }
+.feed-post-actions { display: flex; gap: 8px; margin-top: 4px; }
+.feed-post-actions .lib-pill-btn.danger { color: var(--red); }
+.feed-post-actions .lib-pill-btn.danger:hover { border-color: var(--red); background: rgba(239,68,68,.12); color: var(--red); }
+.feed-comments { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
+.feed-comments.hidden { display: none; }
+.comment-row { display: flex; align-items: center; gap: 7px; padding: 4px 0; font-size: 12.5px; }
+.comment-avatar { width: 17px; height: 17px; border-radius: 50%; flex-shrink: 0; }
+.comment-author { color: var(--text-mid); font-weight: 700; flex-shrink: 0; }
+.comment-input-row { display: flex; gap: 8px; margin-top: 8px; }
+.comment-input-row input { flex: 1; background: var(--bg3); border: 1px solid var(--border); color: var(--text); border-radius: var(--r-sm); padding: 6px 10px; font-size: 12.5px; }
 .profile-uid-row { display: flex; gap: 8px; max-width: 460px; margin-bottom: 6px; }
 .profile-uid-row input {
   flex: 1; background: var(--bg3); border: 1px solid var(--border); color: var(--text);
@@ -1238,6 +1269,7 @@ select {
     <div class="logo"><em>ZZZ</em> · Team Builder</div>
     <div class="logo-sub">Shiyu Defense · Tracker</div>
   </div>
+  <div class="auth-widget" id="authWidget"></div>
 </header>
 
 <div class="toolbar">
@@ -1251,6 +1283,7 @@ select {
     <button class="tb-btn" id="tbEdit" onclick="editSelectedTeam()" title="Edit Selected" disabled>✎</button>
     <button class="tb-btn" id="tbDup" onclick="duplicateSelectedTeam()" title="Duplicate Selected" disabled>⧉</button>
     <button class="tb-btn danger" id="tbDel" onclick="deleteSelectedTeam()" title="Delete Selected" disabled>✕</button>
+    <button class="tb-btn" id="tbShare" onclick="shareSelectedTeam()" title="Share Selected to Feed" disabled>⇪</button>
   </div>
   <div class="tb-sep"></div>
   <div class="tb-group">
@@ -1292,6 +1325,7 @@ select {
 <div class="page-nav">
   <button class="page-nav-btn active" id="navTeamsBtn" onclick="showPage('teams')">Saved Teams</button>
   <button class="page-nav-btn" id="navProfileBtn" onclick="showPage('profile')">Profile</button>
+  <button class="page-nav-btn" id="navFeedBtn" onclick="showPage('feed')">Feed</button>
 </div>
 
 <div class="page" id="pageTeams">
@@ -1316,6 +1350,11 @@ select {
     <div class="profile-agent-list" id="profileAgentList"></div>
     <div class="profile-detail" id="profileDetail"><div class="profile-detail-empty">Enter a UID above and press Load.</div></div>
   </div>
+</div>
+
+<div class="page hidden" id="pageFeed">
+  <div class="section-title">Community Feed</div>
+  <div id="feedList" class="feed-list"></div>
 </div>
 
 <div id="editorOverlay" class="editor-overlay hidden" onclick="editorBgClick(event)">
@@ -1671,7 +1710,12 @@ select {
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
+const SUPABASE_URL = 'https://kpzpbnixwsshwdjnzeal.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_L-qFfgHPufDs5fWZqWA2kg_BNPoNw3n';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 const BASE = 'https://efenji.github.io/zzz-team-builder/zzz';
 
 const AGENTS_FULL = [
@@ -7655,8 +7699,10 @@ let profileSelectedIndex = null;
 function showPage(which) {
   document.getElementById('pageTeams').classList.toggle('hidden', which !== 'teams');
   document.getElementById('pageProfile').classList.toggle('hidden', which !== 'profile');
+  document.getElementById('pageFeed').classList.toggle('hidden', which !== 'feed');
   document.getElementById('navTeamsBtn').classList.toggle('active', which === 'teams');
   document.getElementById('navProfileBtn').classList.toggle('active', which === 'profile');
+  document.getElementById('navFeedBtn').classList.toggle('active', which === 'feed');
   if (which === 'profile') {
     renderProfileFavorites();
     updateProfileActionButtons();
@@ -7664,6 +7710,9 @@ function showPage(which) {
       document.getElementById('profileUidInput').value = profileMyUid;
       loadProfileShowcase();
     }
+  }
+  if (which === 'feed') {
+    renderFeed();
   }
 }
 
@@ -8570,6 +8619,7 @@ function updateToolbarState() {
   document.getElementById('tbEdit').disabled = count !== 1;
   document.getElementById('tbDup').disabled  = count === 0;
   document.getElementById('tbDel').disabled  = count === 0;
+  document.getElementById('tbShare').disabled = count !== 1;
 }
 function editSelectedTeam() {
   if (selectedTeamIds.size !== 1) return;
@@ -9443,6 +9493,189 @@ function pickItem(key) {
   });
 })();
 
+// ===== Auth (Discord via Supabase) =====
+let currentUser = null; // { id, username, avatar }
+
+function renderAuthUI() {
+  const el = document.getElementById('authWidget');
+  if (!el) return;
+  if (currentUser) {
+    el.innerHTML = `<div class="auth-user" onclick="logoutDiscord()" title="Click to sign out">
+      ${currentUser.avatar ? `<img class="auth-avatar" src="${currentUser.avatar}" onerror="this.style.display='none'">` : ''}
+      <span class="auth-name">${escapeHtml(currentUser.username)}</span>
+    </div>`;
+  } else {
+    el.innerHTML = `<button class="lib-pill-btn" onclick="loginDiscord()">Sign in with Discord</button>`;
+  }
+}
+
+function handleAuthSession(session) {
+  if (session && session.user) {
+    const u = session.user;
+    const meta = u.user_metadata || {};
+    currentUser = {
+      id: u.id,
+      username: meta.full_name || meta.name || meta.custom_claims?.global_name || u.email || 'User',
+      avatar: meta.avatar_url || null
+    };
+  } else {
+    currentUser = null;
+  }
+  renderAuthUI();
+  const feedPage = document.getElementById('pageFeed');
+  if (feedPage && !feedPage.classList.contains('hidden')) renderFeed();
+}
+
+async function initAuth() {
+  sb.auth.onAuthStateChange((_event, session) => handleAuthSession(session));
+}
+
+async function loginDiscord() {
+  await sb.auth.signInWithOAuth({ provider: 'discord', options: { redirectTo: window.location.href.split('#')[0].split('?')[0] } });
+}
+
+async function logoutDiscord() {
+  await sb.auth.signOut();
+}
+
+// ===== Feed: sharing, listing, voting, comments =====
+let feedPosts = [];
+let feedUserVotes = {};
+
+async function shareSelectedTeam() {
+  if (!currentUser) { alert('Sign in with Discord to share teams.'); return; }
+  const ids = [...selectedTeamIds];
+  if (ids.length !== 1) return;
+  const team = teams.find(t => t.id === ids[0]);
+  if (!team) return;
+  const title = prompt('Post title for the feed:', team.name || 'My Team');
+  if (title === null) return;
+  const { error } = await sb.from('posts').insert({ user_id: currentUser.id, title: title.trim() || 'Untitled', team_json: team });
+  if (error) { alert('Failed to publish: ' + error.message); return; }
+  alert('Team published to the feed!');
+}
+
+async function renderFeed() {
+  const el = document.getElementById('feedList');
+  el.innerHTML = '<div class="empty-state">Loading…</div>';
+  const { data: posts, error } = await sb.from('posts_with_score').select('*').order('score', { ascending: false }).order('created_at', { ascending: false });
+  if (error) { el.innerHTML = `<div class="empty-state">Failed to load feed: ${escapeHtml(error.message)}</div>`; return; }
+  feedPosts = posts || [];
+  feedUserVotes = {};
+  if (currentUser) {
+    const { data: votes } = await sb.from('votes').select('post_id,value').eq('user_id', currentUser.id);
+    (votes || []).forEach(v => feedUserVotes[v.post_id] = v.value);
+  }
+  if (!feedPosts.length) { el.innerHTML = '<div class="empty-state"><span class="ico">📰</span>No posts yet.<br>Select a team in Saved Teams and press ⇪ to be the first to share.</div>'; return; }
+  el.innerHTML = feedPosts.map(feedPostHtml).join('');
+}
+
+function feedTeamPreviewHtml(t) {
+  if (!t || !Array.isArray(t.agents)) return '<div class="empty-state">Invalid team data</div>';
+  const cells = t.agents.map(a => {
+    if (!a.key) return `<div class="tc-cell"><div class="tc-cell-img"><div class="tc-cell-empty">👤</div></div><div class="tc-cell-foot"></div></div>`;
+    const isSignature = a.wengine && AGENT_SIGNATURE_WENGINE[a.key] === a.wengine;
+    const rankTxt = (a.wrank && isSignature) ? `R${a.wrank}` : '';
+    const eidTxt = a.eidolons ? `M${a.eidolons}` : 'M0';
+    return `<div class="tc-cell">
+      <div class="tc-cell-img"><img src="${agentUrl(a.key)}" style="object-position:${AGENT_CARD_OFFSET[a.key] || 'center'}" onerror="this.style.opacity=.15"></div>
+      <div class="tc-cell-foot">
+        <div class="tc-foot-text"><span class="tc-cell-name">${cardName(a.key)}</span><span class="tc-cell-rank">${eidTxt}${rankTxt ? '·' + rankTxt : ''}</span></div>
+        ${wenginePlaqueHtml(a.wengine)}
+      </div>
+    </div>`;
+  }).join('');
+  return `<div class="team-card">
+    <div class="tc-bar"><div class="tc-name">${escapeHtml(t.name || '')}</div></div>
+    <div class="tc-strip">${cells}</div>
+  </div>`;
+}
+
+function feedPostHtml(p) {
+  const myVote = feedUserVotes[p.id] || 0;
+  const isMine = currentUser && currentUser.id === p.user_id;
+  return `<div class="feed-post" data-post-id="${p.id}">
+    <div class="feed-post-vote">
+      <button class="vote-btn${myVote === 1 ? ' active' : ''}" onclick="castVote(${p.id},1)">▲</button>
+      <div class="vote-score">${p.score}</div>
+      <button class="vote-btn${myVote === -1 ? ' active' : ''}" onclick="castVote(${p.id},-1)">▼</button>
+    </div>
+    <div class="feed-post-body">
+      <div class="feed-post-head">
+        ${p.discord_avatar_url ? `<img class="feed-author-avatar" src="${p.discord_avatar_url}" onerror="this.style.display='none'">` : ''}
+        <span class="feed-author-name">${escapeHtml(p.discord_username || '???')}</span>
+        <span class="feed-post-title">${escapeHtml(p.title)}</span>
+      </div>
+      <div class="feed-team-preview">${feedTeamPreviewHtml(p.team_json)}</div>
+      <div class="feed-post-actions">
+        <button class="lib-pill-btn" onclick="toggleComments(${p.id})">💬 Comments</button>
+        ${isMine ? `<button class="lib-pill-btn danger" onclick="deletePost(${p.id})">Delete</button>` : ''}
+      </div>
+      <div class="feed-comments hidden" id="comments-${p.id}"></div>
+    </div>
+  </div>`;
+}
+
+async function castVote(postId, value) {
+  if (!currentUser) { alert('Sign in with Discord to vote.'); return; }
+  const current = feedUserVotes[postId] || 0;
+  if (current === value) {
+    await sb.from('votes').delete().eq('post_id', postId).eq('user_id', currentUser.id);
+  } else {
+    await sb.from('votes').upsert({ post_id: postId, user_id: currentUser.id, value });
+  }
+  renderFeed();
+}
+
+async function deletePost(postId) {
+  if (!confirm('Delete this post from the feed?')) return;
+  await sb.from('posts').delete().eq('id', postId);
+  renderFeed();
+}
+
+async function toggleComments(postId) {
+  const el = document.getElementById('comments-' + postId);
+  if (!el) return;
+  const opening = el.classList.contains('hidden');
+  el.classList.toggle('hidden');
+  if (opening) await loadComments(postId);
+}
+
+async function loadComments(postId) {
+  const el = document.getElementById('comments-' + postId);
+  if (!el) return;
+  el.innerHTML = '<div class="empty-state" style="padding:8px">Loading…</div>';
+  const { data: comments, error } = await sb.from('comments')
+    .select('id, body, created_at, profiles ( discord_username, discord_avatar_url )')
+    .eq('post_id', postId).order('created_at', { ascending: true });
+  if (error) { el.innerHTML = `<div class="empty-state" style="padding:8px">Error: ${escapeHtml(error.message)}</div>`; return; }
+  const listHtml = (comments || []).map(c => `
+    <div class="comment-row">
+      ${c.profiles?.discord_avatar_url ? `<img class="comment-avatar" src="${c.profiles.discord_avatar_url}" onerror="this.style.display='none'">` : ''}
+      <span class="comment-author">${escapeHtml(c.profiles?.discord_username || '???')}</span>
+      <span class="comment-body">${escapeHtml(c.body)}</span>
+    </div>`).join('') || '<div class="empty-state" style="padding:8px">No comments yet</div>';
+  const inputHtml = currentUser
+    ? `<div class="comment-input-row">
+        <input type="text" id="commentInput-${postId}" placeholder="Write a comment..." onkeydown="if(event.key==='Enter')submitComment(${postId})">
+        <button class="lib-pill-btn" onclick="submitComment(${postId})">Post</button>
+      </div>`
+    : `<div class="empty-state" style="padding:8px">Sign in with Discord to comment</div>`;
+  el.innerHTML = listHtml + inputHtml;
+}
+
+async function submitComment(postId) {
+  const input = document.getElementById('commentInput-' + postId);
+  if (!input) return;
+  const body = input.value.trim();
+  if (!body) return;
+  const { error } = await sb.from('comments').insert({ post_id: postId, user_id: currentUser.id, body });
+  if (error) { alert('Failed to post comment: ' + error.message); return; }
+  input.value = '';
+  loadComments(postId);
+}
+
+initAuth();
 initAccentColor();
 initToolbarToggles();
 populateShiyuFilterSelect();
