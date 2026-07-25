@@ -192,6 +192,10 @@ header {
   padding: 2px 8px; border-radius: 100px;
 }
 .tc-time b { color: var(--accent); }
+.tc-shiyu {
+  font-family: 'Share Tech Mono', monospace; font-size: 11px; font-weight: 700;
+  color: var(--accent); white-space: nowrap;
+}
 
 /* agent strip */
 .tc-strip {
@@ -1250,6 +1254,10 @@ select {
   </div>
   <div class="tb-sep"></div>
   <div class="tb-group">
+    <select id="shiyuFilterSelect" onchange="setShiyuFilter(this.value)" title="Show only teams from a specific Shiyu season"></select>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-group">
     <label class="tb-color-swatch" id="accentSwatch" title="Accent Color">
       <input type="color" id="accentColorInput" oninput="setAccentColor(this.value)">
     </label>
@@ -1257,6 +1265,7 @@ select {
   <div class="tb-sep"></div>
   <div class="tb-group">
     <button class="tb-toggle" data-key="name" onclick="toggleVisOption('name', this)">Name</button>
+    <button class="tb-toggle" data-key="shiyu" onclick="toggleVisOption('shiyu', this)">Shiyu</button>
     <button class="tb-toggle" data-key="wengine" onclick="toggleVisOption('wengine', this)">W-Engine</button>
     <button class="tb-toggle" data-key="ability" onclick="toggleVisOption('ability', this)">Ability</button>
     <button class="tb-toggle" data-key="attr" onclick="toggleVisOption('attr', this)">Attribute</button>
@@ -1267,10 +1276,10 @@ select {
   <div class="tb-sep"></div>
   <div class="tb-group" style="margin-left:auto; align-items:center;">
     <div class="tb-group" id="advLibGroup" style="display:none">
-      <button class="tb-btn" onclick="openLibraryModal('agent')" title="Agent Library"><img src="https://efenji.github.io/zzz-assets/zzz/icons/character.webp" style="width:18px;height:18px;object-fit:contain" onerror="this.style.opacity=.2"></button>
-      <button class="tb-btn" onclick="openLibraryModal('wengine')" title="W-Engine Library"><img src="https://efenji.github.io/zzz-assets/zzz/icons/weapon.webp" style="width:18px;height:18px;object-fit:contain" onerror="this.style.opacity=.2"></button>
-      <button class="tb-btn" onclick="openLibraryModal('bangboo')" title="Bangboo Library"><img src="https://efenji.github.io/zzz-assets/zzz/icons/bangboo.webp" style="width:18px;height:18px;object-fit:contain" onerror="this.style.opacity=.2"></button>
-      <button class="tb-btn" onclick="openLibraryModal('disc')" title="Drive Disc Library"><img src="https://efenji.github.io/zzz-assets/zzz/icons/drivediscs.webp" style="width:18px;height:18px;object-fit:contain" onerror="this.style.opacity=.2"></button>
+      <button class="tb-btn" onclick="openLibraryModal('agent')" title="Agent Library"><img src="https://efenji.github.io/zzz-team-builder/zzz/icons/character.webp" style="width:18px;height:18px;object-fit:contain" onerror="this.style.opacity=.2"></button>
+      <button class="tb-btn" onclick="openLibraryModal('wengine')" title="W-Engine Library"><img src="https://efenji.github.io/zzz-team-builder/zzz/icons/weapon.webp" style="width:18px;height:18px;object-fit:contain" onerror="this.style.opacity=.2"></button>
+      <button class="tb-btn" onclick="openLibraryModal('bangboo')" title="Bangboo Library"><img src="https://efenji.github.io/zzz-team-builder/zzz/icons/bangboo.webp" style="width:18px;height:18px;object-fit:contain" onerror="this.style.opacity=.2"></button>
+      <button class="tb-btn" onclick="openLibraryModal('disc')" title="Drive Disc Library"><img src="https://efenji.github.io/zzz-team-builder/zzz/icons/drivediscs.webp" style="width:18px;height:18px;object-fit:contain" onerror="this.style.opacity=.2"></button>
       <button class="tb-btn" onclick="openEnkaImport()" title="Import from Enka.Network (by UID)">UID</button>
     </div>
     <div class="tb-sep" id="advLibSep" style="display:none"></div>
@@ -1322,6 +1331,10 @@ select {
       <div class="shiyu-bar">
         <div class="shiyu-label">SHIYU<br>DEFENSE</div>
         <div class="fld">
+          <label>Season</label>
+          <select id="sdShiyu"></select>
+        </div>
+        <div class="fld">
           <label>Floor</label>
           <select id="sdFloor" onchange="updateRoomOptions()">
             <option value="1">1</option>
@@ -1369,28 +1382,28 @@ select {
       <input type="text" id="modalSearch" placeholder="Search..." oninput="filterModal()">
     </div>
     <div class="modal-spec" id="modalSpec">
-      <div class="spec-btn" data-spec="Anomaly"  onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Anomaly.webp">Anomaly</div>
-      <div class="spec-btn" data-spec="Attack"   onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Attack.webp">Attack</div>
-      <div class="spec-btn" data-spec="Defense"  onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Defense.webp">Defense</div>
-      <div class="spec-btn" data-spec="Rupture"  onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Rupture.webp">Rupture</div>
-      <div class="spec-btn" data-spec="Stun"     onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Stun.webp">Stun</div>
-      <div class="spec-btn" data-spec="Support"  onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Support.webp">Support</div>
+      <div class="spec-btn" data-spec="Anomaly"  onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Anomaly.webp">Anomaly</div>
+      <div class="spec-btn" data-spec="Attack"   onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Attack.webp">Attack</div>
+      <div class="spec-btn" data-spec="Defense"  onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Defense.webp">Defense</div>
+      <div class="spec-btn" data-spec="Rupture"  onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Rupture.webp">Rupture</div>
+      <div class="spec-btn" data-spec="Stun"     onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Stun.webp">Stun</div>
+      <div class="spec-btn" data-spec="Support"  onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Support.webp">Support</div>
     </div>
     <div class="modal-spec" id="modalSpecWE">
-      <div class="spec-btn" data-spec="Anomaly"  onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Anomaly.webp">Anomaly</div>
-      <div class="spec-btn" data-spec="Attack"   onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Attack.webp">Attack</div>
-      <div class="spec-btn" data-spec="Defense"  onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Defense.webp">Defense</div>
-      <div class="spec-btn" data-spec="Rupture"  onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Rupture.webp">Rupture</div>
-      <div class="spec-btn" data-spec="Stun"     onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Stun.webp">Stun</div>
-      <div class="spec-btn" data-spec="Support"  onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Support.webp">Support</div>
+      <div class="spec-btn" data-spec="Anomaly"  onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Anomaly.webp">Anomaly</div>
+      <div class="spec-btn" data-spec="Attack"   onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Attack.webp">Attack</div>
+      <div class="spec-btn" data-spec="Defense"  onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Defense.webp">Defense</div>
+      <div class="spec-btn" data-spec="Rupture"  onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Rupture.webp">Rupture</div>
+      <div class="spec-btn" data-spec="Stun"     onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Stun.webp">Stun</div>
+      <div class="spec-btn" data-spec="Support"  onclick="toggleSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Support.webp">Support</div>
     </div>
     <div class="modal-spec" id="modalAttr">
-      <div class="spec-btn attr-btn" data-attr="Electric" onclick="toggleAttr(this)"><img src="https://efenji.github.io/zzz-assets/zzz/agent%20attribute/base/Electric.webp">Electric</div>
-      <div class="spec-btn attr-btn" data-attr="Ether"    onclick="toggleAttr(this)"><img src="https://efenji.github.io/zzz-assets/zzz/agent%20attribute/base/Ether.webp">Ether</div>
-      <div class="spec-btn attr-btn" data-attr="Fire"     onclick="toggleAttr(this)"><img src="https://efenji.github.io/zzz-assets/zzz/agent%20attribute/base/Fire.webp">Fire</div>
-      <div class="spec-btn attr-btn" data-attr="Ice"      onclick="toggleAttr(this)"><img src="https://efenji.github.io/zzz-assets/zzz/agent%20attribute/base/Ice.webp">Ice</div>
-      <div class="spec-btn attr-btn" data-attr="Physical" onclick="toggleAttr(this)"><img src="https://efenji.github.io/zzz-assets/zzz/agent%20attribute/base/Physical.webp">Physical</div>
-      <div class="spec-btn attr-btn" data-attr="Wind"     onclick="toggleAttr(this)"><img src="https://efenji.github.io/zzz-assets/zzz/agent%20attribute/base/Wind.webp">Wind</div>
+      <div class="spec-btn attr-btn" data-attr="Electric" onclick="toggleAttr(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/agent%20attribute/base/Electric.webp">Electric</div>
+      <div class="spec-btn attr-btn" data-attr="Ether"    onclick="toggleAttr(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/agent%20attribute/base/Ether.webp">Ether</div>
+      <div class="spec-btn attr-btn" data-attr="Fire"     onclick="toggleAttr(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/agent%20attribute/base/Fire.webp">Fire</div>
+      <div class="spec-btn attr-btn" data-attr="Ice"      onclick="toggleAttr(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/agent%20attribute/base/Ice.webp">Ice</div>
+      <div class="spec-btn attr-btn" data-attr="Physical" onclick="toggleAttr(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/agent%20attribute/base/Physical.webp">Physical</div>
+      <div class="spec-btn attr-btn" data-attr="Wind"     onclick="toggleAttr(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/agent%20attribute/base/Wind.webp">Wind</div>
     </div>
     <div class="modal-grid" id="modalGrid"></div>
   </div>
@@ -1429,19 +1442,19 @@ select {
           <button class="lib-rarity-btn" data-rarity="S" onclick="toggleLibRarity(this)">S</button>
           <button class="lib-rarity-btn" data-rarity="A" onclick="toggleLibRarity(this)">A</button>
           <div class="tb-sep"></div>
-          <div class="spec-btn" data-spec="Anomaly" onclick="toggleLibSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Anomaly.webp">Anomaly</div>
-          <div class="spec-btn" data-spec="Attack"  onclick="toggleLibSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Attack.webp">Attack</div>
-          <div class="spec-btn" data-spec="Defense" onclick="toggleLibSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Defense.webp">Defense</div>
-          <div class="spec-btn" data-spec="Rupture" onclick="toggleLibSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Rupture.webp">Rupture</div>
-          <div class="spec-btn" data-spec="Stun"    onclick="toggleLibSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Stun.webp">Stun</div>
-          <div class="spec-btn" data-spec="Support" onclick="toggleLibSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Support.webp">Support</div>
+          <div class="spec-btn" data-spec="Anomaly" onclick="toggleLibSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Anomaly.webp">Anomaly</div>
+          <div class="spec-btn" data-spec="Attack"  onclick="toggleLibSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Attack.webp">Attack</div>
+          <div class="spec-btn" data-spec="Defense" onclick="toggleLibSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Defense.webp">Defense</div>
+          <div class="spec-btn" data-spec="Rupture" onclick="toggleLibSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Rupture.webp">Rupture</div>
+          <div class="spec-btn" data-spec="Stun"    onclick="toggleLibSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Stun.webp">Stun</div>
+          <div class="spec-btn" data-spec="Support" onclick="toggleLibSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Support.webp">Support</div>
           <div class="tb-sep"></div>
-          <div class="spec-btn attr-btn" data-attr="Electric" onclick="toggleLibAttr(this)"><img src="https://efenji.github.io/zzz-assets/zzz/agent%20attribute/base/Electric.webp">Electric</div>
-          <div class="spec-btn attr-btn" data-attr="Ether"    onclick="toggleLibAttr(this)"><img src="https://efenji.github.io/zzz-assets/zzz/agent%20attribute/base/Ether.webp">Ether</div>
-          <div class="spec-btn attr-btn" data-attr="Fire"     onclick="toggleLibAttr(this)"><img src="https://efenji.github.io/zzz-assets/zzz/agent%20attribute/base/Fire.webp">Fire</div>
-          <div class="spec-btn attr-btn" data-attr="Ice"      onclick="toggleLibAttr(this)"><img src="https://efenji.github.io/zzz-assets/zzz/agent%20attribute/base/Ice.webp">Ice</div>
-          <div class="spec-btn attr-btn" data-attr="Physical" onclick="toggleLibAttr(this)"><img src="https://efenji.github.io/zzz-assets/zzz/agent%20attribute/base/Physical.webp">Physical</div>
-          <div class="spec-btn attr-btn" data-attr="Wind"     onclick="toggleLibAttr(this)"><img src="https://efenji.github.io/zzz-assets/zzz/agent%20attribute/base/Wind.webp">Wind</div>
+          <div class="spec-btn attr-btn" data-attr="Electric" onclick="toggleLibAttr(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/agent%20attribute/base/Electric.webp">Electric</div>
+          <div class="spec-btn attr-btn" data-attr="Ether"    onclick="toggleLibAttr(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/agent%20attribute/base/Ether.webp">Ether</div>
+          <div class="spec-btn attr-btn" data-attr="Fire"     onclick="toggleLibAttr(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/agent%20attribute/base/Fire.webp">Fire</div>
+          <div class="spec-btn attr-btn" data-attr="Ice"      onclick="toggleLibAttr(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/agent%20attribute/base/Ice.webp">Ice</div>
+          <div class="spec-btn attr-btn" data-attr="Physical" onclick="toggleLibAttr(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/agent%20attribute/base/Physical.webp">Physical</div>
+          <div class="spec-btn attr-btn" data-attr="Wind"     onclick="toggleLibAttr(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/agent%20attribute/base/Wind.webp">Wind</div>
         </div>
       </div>
     </div>
@@ -1469,12 +1482,12 @@ select {
           <button class="lib-rarity-btn" data-rarity="A" onclick="toggleLibWengineRarity(this)">A</button>
           <button class="lib-rarity-btn" data-rarity="B" onclick="toggleLibWengineRarity(this)">B</button>
           <div class="tb-sep"></div>
-          <div class="spec-btn" data-spec="Anomaly" onclick="toggleLibWengineSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Anomaly.webp">Anomaly</div>
-          <div class="spec-btn" data-spec="Attack"  onclick="toggleLibWengineSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Attack.webp">Attack</div>
-          <div class="spec-btn" data-spec="Defense" onclick="toggleLibWengineSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Defense.webp">Defense</div>
-          <div class="spec-btn" data-spec="Rupture" onclick="toggleLibWengineSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Rupture.webp">Rupture</div>
-          <div class="spec-btn" data-spec="Stun"    onclick="toggleLibWengineSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Stun.webp">Stun</div>
-          <div class="spec-btn" data-spec="Support" onclick="toggleLibWengineSpec(this)"><img src="https://efenji.github.io/zzz-assets/zzz/specialties/Support.webp">Support</div>
+          <div class="spec-btn" data-spec="Anomaly" onclick="toggleLibWengineSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Anomaly.webp">Anomaly</div>
+          <div class="spec-btn" data-spec="Attack"  onclick="toggleLibWengineSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Attack.webp">Attack</div>
+          <div class="spec-btn" data-spec="Defense" onclick="toggleLibWengineSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Defense.webp">Defense</div>
+          <div class="spec-btn" data-spec="Rupture" onclick="toggleLibWengineSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Rupture.webp">Rupture</div>
+          <div class="spec-btn" data-spec="Stun"    onclick="toggleLibWengineSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Stun.webp">Stun</div>
+          <div class="spec-btn" data-spec="Support" onclick="toggleLibWengineSpec(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/specialties/Support.webp">Support</div>
         </div>
       </div>
     </div>
@@ -1659,7 +1672,7 @@ select {
 </div>
 
 <script>
-const BASE = 'https://efenji.github.io/zzz-assets/zzz';
+const BASE = 'https://efenji.github.io/zzz-team-builder/zzz';
 
 const AGENTS_FULL = [
   'alice','anby-demara','soldier 0','anton','aria','astra-yao',
@@ -2885,7 +2898,7 @@ function discSetRank(name) {
 // Sourced from the in-game set-effect text. Keys match the DISCS / DISC_SET_RELEASE_ORDER
 // display names above exactly (incl. the existing 'Dawns Bloom' / 'Phaeton's Melody' spellings
 // already used elsewhere in this file for asset URLs — the official spellings are technically
-// "Dawn's Bloom" / "Phaethon's Melody", but the asset filenames on efenji.github.io/zzz-assets
+// "Dawn's Bloom" / "Phaethon's Melody", but the asset filenames on efenji.github.io/zzz-team-builder
 // already use the shorter forms, so we match that rather than introduce a mismatch).
 const DISC_SET_EFFECTS = {
   "Astral Voice": {
@@ -6385,7 +6398,7 @@ document.addEventListener('keydown', e => {
   if (e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
   else if (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey)) { e.preventDefault(); redo(); }
 });
-let displayOptions = Object.assign({attr:true, class:true, ability:true, wengine:true, boo:true, name:true, discs:true},
+let displayOptions = Object.assign({attr:true, class:true, ability:true, wengine:true, boo:true, name:true, discs:true, shiyu:true},
   JSON.parse(localStorage.getItem('zzz_display_options') || '{}'));
 
 /* ── ADVANCED MODE ──
@@ -8402,9 +8415,21 @@ function escapeHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// List of known Shiyu Defense season numbers, newest first. A new season
+// drops roughly every 2 weeks — just prepend the new number here when it does.
+const SHIYU_SEASONS = ['53', '52'];
+
+function populateShiyuSelect() {
+  const sel = document.getElementById('sdShiyu');
+  if (!sel || sel.dataset.built) return;
+  sel.innerHTML = '<option value="">—</option>' + SHIYU_SEASONS.map(s => `<option value="${s}">${s}</option>`).join('');
+  sel.dataset.built = '1';
+}
+
 function newTeam() {
   return {
     id: uid(), name: 'Team',
+    shiyu: '',
     floor:'1', tier:'4', side:'A',
     timerMin:0, timerSec:0,
     agents:[
@@ -8432,11 +8457,14 @@ function updateRoomOptions() {
 /* ── RENDER LIST ── */
 function renderTeams() {
   const grid = document.getElementById('teamsGrid');
-  if (!teams.length) {
-    grid.innerHTML = `<div class="empty-state"><span class="ico">⚔️</span>No saved teams.<br>Press «+ New Team» to get started.</div>`;
+  const list = shiyuFilter ? teams.filter(t => t.shiyu === shiyuFilter) : teams;
+  if (!list.length) {
+    grid.innerHTML = shiyuFilter
+      ? `<div class="empty-state"><span class="ico">🗂️</span>No saved teams for Shiyu S${shiyuFilter}.</div>`
+      : `<div class="empty-state"><span class="ico">⚔️</span>No saved teams.<br>Press «+ New Team» to get started.</div>`;
     return;
   }
-  grid.innerHTML = teams.map(t => {
+  grid.innerHTML = list.map(t => {
     const timer = `${String(t.timerMin).padStart(2,'0')}:${String(t.timerSec).padStart(2,'0')}`;
     const roomNum = t.side==='A'?'1':t.side==='B'?'2':'3';
     const tag = `${t.floor}F · Room ${roomNum}`;
@@ -8479,12 +8507,29 @@ function renderTeams() {
         ${displayOptions.name ? `<div class="tc-name">${t.name}</div>` : ''}
         <div class="tc-tag">${tag}</div>
         <div class="tc-time"><b>${timer}</b></div>
+        ${(displayOptions.shiyu && t.shiyu) ? `<div class="tc-shiyu">S${t.shiyu}</div>` : ''}
       </div>
       <div class="tc-strip">${cells}</div>
       ${displayOptions.boo ? `<div class="tc-foot">${booHtml}</div>` : ''}
     </div>`;
   }).join('');
   updateToolbarState();
+}
+
+// Filters the saved-teams grid down to one specific Shiyu season. Purely a
+// display filter (does not touch the persisted `teams` array/order) — teams
+// with no season assigned are hidden whenever a specific season is picked.
+let shiyuFilter = localStorage.getItem('zzz_shiyu_filter') || '';
+function populateShiyuFilterSelect() {
+  const sel = document.getElementById('shiyuFilterSelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">All Shiyu</option>' + SHIYU_SEASONS.map(s => `<option value="${s}">S${s} only</option>`).join('');
+  sel.value = shiyuFilter;
+}
+function setShiyuFilter(val) {
+  shiyuFilter = val;
+  localStorage.setItem('zzz_shiyu_filter', shiyuFilter);
+  renderTeams();
 }
 
 /* ── TOOLBAR: SELECTION & ACTIONS ── */
@@ -8619,12 +8664,15 @@ function editTeam(id) {
   const t = teams.find(x=>x.id===id); if(!t) return;
   editingId=id; currentTeam=JSON.parse(JSON.stringify(t));
   if (currentTeam.note === undefined) currentTeam.note = '';
+  if (currentTeam.shiyu === undefined) currentTeam.shiyu = '';
   showEditor();
 }
 function showEditor() {
   document.getElementById('editorOverlay').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
   document.getElementById('editorName').value = currentTeam.name;
+  populateShiyuSelect();
+  document.getElementById('sdShiyu').value    = currentTeam.shiyu || '';
   document.getElementById('sdFloor').value    = currentTeam.floor;
   updateRoomOptions();
   document.getElementById('sdSide').value     = currentTeam.side;
@@ -8642,6 +8690,7 @@ function editorBgClick(e) { if (e.target === document.getElementById('editorOver
 function saveTeam() {
   pushUndo();
   currentTeam.name     = document.getElementById('editorName').value.trim()||'Team';
+  currentTeam.shiyu    = document.getElementById('sdShiyu').value;
   currentTeam.floor    = document.getElementById('sdFloor').value;
   currentTeam.side     = document.getElementById('sdSide').value;
   // booMindscape saved via setBooMindscape directly
@@ -9377,7 +9426,14 @@ function pickItem(key) {
       const orderedIds = [...grid.querySelectorAll('.team-card')].map(c => c.dataset.id);
       const changed = orderedIds.some((id, i) => id !== beforeIds[i]);
       if (changed) pushUndo();
-      teams.sort((a, b) => orderedIds.indexOf(a.id) - orderedIds.indexOf(b.id));
+      // Reorder only the slots that belong to the currently-visible (filtered)
+      // teams; teams hidden by the Shiyu filter keep their original array
+      // position so filtering never scrambles the full saved order.
+      const visibleSet = new Set(orderedIds);
+      const byId = new Map(teams.map(t => [t.id, t]));
+      const slots = [];
+      teams.forEach((t, i) => { if (visibleSet.has(t.id)) slots.push(i); });
+      slots.forEach((slotIdx, k) => { teams[slotIdx] = byId.get(orderedIds[k]); });
       localStorage.setItem('zzz_teams', JSON.stringify(teams));
     }
 
@@ -9389,6 +9445,7 @@ function pickItem(key) {
 
 initAccentColor();
 initToolbarToggles();
+populateShiyuFilterSelect();
 updateAdvancedModeUI();
 updateUndoRedoButtons();
 renderTeams();
