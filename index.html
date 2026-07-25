@@ -966,6 +966,47 @@ select {
 .comment-author { color: var(--text-mid); font-weight: 700; flex-shrink: 0; }
 .comment-input-row { display: flex; gap: 8px; margin-top: 8px; }
 .comment-input-row input { flex: 1; background: var(--bg3); border: 1px solid var(--border); color: var(--text); border-radius: var(--r-sm); padding: 6px 10px; font-size: 12.5px; }
+
+/* ── TOASTS ── */
+#toastContainer { position: fixed; top: 16px; right: 16px; z-index: 400; display: flex; flex-direction: column; gap: 8px; max-width: 340px; }
+.toast {
+  background: var(--bg2); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  color: var(--text); border-radius: var(--r-sm); padding: 11px 14px; font-size: 13px; line-height: 1.4;
+  box-shadow: 0 6px 20px rgba(0,0,0,.4);
+  animation: toastIn .18s ease-out;
+}
+.toast.error { border-left-color: var(--red); }
+.toast.success { border-left-color: #4ade80; }
+@keyframes toastIn { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: translateX(0); } }
+.toast.fade-out { opacity: 0; transition: opacity .25s; }
+
+/* ── CUSTOM CONFIRM / PROMPT DIALOG ── */
+.dlg-bg {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0,0,0,.82); backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.dlg-box {
+  background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r);
+  padding: 20px; width: 100%; max-width: 380px;
+}
+.dlg-msg { font-size: 14px; color: var(--text); line-height: 1.5; margin-bottom: 16px; }
+.dlg-input {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+  border-radius: var(--r-sm); padding: 9px 12px; font-size: 13px; margin-bottom: 16px;
+}
+.dlg-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.dlg-btn {
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+  font-family: 'Barlow Condensed', 'Oswald', sans-serif; font-size: 12px; font-weight: 700;
+  letter-spacing: .04em; padding: 8px 18px; border-radius: 100px; cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.dlg-btn:hover { border-color: var(--border2); background: var(--bg4); }
+.dlg-btn.primary { background: var(--accent); color: #000; border-color: var(--accent); }
+.dlg-btn.primary:hover { background: var(--accent); opacity: .9; }
+.dlg-btn.danger { color: var(--red); }
+.dlg-btn.danger:hover { border-color: var(--red); background: rgba(239,68,68,.12); color: var(--red); }
 .profile-uid-row { display: flex; gap: 8px; max-width: 460px; margin-bottom: 6px; }
 .profile-uid-row input {
   flex: 1; background: var(--bg3); border: 1px solid var(--border); color: var(--text);
@@ -1355,6 +1396,16 @@ select {
 <div class="page hidden" id="pageFeed">
   <div class="section-title">Community Feed</div>
   <div id="feedList" class="feed-list"></div>
+</div>
+
+<div id="toastContainer"></div>
+
+<div id="dlgBg" class="dlg-bg hidden">
+  <div class="dlg-box">
+    <div class="dlg-msg" id="dlgMsg"></div>
+    <input type="text" id="dlgInput" class="dlg-input hidden">
+    <div class="dlg-actions" id="dlgActions"></div>
+  </div>
 </div>
 
 <div id="editorOverlay" class="editor-overlay hidden" onclick="editorBgClick(event)">
@@ -9493,6 +9544,64 @@ function pickItem(key) {
   });
 })();
 
+// ===== Toast notifications & custom confirm/prompt (replace native alert/confirm/prompt) =====
+function showToast(message, kind = 'info') {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+  const el = document.createElement('div');
+  el.className = `toast${kind === 'error' ? ' error' : kind === 'success' ? ' success' : ''}`;
+  el.textContent = message;
+  container.appendChild(el);
+  setTimeout(() => {
+    el.classList.add('fade-out');
+    setTimeout(() => el.remove(), 260);
+  }, 3600);
+}
+
+function closeDlg() {
+  document.getElementById('dlgBg').classList.add('hidden');
+}
+
+function customConfirm(message, { okLabel = 'Delete', danger = true } = {}) {
+  return new Promise(resolve => {
+    const bg = document.getElementById('dlgBg');
+    document.getElementById('dlgMsg').textContent = message;
+    document.getElementById('dlgInput').classList.add('hidden');
+    document.getElementById('dlgActions').innerHTML = '';
+    bg.classList.remove('hidden');
+    const finish = (result) => { closeDlg(); resolve(result); };
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'dlg-btn'; cancelBtn.textContent = 'Cancel';
+    cancelBtn.onclick = () => finish(false);
+    const okBtn = document.createElement('button');
+    okBtn.className = `dlg-btn${danger ? ' danger' : ' primary'}`; okBtn.textContent = okLabel;
+    okBtn.onclick = () => finish(true);
+    document.getElementById('dlgActions').append(cancelBtn, okBtn);
+  });
+}
+
+function customPrompt(message, defaultValue = '') {
+  return new Promise(resolve => {
+    const bg = document.getElementById('dlgBg');
+    document.getElementById('dlgMsg').textContent = message;
+    const input = document.getElementById('dlgInput');
+    input.classList.remove('hidden');
+    input.value = defaultValue;
+    document.getElementById('dlgActions').innerHTML = '';
+    bg.classList.remove('hidden');
+    setTimeout(() => { input.focus(); input.select(); }, 0);
+    const finish = (result) => { closeDlg(); resolve(result); };
+    input.onkeydown = (e) => { if (e.key === 'Enter') finish(input.value); if (e.key === 'Escape') finish(null); };
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'dlg-btn'; cancelBtn.textContent = 'Cancel';
+    cancelBtn.onclick = () => finish(null);
+    const okBtn = document.createElement('button');
+    okBtn.className = 'dlg-btn primary'; okBtn.textContent = 'OK';
+    okBtn.onclick = () => finish(input.value);
+    document.getElementById('dlgActions').append(cancelBtn, okBtn);
+  });
+}
+
 // ===== Auth (Discord via Supabase) =====
 let currentUser = null; // { id, username, avatar }
 
@@ -9543,16 +9652,16 @@ let feedPosts = [];
 let feedUserVotes = {};
 
 async function shareSelectedTeam() {
-  if (!currentUser) { alert('Sign in with Discord to share teams.'); return; }
+  if (!currentUser) { showToast('Sign in with Discord to share teams.', 'error'); return; }
   const ids = [...selectedTeamIds];
   if (ids.length !== 1) return;
   const team = teams.find(t => t.id === ids[0]);
   if (!team) return;
-  const title = prompt('Post title for the feed:', team.name || 'My Team');
+  const title = await customPrompt('Post title for the feed:', team.name || 'My Team');
   if (title === null) return;
   const { error } = await sb.from('posts').insert({ user_id: currentUser.id, title: title.trim() || 'Untitled', team_json: team });
-  if (error) { alert('Failed to publish: ' + error.message); return; }
-  alert('Team published to the feed!');
+  if (error) { showToast('Failed to publish: ' + error.message, 'error'); return; }
+  showToast('Team published to the feed!', 'success');
 }
 
 async function renderFeed() {
@@ -9617,7 +9726,7 @@ function feedPostHtml(p) {
 }
 
 async function castVote(postId, value) {
-  if (!currentUser) { alert('Sign in with Discord to vote.'); return; }
+  if (!currentUser) { showToast('Sign in with Discord to vote.', 'error'); return; }
   const current = feedUserVotes[postId] || 0;
   if (current === value) {
     await sb.from('votes').delete().eq('post_id', postId).eq('user_id', currentUser.id);
@@ -9628,7 +9737,7 @@ async function castVote(postId, value) {
 }
 
 async function deletePost(postId) {
-  if (!confirm('Delete this post from the feed?')) return;
+  if (!(await customConfirm('Delete this post from the feed?'))) return;
   await sb.from('posts').delete().eq('id', postId);
   renderFeed();
 }
@@ -9670,7 +9779,7 @@ async function submitComment(postId) {
   const body = input.value.trim();
   if (!body) return;
   const { error } = await sb.from('comments').insert({ post_id: postId, user_id: currentUser.id, body });
-  if (error) { alert('Failed to post comment: ' + error.message); return; }
+  if (error) { showToast('Failed to post comment: ' + error.message, 'error'); return; }
   input.value = '';
   loadComments(postId);
 }
