@@ -3169,7 +3169,6 @@ const DISC_MAIN_STAT_OPTIONS = {
     { stat: 'Physical DMG Bonus', value: 30 }, { stat: 'Fire DMG Bonus', value: 30 },
     { stat: 'Ice DMG Bonus', value: 30 }, { stat: 'Electric DMG Bonus', value: 30 },
     { stat: 'Ether DMG Bonus', value: 30 }, { stat: 'Wind DMG Bonus', value: 30 },
-    { stat: 'Lumiflux DMG Bonus', value: 30 },
   ],
   6: [
     { stat: 'HP%', value: 30 }, { stat: 'ATK%', value: 30 }, { stat: 'DEF%', value: 48 },
@@ -3194,7 +3193,7 @@ const DISC_SUBSTAT_POOL = Object.keys(DISC_SUBSTAT_PER_PROC);
 // in the UI both are shown with the plain label "HP", exactly like in-game.
 const DISC_PERCENT_STATS = new Set([
   'HP%', 'ATK%', 'DEF%', 'CRIT Rate', 'CRIT DMG', 'PEN Ratio', 'Anomaly Mastery', 'Energy Regen',
-  'Physical DMG Bonus', 'Fire DMG Bonus', 'Ice DMG Bonus', 'Electric DMG Bonus', 'Ether DMG Bonus', 'Wind DMG Bonus', 'Lumiflux DMG Bonus',
+  'Physical DMG Bonus', 'Fire DMG Bonus', 'Ice DMG Bonus', 'Electric DMG Bonus', 'Ether DMG Bonus', 'Wind DMG Bonus',
 ]);
 // Maps a disc's main-stat label (slots 4-6 only) to the icon key used by
 // ICONS_BY_SLOT / footerDiscRowHtml, so an advanced-mode disc pick can drive
@@ -3205,7 +3204,7 @@ const MAIN_STAT_ICON_MAP = {
   'Anomaly Proficiency': 'Anomaly_Proficiency',
   'PEN Ratio': 'PEN_Ratio',
   'Physical DMG Bonus': 'Physical', 'Fire DMG Bonus': 'Fire', 'Ice DMG Bonus': 'Ice',
-  'Electric DMG Bonus': 'Electric', 'Ether DMG Bonus': 'Ether', 'Wind DMG Bonus': 'Wind', 'Lumiflux DMG Bonus': 'Lumiflux',
+  'Electric DMG Bonus': 'Electric', 'Ether DMG Bonus': 'Ether', 'Wind DMG Bonus': 'Wind',
   'Anomaly Mastery': 'Anomaly_Mastery', 'Impact': 'Impact', 'Energy Regen': 'Energy_Generation_Rate',
 };
 function mainStatToIconKey(stat) { return MAIN_STAT_ICON_MAP[discStatLabel(stat)] || null; }
@@ -6583,7 +6582,7 @@ function attributeBadgeHtml(key) {
 
 const ICONS_BY_SLOT = [
   ["Anomaly_Proficiency", "ATK", "CRIT_DMG", "CRIT_Rate", "DEF", "HP"],
-  ["ATK", "DEF", "HP", "PEN_Ratio", "Electric", "Ether", "Fire", "Ice", "Physical", "Wind", "Lumiflux"],
+  ["ATK", "DEF", "HP", "PEN_Ratio", "Electric", "Ether", "Fire", "Ice", "Physical", "Wind"],
   ["Anomaly_Mastery", "ATK", "DEF", "Energy_Generation_Rate", "HP", "Impact"]
 ];
 
