@@ -1496,6 +1496,7 @@ select {
       <div class="spec-btn attr-btn" data-attr="Ice"      onclick="toggleAttr(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/agent%20attribute/base/Ice.webp">Ice</div>
       <div class="spec-btn attr-btn" data-attr="Physical" onclick="toggleAttr(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/agent%20attribute/base/Physical.webp">Physical</div>
       <div class="spec-btn attr-btn" data-attr="Wind"     onclick="toggleAttr(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/agent%20attribute/base/Wind.webp">Wind</div>
+      <div class="spec-btn attr-btn" data-attr="Lumiflux" onclick="toggleAttr(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/agent%20attribute/base/Lumiflux.webp">Lumiflux</div>
     </div>
     <div class="modal-grid" id="modalGrid"></div>
   </div>
@@ -1547,6 +1548,7 @@ select {
           <div class="spec-btn attr-btn" data-attr="Ice"      onclick="toggleLibAttr(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/agent%20attribute/base/Ice.webp">Ice</div>
           <div class="spec-btn attr-btn" data-attr="Physical" onclick="toggleLibAttr(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/agent%20attribute/base/Physical.webp">Physical</div>
           <div class="spec-btn attr-btn" data-attr="Wind"     onclick="toggleLibAttr(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/agent%20attribute/base/Wind.webp">Wind</div>
+          <div class="spec-btn attr-btn" data-attr="Lumiflux" onclick="toggleLibAttr(this)"><img src="https://efenji.github.io/zzz-team-builder/zzz/agent%20attribute/base/Lumiflux.webp">Lumiflux</div>
         </div>
       </div>
     </div>
@@ -1780,21 +1782,22 @@ const AGENTS_FULL = [
   'orphie-and-magus','pan yinhu','piper','promeia','pulchra','pyrois',
   'qingyi','rina','seed','seth','soldier 11','soukaku','sunna',
   'trigger','yuzuha','velina','vivian','yanagi',
-  'ye shunguang','yidhari','yixuan','zhao','zhu yuan'
+  'ye shunguang','yidhari','yixuan','zhao','zhu yuan',
+  'remielle','sigrid'
 ];
 
 // ── WENGINE SPECIALTIES (fill later) ──
 // Rarity tier of each W-Engine: S (top tier), A (mid), B (lower). Exactly one
 // tier per engine. Not yet wired into any UI/filter — data only for now.
 const WENGINE_RARITY = {
-  S: ['zanshin-herb-case','yesterday-calls','wrathful-vajra','weeping-cradle','tusks-of-fury','timeweaver','thoughtbop','the-restrained','the-brimstone','steel-cushion','starlight-rider-faceplate','spectral-gaze','sol-exuvia','sharpened-stinger','severed-innocence','serpentine-seeker','roaring-fur-nace','riot-suppressor-mark-vi','qingming-birdcage','practiced-perfection','neon-fantasies','myriad-eclipse','metanukimorphosis','krakens-cradle','joyau-dore','ice-jade-teapot','hellfire-gears','heartstring-nocturne','half-sugar-bunny','hailstorm-shrine','fusion-compiler','frostfall-sickle','flight-of-fancy','flamemaker-shaker','elegant-vanity','dreamlit-hearth','deep-sea-visitor','cordis-germina','cloudcleave-radiance','chief-sidekick','blazing-laurel','bellicose-blaze','angel-in-the-shell'],
+  S: ["knight's-extolment",'ode-of-resurrected-wings','zanshin-herb-case','yesterday-calls','wrathful-vajra','weeping-cradle','tusks-of-fury','timeweaver','thoughtbop','the-restrained','the-brimstone','steel-cushion','starlight-rider-faceplate','spectral-gaze','sol-exuvia','sharpened-stinger','severed-innocence','serpentine-seeker','roaring-fur-nace','riot-suppressor-mark-vi','qingming-birdcage','practiced-perfection','neon-fantasies','myriad-eclipse','metanukimorphosis','krakens-cradle','joyau-dore','ice-jade-teapot','hellfire-gears','heartstring-nocturne','half-sugar-bunny','hailstorm-shrine','fusion-compiler','frostfall-sickle','flight-of-fancy','flamemaker-shaker','elegant-vanity','dreamlit-hearth','deep-sea-visitor','cordis-germina','cloudcleave-radiance','chief-sidekick','blazing-laurel','bellicose-blaze','angel-in-the-shell'],
   A: ['weeping-gemini','unfettered-game-ball','tremor-trigram-vessel','the-vault','the-simmering-pot','street-superstar','steam-oven','starlight-engine-replica','starlight-engine','spring-embrace','slice-of-time','six-shooter','roaring-ride','reel-projector','rainforest-gourmet','radiowave-journey','puzzle-sphere','precious-fossilized-core','peacekeeper-specialized','original-transmorpher','marcato-desire','kaboom-the-cannon','housekeeper','grill-owisp','gilded-blossom','electro-lip-gloss','drill-rig-red-axis','demara-battery-mark-ii','cauldron-of-clarity','cannon-rotor','bunny-band','box-cutter','boisterous-echoes','big-cylinder','bashful-demon'],
   B: ['revolver','pleniluna','noviluna','mark-iii','mark-ii','mark-i','inflection','hatchet','decrescent','cobalt','charlie','bravo','base','arrow','alpha'],
 };
 
 const WENGINE_SPECIALTIES = {
-  Anomaly:  ['alpha','angel-in-the-shell','boisterous-echoes','bravo','charlie','electro-lip-gloss','flamemaker-shaker','flight-of-fancy','frostfall-sickle','fusion-compiler','hailstorm-shrine','joyau-dore','practiced-perfection','rainforest-gourmet','roaring-ride','sharpened-stinger','timeweaver','weeping-gemini'],
-  Attack:   ['zanshin-herb-case','the-brimstone','steel-cushion','street-superstar','starlight-engine-replica','starlight-engine','sol-exuvia','severed-innocence','serpentine-seeker','riot-suppressor-mark-vi','pleniluna','noviluna','myriad-eclipse','marcato-desire','housekeeper','heartstring-nocturne','gilded-blossom','drill-rig-red-axis','deep-sea-visitor','decrescent','cordis-germina','cloudcleave-radiance','cannon-rotor','bellicose-blaze'],
+  Anomaly:  ['alpha','angel-in-the-shell','boisterous-echoes','bravo','charlie','electro-lip-gloss','flamemaker-shaker','flight-of-fancy','frostfall-sickle','fusion-compiler','hailstorm-shrine','joyau-dore','ode-of-resurrected-wings','practiced-perfection','rainforest-gourmet','roaring-ride','sharpened-stinger','timeweaver','weeping-gemini'],
+  Attack:   ["knight's-extolment",'zanshin-herb-case','the-brimstone','steel-cushion','street-superstar','starlight-engine-replica','starlight-engine','sol-exuvia','severed-innocence','serpentine-seeker','riot-suppressor-mark-vi','pleniluna','noviluna','myriad-eclipse','marcato-desire','housekeeper','heartstring-nocturne','gilded-blossom','drill-rig-red-axis','deep-sea-visitor','decrescent','cordis-germina','cloudcleave-radiance','cannon-rotor','bellicose-blaze'],
   Defense:  ['base','big-cylinder','bunny-band','half-sugar-bunny','inflection','peacekeeper-specialized','original-transmorpher','reel-projector','spring-embrace','tremor-trigram-vessel','tusks-of-fury'],
   Rupture:  ['wrathful-vajra','starlight-rider-faceplate','radiowave-journey','qingming-birdcage','puzzle-sphere','krakens-cradle','grill-owisp','cauldron-of-clarity','cobalt'],
   Stun:     ['yesterday-calls','the-simmering-pot','the-restrained','steam-oven','spectral-gaze','six-shooter','roaring-fur-nace','revolver','precious-fossilized-core','neon-fantasies','ice-jade-teapot','hellfire-gears','hatchet','demara-battery-mark-ii','chief-sidekick','blazing-laurel','arrow','box-cutter'],
@@ -1806,6 +1809,30 @@ const WENGINE_SPECIALTIES = {
 // the engine's passive at R1 (higher refinements only strengthen the same numbers, so R1's
 // text already describes the effect this tool needs to display).
 const WENGINE_INFO = {
+  "knight's-extolment": {
+    "specialty": "Attack",
+    "rarity": "S",
+    "quote": "Every Deputy Administrative Director of the Airspace Patrol Department from House de L'Azur has had a custom W-Engine of their own. The badge and ode of the guardians of the skies are all forged into this elegant white emblem. To the children, the members of the Airspace Patrol Department who protect the City in the Sky are knights from a fairy tale. The peace and tranquility above the clouds are the quiet ode of their extolment. \"Every knight in a fairy tale has their own trusty steed. Which reminds me...\" —Lady Lindverne Sunbringer eyes her knight with unmistakable mischief.",
+    "baseATK": 713,
+    "secondaryStat": {
+      "name": "CRIT DMG",
+      "value": "48%"
+    },
+    "refinementTitle": "Knight's Rite",
+    "refinementText": "When the equipper's Basic Attack or EX Special Attack's heavy attack hits an enemy, they gain 1 stack of Battle Edge, increasing CRIT DMG by 32% for 25s. Battle Edge can stack up to 2 times, and each skill type can provide up to 1 stack. Repeated triggers refresh the duration of all Battle Edge. At 2 stacks of Battle Edge, the equipper gains Bonechill: Their DMG ignores 20% of the target's Ice RES."
+  },
+  "ode-of-resurrected-wings": {
+    "specialty": "Anomaly",
+    "rarity": "S",
+    "quote": "The wings scorched by the blazing sun once fell to the pale earth, into a lightless chasm. Then fall... She will bear it all. In that long slumber forgotten by time, even sorrow faded away, as did joy, as did memory. A hundred years passed in the blink of an eye. Kingdoms upon the earth fell and rose anew, yet she never awoke. But no matter how much unspeakable darkness lay buried within her heart, a bird cannot pretend not to see the coming of spring. \"Spring flowers are winter's dream, and autumn clouds remember the summer breeze~\" —Beneath the quiet moonlit sky, a pink-haired girl softly hums an ancient nursery rhyme.",
+    "baseATK": 743,
+    "secondaryStat": {
+      "name": "ATK",
+      "value": "36%"
+    },
+    "refinementTitle": "Paradise Lost",
+    "refinementText": "Increases Anomaly Proficiency by 96. When the equipper triggers a Refringe reaction, they gain 20% increased Anomaly DMG, and all squad members gain 30% increased DMG dealt. Both effects last 30s. Repeated triggers reset the duration."
+  },
   "angel-in-the-shell": {
     "specialty": "Anomaly",
     "rarity": "S",
@@ -2926,13 +2953,13 @@ const WENGINE_INFO = {
 // Rarity tier of each agent: S (top tier), A (mid). Exactly one tier per
 // agent. Not yet wired into any UI/filter — data only for now.
 const AGENT_RARITY = {
-  S: ['alice','aria','astra-yao','banyue','burnice','caesar','cissia','dialyn','ellen','evelyn','grace-howard','harumasa','hugo','jane-doe','ju fufu','koleda','lighter','lucia','lycaon','miyabi','nangong yu','nekomata','norma','orphie-and-magus','promeia','pyrois','qingyi','rina','seed','soldier 0','soldier 11','starlight billy','sunna','trigger','velina','vivian','yanagi','ye shunguang','yidhari','yixuan','yuzuha','zhao','zhu yuan'],
+  S: ['alice','aria','astra-yao','banyue','burnice','caesar','cissia','dialyn','ellen','evelyn','grace-howard','harumasa','hugo','jane-doe','ju fufu','koleda','lighter','lucia','lycaon','miyabi','nangong yu','nekomata','norma','orphie-and-magus','promeia','pyrois','qingyi','rina','seed','soldier 0','soldier 11','starlight billy','sunna','trigger','velina','vivian','yanagi','ye shunguang','yidhari','yixuan','yuzuha','zhao','zhu yuan','remielle','sigrid'],
   A: ['anby-demara','anton','ben','billy-kid','corin','lucy','manato','nicole-demara','pan yinhu','piper','pulchra','seth','soukaku'],
 };
 
 const AGENT_SPECIALTIES = {
-  Anomaly:  ['alice','aria','burnice','grace-howard','jane-doe','miyabi','piper','promeia','velina','vivian','yanagi'],
-  Attack:   ['zhu yuan','ye shunguang','soldier 11','seed','pyrois','orphie-and-magus','nekomata','hugo','harumasa','evelyn','ellen','corin','cissia','billy-kid','anton','soldier 0'],
+  Anomaly:  ['alice','aria','burnice','grace-howard','jane-doe','miyabi','piper','promeia','velina','vivian','yanagi','remielle'],
+  Attack:   ['zhu yuan','ye shunguang','soldier 11','seed','pyrois','orphie-and-magus','nekomata','hugo','harumasa','evelyn','ellen','corin','cissia','billy-kid','anton','soldier 0','sigrid'],
   Defense:  ['ben','caesar','pan yinhu','seth','zhao'],
   Rupture:  ['yixuan','yidhari','manato','starlight billy','banyue'],
   Stun:     ['anby-demara','dialyn','ju fufu','koleda','lighter','lycaon','nangong yu','norma','pulchra','qingyi','trigger'],
@@ -2940,6 +2967,7 @@ const AGENT_SPECIALTIES = {
 };
 
 const WENGINES = [
+  "knight's-extolment",'ode-of-resurrected-wings',
   'alpha','angel-in-the-shell','arrow','base','bashful-demon','bellicose-blaze',
   'big-cylinder','blazing-laurel','boisterous-echoes','box-cutter','bravo','bunny-band','cannon-rotor',
   'cauldron-of-clarity','charlie','chief-sidekick','cloudcleave-radiance','cobalt',
@@ -2962,6 +2990,7 @@ const WENGINES = [
   'wrathful-vajra','yesterday-calls','zanshin-herb-case'
 ];
 const DISCS = [
+  'Feathered Fate','Thorned Rose',
   'Shining Aria','Astral Voice','Branch & Blade Song','Bunny in Wonderland','Chaos Jazz','Chaotic Metal',
   'Dawns Bloom','Fanged Metal','Freedom Blues','Shadow Harmony','Hormone Punk','Inferno Metal',
   'King of the Summit','Phaeton\'s Melody','Moonlight Lullaby','Notes From the Chained','Polar Metal','Proto Punk','Puffer Electro',
@@ -2973,6 +3002,7 @@ const DISCS = [
 // launch batch). Used to sort the Drive Disc Library so sets line up the way
 // they actually came out, not by when the player happened to add them here.
 const DISC_SET_RELEASE_ORDER = [
+  'Feathered Fate', 'Thorned Rose',                          // 3.1
   'The Sky Ablaze', 'Wuthering Salon',                       // 3.0
   'Notes From the Chained', 'Bunny in Wonderland',           // 2.7
   'Shining Aria', 'White Water Ballad',                      // 2.5
@@ -2998,6 +3028,14 @@ function discSetRank(name) {
 // "Dawn's Bloom" / "Phaethon's Melody", but the asset filenames on efenji.github.io/zzz-team-builder
 // already use the shorter forms, so we match that rather than introduce a mismatch).
 const DISC_SET_EFFECTS = {
+  "Feathered Fate": {
+    "2": "Anomaly Proficiency +30",
+    "4": "When the equipper enters the battlefield or is switched in as the active character, they gain the following buff: Anomaly Proficiency increases by 50. If the equipper is a Lumiflux character, Attribute Anomaly DMG increases by 15%, lasting 15s. This buff remains active while the equipper is off-field."
+  },
+  "Thorned Rose": {
+    "2": "DEF +16%",
+    "4": "The equipper's DMG increases by 15%. When the equipper's initial DEF is at least 1,000/1,800, CRIT Rate increases by 8/16%."
+  },
   "Astral Voice": {
     "2": "ATK +10%",
     "4": "Whenever any squad member enters the field using a Quick Assist, all squad members gain 1 stack of Astral, up to a maximum of 3 stacks, and lasting 15s. Repeated triggers reset the duration. Each stack of Astral increases the DMG dealt by the character entering the field using a Quick Assist by 8%. Passive effects of the same name do not stack."
@@ -3131,6 +3169,7 @@ const DISC_MAIN_STAT_OPTIONS = {
     { stat: 'Physical DMG Bonus', value: 30 }, { stat: 'Fire DMG Bonus', value: 30 },
     { stat: 'Ice DMG Bonus', value: 30 }, { stat: 'Electric DMG Bonus', value: 30 },
     { stat: 'Ether DMG Bonus', value: 30 }, { stat: 'Wind DMG Bonus', value: 30 },
+    { stat: 'Lumiflux DMG Bonus', value: 30 },
   ],
   6: [
     { stat: 'HP%', value: 30 }, { stat: 'ATK%', value: 30 }, { stat: 'DEF%', value: 48 },
@@ -3155,7 +3194,7 @@ const DISC_SUBSTAT_POOL = Object.keys(DISC_SUBSTAT_PER_PROC);
 // in the UI both are shown with the plain label "HP", exactly like in-game.
 const DISC_PERCENT_STATS = new Set([
   'HP%', 'ATK%', 'DEF%', 'CRIT Rate', 'CRIT DMG', 'PEN Ratio', 'Anomaly Mastery', 'Energy Regen',
-  'Physical DMG Bonus', 'Fire DMG Bonus', 'Ice DMG Bonus', 'Electric DMG Bonus', 'Ether DMG Bonus', 'Wind DMG Bonus',
+  'Physical DMG Bonus', 'Fire DMG Bonus', 'Ice DMG Bonus', 'Electric DMG Bonus', 'Ether DMG Bonus', 'Wind DMG Bonus', 'Lumiflux DMG Bonus',
 ]);
 // Maps a disc's main-stat label (slots 4-6 only) to the icon key used by
 // ICONS_BY_SLOT / footerDiscRowHtml, so an advanced-mode disc pick can drive
@@ -3166,7 +3205,7 @@ const MAIN_STAT_ICON_MAP = {
   'Anomaly Proficiency': 'Anomaly_Proficiency',
   'PEN Ratio': 'PEN_Ratio',
   'Physical DMG Bonus': 'Physical', 'Fire DMG Bonus': 'Fire', 'Ice DMG Bonus': 'Ice',
-  'Electric DMG Bonus': 'Electric', 'Ether DMG Bonus': 'Ether', 'Wind DMG Bonus': 'Wind',
+  'Electric DMG Bonus': 'Electric', 'Ether DMG Bonus': 'Ether', 'Wind DMG Bonus': 'Wind', 'Lumiflux DMG Bonus': 'Lumiflux',
   'Anomaly Mastery': 'Anomaly_Mastery', 'Impact': 'Impact', 'Energy Regen': 'Energy_Generation_Rate',
 };
 function mainStatToIconKey(stat) { return MAIN_STAT_ICON_MAP[discStatLabel(stat)] || null; }
@@ -3177,6 +3216,7 @@ function discStatValueDisplay(stat, value) {
 }
 
 const BANGBOOS = [
+  'ariel',
   'agent-gulliver','amillion','avocaboo','baddieboo','bagboo','bangvolver','belion',
   'biggest-fan','bild-n-boolok','birkblick','boollseye','booressure','brawlerboo',
   'butler','cryboo','devilboo','electroboo','excaliboo','exploreboo','knightboo',
@@ -3190,6 +3230,28 @@ const BANGBOOS = [
 // NOTE: the wiki source also has a 'Booltergeist' bangboo not present in the BANGBOOS
 // roster/library above — see BOOLTERGEIST_NOTE just below if you want to add it.
 const BANGBOO_INFO = {
+  "ariel": {
+    "rarity": "S",
+    "quote": "You cannot walk alone in the darkness.",
+    "statsLv60": {
+      "hp": 4210,
+      "atk": 8863,
+      "def": 666,
+      "impact": 103,
+      "critRate": 50,
+      "critDmg": 100,
+      "penRatio": 0,
+      "anomalyProficiency": 110
+    },
+    "activeSkill": {
+      "title": "Searing Flash",
+      "text": "Flies high into the air, then blinks to the target's vicinity, attacking and pulling in enemies across a large area. After a short time, a Prismatic Cross is generated that deals Ether DMG. Once the pull ends, gain 1/2/3 random buffs based on the number of enemies pulled (the same buff cannot be gained more than once): restore the Agent's HP, restore the Agent's Energy, or increase Prismatic Cross DMG."
+    },
+    "additionalAbility": {
+      "title": "Angel's Protection",
+      "text": "When Remielle is in the squad: When using an Active Skill, all buffs are guaranteed, and Bangboo Chain Attack DMG increases by 15%."
+    }
+  },
   "agent-gulliver": {
     "rarity": "S",
     "quote": "¡ï ¡ï ¡ï ¡ï ¡ï Security check! Open up!",
@@ -4085,6 +4147,8 @@ const AGENT_CARD_OFFSET = {
 };
 
 const AGENT_SIGNATURE_WENGINE = {
+  'remielle':'ode-of-resurrected-wings',
+  'sigrid':"knight's-extolment",
   'norma':'chief-sidekick',
   'harumasa':'zanshin-herb-case',
   'dialyn':'yesterday-calls',
@@ -4203,6 +4267,8 @@ const AGENT_ATTRIBUTE = {
   'yixuan': {base:'Ether', special:'Auric_Ink'},
   'zhao': {base:'Ice'},
   'zhu yuan': {base:'Ether'},
+  'remielle': {base:'Lumiflux'},
+  'sigrid': {base:'Ice'},
 };
 
 // ── AGENT FACTIONS ── not yet used in UI, reserved for future display
@@ -4264,6 +4330,8 @@ const AGENT_FACTION = {
   'yixuan': 'Yunkui Summit',
   'zhao': 'Krampus Compliance Authority',
   'zhu yuan': 'Criminal Investigation Special Response Team',
+  'remielle': 'Covenant of Dayat',
+  'sigrid': 'Airspace Patrol Department',
 };
 
 // ── ADDITIONAL ABILITY ──
@@ -4275,7 +4343,8 @@ const AGENT_DEFENSIVE_ASSIST = [
   'jane-doe','ju fufu','koleda','lighter','lucia','lucy','lycaon','manato','miyabi',
   'nangong yu','nekomata','nicole-demara','norma','orphie-and-magus','pan yinhu',
   'piper','promeia','pyrois','qingyi','seed','seth','soldier 11','soukaku','sunna',
-  'trigger','yuzuha','velina','vivian','yanagi','ye shunguang','yidhari','yixuan','zhao'
+  'trigger','yuzuha','velina','vivian','yanagi','ye shunguang','yidhari','yixuan','zhao',
+  'remielle','sigrid'
 ]; // excluded: astra-yao, billy-kid, grace-howard, pulchra, rina, zhu yuan
 // Activates if AT LEAST ONE condition matches AT LEAST ONE of the other 2 teammates
 // (unless includeSelf is true for a given agent, in which case the agent's own
@@ -4338,6 +4407,8 @@ const AGENT_ADDITIONAL_ABILITY = {
   'yixuan': { conditions: [{type:'class', value:'Stun'}, {type:'class', value:'Support'}, {type:'class', value:'Defense'}], includeSelf: false },
   'zhao': { conditions: [{type:'class', value:'Anomaly'}, {type:'class', value:'Attack'}, {type:'class', value:'Support'}], includeSelf: false },
   'zhu yuan': { conditions: [{type:'class', value:'Support'}, {type:'faction', value:'Criminal Investigation Special Response Team'}], includeSelf: false },
+  'remielle': { conditions: [{type:'class', value:'Anomaly'}, {type:'faction', value:'Covenant of Dayat'}], includeSelf: false },
+  'sigrid': { conditions: [{type:'class', value:'Support'}, {type:'class', value:'Stun'}], includeSelf: false },
 };
 
 // ── AGENT PROFILE DATA (from official kit/bio reference) ──
@@ -4351,6 +4422,78 @@ const AGENT_ADDITIONAL_ABILITY = {
 // bio fields were copied from their base identity (Anby, Billy) since the wiki source doesn't
 // repeat bio info for alt costumes. Pyrois has no bio fields available at time of writing.
 const AGENT_PROFILE = {
+  "remielle": {
+    "fullName": "Remielle Dan",
+    "gender": "Female",
+    "birthday": "MAR 14",
+    "stature": "167cm",
+    "statsLv60": {
+      "hp": 7482,
+      "atk": 823,
+      "def": 600,
+      "impact": 83,
+      "critRate": 5,
+      "critDmg": 50,
+      "anomalyMastery": 115,
+      "anomalyProficiency": 170,
+      "penRatio": 0,
+      "energyRegen": 1.2
+    },
+    "corePassive": "Core Passive: Temporal Patterns - Stilled Colors Remielle's Refringe Coefficient is equal to 0.02% of her Anomaly Proficiency. If there are 3 Anomaly characters in the squad, her Refringe Coefficient increases by an additional 10%. When Remielle triggers a Refringe reaction through a teammate, she generates Voidflare based on the enhanced Anomaly Effect Strength of the current Attribute Anomaly after it has been Refringed. Up to the 3 most recently generated Voidflares can be stored. If Assist: Flower & Feather Dance, Ultimate: Dazzling Curtain Call, Basic Attack: Rainbow's End, or Basic Attack: Fleeting Grace hits a target, Luminize is triggered after the skill ends: Based on the Anomaly Effect Strength of all stored Voidflares, deals Attribute Anomaly DMG to the enemy using the corresponding skill's DMG multiplier. This multiplier is further increased by 0.2% of Remielle's Anomaly Proficiency. All stored Voidflares are cleared when Remielle enters the Phase Flow state or after using Basic Attack: Rainbow's End or Basic Attack: Fleeting Grace.",
+    "additionalAbility": "Additional Ability: Invitation to Bloom When another character in your squad is an Anomaly character or shares the same faction: When there are 1/2/3 Anomaly characters in the squad, upon entering the battlefield, all squad members gain an ATK increase equal to 6%/12%/40% of Remielle's initial ATK, up to a maximum increase of 1,600 ATK. Remielle's Daze dealt while in the Phase Flow state increases by 6%/12%/35%. When applying Lumiflux Buildup to an enemy, Remielle also applies the Prismatic effect: All squad members' attacks against enemies with the Prismatic effect have 15% increased Anomaly Buildup Rate. Prismatic is removed when the enemy no longer has Lumiflux Buildup. After Prismatic is removed, the Anomaly Buildup Rate increase persists for an additional 8s.",
+    "cinemaTitles": {
+      "1": "Naive Oath",
+      "2": "Fall Into the Noise",
+      "3": "The Garden of Diverging Time",
+      "4": "The Long Goodbye",
+      "5": "To Drink Forgetfulness",
+      "6": "Lone Feather's Endless Flight"
+    },
+    "cinema": {
+      "1": "Upon entering the battlefield, Remielle gains 3 special Voidflares. In Investigation Zone mode, this effect can trigger once every 180s. When Remielle triggers Luminize to deal DMG, she ignores 50% of the target's All-Attribute RES. When using Assist: Flower & Feather Dance, she gains 200 Decibels. This effect can trigger once every 18s. While Remielle is in the Phase Flow state, other squad members' Attribute Anomaly DMG increases by 10%. \"We can put an end to evil and split the heavens. We can walk out of the fog and step closer to the truth...\" \"This is our nation, forever standing tall, and with the power to accomplish miracles.\" \"...\" The pink-haired girl finally can't hold it in anymore. Lowering the brim of her hat, she quietly grumbles to the figure at the front of the line: \"Beli... This oath is way too long. We're not going to have to recite it all the time, are we?\" \"Just wait. It'll only get longer.\" Even the ever-composed figure can't help but smile wryly.",
+      "2": "Remielle's Refringe Coefficient increases by 20%. When an Anomaly character in the squad deals Anomaly DMG to an enemy affected by Prismatic, the attack ignores 15% of the target's DEF. This effect persists for an additional 8s after Prismatic ends. While Remielle is in the Phase Flow state, the frequency at which she automatically attacks to apply Lumiflux Buildup to enemies increases. It was a grand ball. The city was captivated. Even the full moon paled beside it. Crowds gathered in celebration, calling out the heroes' names, laughing and singing as though the night would never end. Those of unparalleled achievement stood together, gazing upon the jubilant crowd as they made a humble vow. \"This is where miracles begin.\" And so, Eridu's journey was about to begin. A great adventure to reclaim the world. \"Come on, the ball's almost over, and you still haven't found a partner? Well... I suppose I can spare you a dance.\"",
+      "3": "Basic Attack, Dodge, Assist, Special Attack, and Chain Attack Lv. +2 The girl wrote her name among the Sunseekers, driven by an ideal that burned brighter than the blazing sun. She believed every wound could be healed. She believed every sacrifice could one day come to an end. And so, she turned and walked into the secret garden. She did not yet know that, deep within that garden, time forever diverged, leading to countless futures. Some led to glory. Some led to hope... Others led to the shadow cast by the sun, to a long night that no one would remember. \"I know, I know. But someone's gotta do it, right?\"",
+      "4": "When Remielle triggers Luminize, the DMG multiplier is increased by an additional 12%. After entering the battlefield and gaining 3 special Voidflares, if all Voidflares are consumed, she immediately gains the maximum number of special Voidflares again. This effect to regain special Voidflares is removed after being triggered once or when Remielle enters the Phase Flow state. She awakens to a pale, desolate world. A hundred years is a dream too long. Long enough for the mists to swallow the remnants of a bygone age. Long enough for pale silence to smother the lingering warmth in her memory. A hundred years is a dream too short. Short enough that the smile before parting still reflects in her eyes. Short enough that her fingertips still reach for a fleeting dance. Then she remembers a summer night. The star-filled sky they once gazed upon together. So she begins to dance alone, just as she always has. Turn. Pause. Reach. Fall into empty air. To an old friend. To a bygone age. May this lament serve as the farewell that has waited a hundred years to be spoken. \"Hey... Care to share a dance with me?\"",
+      "5": "Basic Attack, Dodge, Assist, Special Attack, and Chain Attack Lv. +2 Dusk spills over the rooftops of the world, and lights flicker on one by one. Behind every window glows the warmth of home. Her thin clothes do little to keep out the wind and rain. The girl once called a hero fusses over her disheveled wings. She drains a cup brimming with forgetfulness, yet searing memories still burn her throat as moonlight flows across her lowered gaze. \"Be careful... The ghosts of the old world just might come knocking at your window.\"",
+      "6": "When Remielle uses Basic Attack: Rainbow's End or Basic Attack: Fleeting Grace, Luminize is triggered 2 times. If the 4th hit of her Basic Attack lands against a target, Remielle gains 3 special Voidflares after the skill ends. Special Voidflares gained this way deal DMG equal to 25% of the special Voidflares gained upon entering the battlefield. The end of one journey is simply the beginning of another. Beyond every sky of stars lies yet another. So, once more... just once more, spread your wings and soar. Silent, fallen feathers will touch the sky again, crossing scars that have yet to heal, crossing the shattered yesterdays, toward a tomorrow still waiting to be written. \"My story ends here. I believe it's your turn now, dear partner-in-crime.\""
+    }
+  },
+  "sigrid": {
+    "fullName": "Sigrid de L'Azur",
+    "gender": "Female",
+    "birthday": "APR 23",
+    "stature": "175cm",
+    "statsLv60": {
+      "hp": 7788,
+      "atk": 938,
+      "def": 606,
+      "impact": 93,
+      "critRate": 19.4,
+      "critDmg": 50,
+      "anomalyMastery": 92,
+      "anomalyProficiency": 90,
+      "penRatio": 0,
+      "energyRegen": 1.2
+    },
+    "corePassive": "Core Passive: Sky Knight The 4th hit of Basic Attack: Frost-Tipped Spear, as well as EX Special Attack: Scattered Jade, EX Special Attack: Shattered Jade, Assist Follow-Up: Devouring Frost, Chain Attack: Encroaching Ice, Ultimate: Frozen Heavens, and Dodge Counter: Counterthrust are considered Unbridled Spear attacks. Whenever Sigrid uses and hits an enemy with any Unbridled Spear while not in the Aerial Patrol Spear state, she enters the Aerial Patrol Spear state and gains 1 use of Basic Attack: Converging Spear that cannot be stacked. While in the Aerial Patrol Spear state, when Sigrid hits an enemy with an Unbridled Spear skill, the Aerial Patrol Spear state is refreshed and she gains 1 use of Basic Attack: Converging Spear that cannot be stacked. When triggering or refreshing Aerial Patrol Spear, its duration decreases as the stage of Basic Attack: Converging Spear increases. At stage 1/2/3, its duration is 8/7/6s. When Aerial Patrol Spear ends, the stage of Basic Attack: Converging Spear is reduced by one, to a minimum of stage 1. Activating or refreshing Aerial Patrol Spear increases Sigrid's CRIT Rate by 66% for 8s. Repeated triggers extend the duration by 8s, up to a maximum of 40s. When Sigrid hits a Stunned enemy while in Aerial Patrol Spear, the Stun DMG Multiplier of her DMG dealt to the target is increased by 20%.",
+    "additionalAbility": "Additional Ability: Legion of the Skies When another character in your squad is a Support or Stun character: Sigrid's ATK increases by 120. This effect scales with character level, with each level providing an additional increase of 12, up to a maximum increase of 840. DMG increases by 15% when hitting enemies in the Contamination state.",
+    "cinemaTitles": {
+      "1": "Long, Long Ago",
+      "2": "Legend's First Act",
+      "3": "Protector of Miracles",
+      "4": "Hero in Training",
+      "5": "Skybound Oath",
+      "6": "Knight of the Skies"
+    },
+    "cinema": {
+      "1": "Upon activating the 3rd stage of Basic Attack: Converging Spear, enters the Aerial Patrol Spear and gains 1 additional activation of Basic Attack: Converging Spear. When activations exceed the stored Basic Attack: Converging Spear's activation limit, the next Basic Attack: Converging Spear's final hit deals an additional 100% of ATK as Ice DMG. Sigrid's ATK increases by 25%. Long, long ago, Lady Sunbringer lifted the very first handful of soil that would become this sky island... Alright, alright. The children have already heard the story of Lady Sunbringer creating Roscaelifer's first island a thousand times over. Today, we're telling the story of the warrior who stood at Lady Sunbringer's side. Clad in moon-bright silver armor, she looked just like an ancient knight from a fairy tale...",
+      "2": "PEN Ratio of Unbridled Spear attacks and Basic Attack: Converging Spear increases by 24%. The duration of Aerial Patrol Spear is extended by 2s. Sigrid's Decibel Generation Rate increases by 10%. She was Roscaelifer's first soldier, its first spear. She stood on the first front line against the Hollows and led the very first charge. She was the first wing to follow Lady Sunbringer, and with her own hands, she raised Roscaelifer's very first wall. She was Roscaelifer's first blade broken. Her family name was de L'Azur. Like her legend, her descendants burn eternally in the night sky above Roscaelifer.",
+      "3": "Basic Attack, Dodge, Assist, Special Attack, and Chain Attack Lv. +2 Roscaelifer is the miracle of the skies, and the title of those who protect that miracle has never belonged to only a select few. Yet someone must lead those guardians. That was originally Lady Lindverne's duty, but with her bright and carefree nature, she was hardly suited to be a commanding general. Fortunately, she had a dashing deputy. More accurately, she had one after another.",
+      "4": "Each time upon gaining Aerial Patrol Spear, DMG dealt increases by 18% for 8s. Repeated triggers extend the duration by 8s, up to a maximum of 40s. The soldiers and civilians couldn't help comparing the newly appointed Deputy Administrative Director to her predecessor. Who can blame them? After all, according to Lady Lindverne Sunbringer, every head of House de L'Azur was a legendary figure. Because of that, everyone expected the young de L'Azur to surpass the last, proving worthy of the legendary guardian family's name. And so Lindverne continued weaving new, even more groundbreaking legends for Sigrid.",
+      "5": "Basic Attack, Dodge, Assist, Special Attack, and Chain Attack Lv. +2 Today, Lady Sunbringer commands countless followers through her reputation as a Void Hunter alone. But every renowned leader once stood with no one behind them. To follow that young leader into the skies and build a miracle city that should never have been possible required either a brute's courage or a fool's innocence. And each time a new de L'Azur recites that oath to conquer the skies, those two qualities shine brilliantly once more.",
+      "6": "When Basic Attack: Converging Spear's 1st/2nd/3rd stage's final hit lands, it deals an additional 80%/90%/100% ATK as Ice DMG. There is no more limit on the number of times Sigrid can enter the Formation Breaker state upon hitting a Stunned enemy with Chain Attack: Encroaching Ice. Formation Breaker state's Basic Attack: Converging Spear will activate faster. Ancient legends tell of a Knight of the Lake. In the ballads of the distant future, a frostbound spear will also pierce the skies across time and space. \"Until this spear is broken, the miracle of the skies shall never end.\""
+    }
+  },
   "alice": {
     "fullName": "Alice Thymefield",
     "gender": "Female",
@@ -6440,7 +6583,7 @@ function attributeBadgeHtml(key) {
 
 const ICONS_BY_SLOT = [
   ["Anomaly_Proficiency", "ATK", "CRIT_DMG", "CRIT_Rate", "DEF", "HP"],
-  ["ATK", "DEF", "HP", "PEN_Ratio", "Electric", "Ether", "Fire", "Ice", "Physical", "Wind"],
+  ["ATK", "DEF", "HP", "PEN_Ratio", "Electric", "Ether", "Fire", "Ice", "Physical", "Wind", "Lumiflux"],
   ["Anomaly_Mastery", "ATK", "DEF", "Energy_Generation_Rate", "HP", "Impact"]
 ];
 
@@ -7165,6 +7308,7 @@ const ENKA_AGENT_MAP = {
   1451: 'lucia', 1461: 'seed', 1471: 'banyue', 1481: 'dialyn', 1491: 'sunna',
   1501: 'aria', 1511: 'nangong yu', 1521: 'cissia', 1531: 'starlight billy',
   1541: 'promeia', 1551: 'pyrois', 1561: 'velina', 1571: 'norma',
+  1581: 'remielle', 1591: 'sigrid',
 };
 
 const ENKA_WENGINE_MAP = {
@@ -7201,6 +7345,7 @@ const ENKA_WENGINE_MAP = {
   14148: 'yesterday-calls', 14149: 'thoughtbop', 14150: 'angel-in-the-shell',
   14151: 'neon-fantasies', 14152: 'serpentine-seeker', 14153: 'starlight-rider-faceplate',
   14154: 'frostfall-sickle', 14155: 'sol-exuvia', 14156: 'joyau-dore', 14157: 'chief-sidekick',
+  14158: 'ode-of-resurrected-wings',
 };
 
 const ENKA_DISCSET_MAP = {
@@ -7213,7 +7358,7 @@ const ENKA_DISCSET_MAP = {
   33100: 'Yunkui Tales', 33200: 'King of the Summit', 33300: 'Dawns Bloom',
   33400: 'Moonlight Lullaby', 33500: 'White Water Ballad', 33600: 'Shining Aria',
   33700: 'Bunny in Wonderland', 33800: 'Notes From the Chained', 33900: 'Wuthering Salon',
-  34000: 'The Sky Ablaze',
+  34000: 'The Sky Ablaze', 34100: 'Feathered Fate', 34200: 'Thorned Rose',
 };
 
 // ── PRECISE LEVEL-SCALING TABLES (from EnkaNetwork/seriaati enka-py-assets) ──
