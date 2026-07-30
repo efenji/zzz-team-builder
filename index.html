@@ -7384,7 +7384,7 @@ function enkaWengineStarData(breakLevel, rarityNum) {
 // suitId -> {propId: value} for the 2-Pc stat bonus only (4-Pc bonuses are
 // pure combat-text effects with no tracked stat, hence missing/empty here —
 // matches DISC_SET_EFFECTS' 4-Pc text already elsewhere in this file).
-const DISC_SET_BONUS_PROPS = {"31000":{"20103":800},"31100":{"23103":800},"31200":{"12202":600},"31300":{"31203":30},"31400":{"12102":1000},"31500":{"13102":1600},"31600":{"30502":2000},"31800":{"31203":30},"31900":{},"32200":{"31603":1000},"32300":{"31903":1000},"32400":{"31803":1000},"32500":{"31703":1000},"32600":{"31503":1000},"32700":{"21103":1600},"32800":{"12102":1000},"32900":{},"33000":{"31402":800},"33100":{"11102":1000},"33200":{},"33300":{},"33400":{"30502":2000},"33500":{"31503":1000},"33600":{"31903":1000},"33700":{"11102":1000},"33800":{"31703":1000},"33900":{"32303":1000},"34000":{"31903":1000}};
+const DISC_SET_BONUS_PROPS = {"31000":{"20103":800},"31100":{"23103":800},"31200":{"12202":600},"31300":{"31203":30},"31400":{"12102":1000},"31500":{"13102":1600},"31600":{"30502":2000},"31800":{"31203":30},"31900":{},"32200":{"31603":1000},"32300":{"31903":1000},"32400":{"31803":1000},"32500":{"31703":1000},"32600":{"31503":1000},"32700":{"21103":1600},"32800":{"12102":1000},"32900":{},"33000":{"31402":800},"33100":{"11102":1000},"33200":{},"33300":{},"33400":{"30502":2000},"33500":{"31503":1000},"33600":{"31903":1000},"33700":{"11102":1000},"33800":{"31703":1000},"33900":{"32303":1000},"34000":{"31903":1000},"34100":{"31203":30},"34200":{"13102":1600}};
 
 const ENKA_PROPERTY_MAP = {
   11103: 'HP', 11102: 'HP%', 12103: 'ATK', 12102: 'ATK%', 13103: 'DEF', 13102: 'DEF%',
@@ -7406,18 +7406,26 @@ const ENKA_PERCENT_PROPS = new Set([11102, 12102, 13102, 12202, 20103, 21103, 23
 // showcase short-circuits before ever touching these, which is why it can
 // look deceptively fast next to a real, fully-built account).
 const ENKA_REF_CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
+// Bump this on every game patch that adds new agents/W-Engines/disc sets.
+// Any cached avatars.json/weapons.json/equipments.json stamped with an
+// older version is treated as stale immediately, regardless of the 7-day
+// TTL above — otherwise users who visited before a patch would keep
+// silently serving pre-patch reference data (missing new items) for up
+// to a week after the site itself is updated.
+const ENKA_REF_CACHE_VERSION = '3.1';
 function loadEnkaRefCache(key) {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object' || !('ts' in parsed) || !('data' in parsed)) return null;
+    if (parsed.v !== ENKA_REF_CACHE_VERSION) return null;
     if (Date.now() - parsed.ts > ENKA_REF_CACHE_MAX_AGE) return null;
     return parsed.data;
   } catch { return null; }
 }
 function saveEnkaRefCache(key, data) {
-  try { localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data })); } catch { /* quota/full — just skip persisting */ }
+  try { localStorage.setItem(key, JSON.stringify({ ts: Date.now(), v: ENKA_REF_CACHE_VERSION, data })); } catch { /* quota/full — just skip persisting */ }
 }
 
 // Id -> {Rarity, SuitId} for every drive disc piece, lazy-loaded once from
