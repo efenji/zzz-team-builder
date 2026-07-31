@@ -1073,6 +1073,13 @@ select {
 .profile-agent-card.selected { border-color: var(--accent); background: var(--accent-d); }
 .profile-agent-card .pac-name { font-weight: 700; }
 .profile-agent-card .pac-sub { color: var(--text-dim); font-size: 11px; margin-top: 2px; }
+.profile-agent-card.preset-list-back { color: var(--text-mid); }
+.profile-agent-card.preset-list-back .pac-name { font-weight: 500; }
+.profile-agent-card.preset-list-add {
+  border-style: dashed; text-align: center; color: var(--text-mid); font-weight: 700;
+}
+.profile-agent-card.preset-list-add:hover { border-color: var(--accent); color: var(--accent); }
+.profile-agent-card.broken { border-color: #b45309; }
 .profile-detail { flex: 1; min-width: 0; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
 .profile-detail-empty { color: var(--text-dim); font-size: 13px; text-align: center; padding: 60px 0; }
 .profile-actions-row { display: flex; gap: 8px; max-width: 460px; margin-bottom: 10px; }
@@ -1472,7 +1479,8 @@ select {
   <div class="profile-layout">
     <div class="profile-agent-list-col">
       <div class="profile-agent-list" id="profileAgentList"></div>
-      <button class="lib-pill-btn profile-presets-entry" onclick="openPresetAgentPicker()" title="Browse or create presets for any agent, regardless of who's on this showcase">+ Presets</button>
+      <div class="profile-agent-list hidden" id="profilePresetBrowseList"></div>
+      <button class="lib-pill-btn profile-presets-entry" id="profilePresetsEntryBtn" onclick="openPresetAgentPicker()" title="Browse or create presets for any agent, regardless of who's on this showcase">+ Presets</button>
     </div>
     <div class="profile-detail" id="profileDetail"><div class="profile-detail-empty">Enter a UID above and press Load.</div></div>
   </div>
@@ -8472,8 +8480,11 @@ async function loadProfileShowcase() {
   renderProfileFavorites();
 
   profileLastAvatars = avatars;
+  profileLeftMode = 'roster';
+  profilePresetBrowseAgentKey = null;
   setProfileStatus(`Found ${avatars.length} agent${avatars.length === 1 ? '' : 's'} on the showcase.`, 'ok');
   renderProfileAgentList();
+  renderProfileLeftExtra();
   selectProfileAgent(0);
 }
 
@@ -8499,28 +8510,94 @@ function selectProfileAgent(i) {
 // Presets aren't tied to any UID's showcase — they're a per-agent thing
 // this tool tracks locally, so gating access to them behind "this agent
 // happens to be in the loaded account's showcase" would be an artificial
-// restriction. The "+ Presets" button below the agent list opens a picker
-// over the FULL roster (reusing the same modal grid as everywhere else,
-// via modalCtx.type='preset-agent') and shows that agent's presets in the
-// detail panel — no showcase data needed or used.
+// restriction. The "+ Presets" button below the agent list drills down
+// through TWO plain lists rendered right there in the left column — full
+// agent roster, then that agent's presets — the exact same list/click
+// pattern as the showcase roster above it, no modal popup involved.
+let profileLeftMode = 'roster'; // 'roster' | 'agentPicker' | 'presetList'
+let profilePresetBrowseAgentKey = null;
+
 function openPresetAgentPicker() {
-  openModal('preset-agent');
+  profileLeftMode = 'agentPicker';
+  renderProfileLeftExtra();
 }
-async function showPresetsForAgent(agentKey) {
-  profileSelectedIndex = null; // no showcase avatar selected — this is independent of it
-  profileSelectedPresetId = null;
-  renderProfileAgentList();
-  const panel = document.getElementById('profileDetail');
-  panel.innerHTML = `
-    <div class="pd-head">
-      <div class="pd-portrait"><img src="${agentUrl(agentKey)}" onerror="this.style.opacity=.15"></div>
-      <div>
-        <div class="pd-name">${escapeHtml(cardName(agentKey))}</div>
-        <div class="pd-sub">Presets — независимо от загруженного UID</div>
-      </div>
-    </div>
-    <div id="profilePresetsSection">${await renderProfilePresetsSection(agentKey)}</div>
-  `;
+function exitPresetBrowse() {
+  profileLeftMode = 'roster';
+  profilePresetBrowseAgentKey = null;
+  renderProfileLeftExtra();
+}
+function backToPresetAgentPicker() {
+  profileLeftMode = 'agentPicker';
+  profilePresetBrowseAgentKey = null;
+  renderProfileLeftExtra();
+}
+
+function renderProfileLeftExtra() {
+  const rosterEl = document.getElementById('profileAgentList');
+  const browseEl = document.getElementById('profilePresetBrowseList');
+  const btn = document.getElementById('profilePresetsEntryBtn');
+  if (!rosterEl || !browseEl || !btn) return;
+
+  if (profileLeftMode === 'roster') {
+    rosterEl.classList.remove('hidden');
+    browseEl.classList.add('hidden');
+    browseEl.innerHTML = '';
+    btn.textContent = '+ Presets';
+    btn.onclick = openPresetAgentPicker;
+    return;
+  }
+
+  rosterEl.classList.add('hidden');
+  browseEl.classList.remove('hidden');
+  btn.textContent = '← Roster';
+  btn.onclick = exitPresetBrowse;
+
+  if (profileLeftMode === 'agentPicker') {
+    const items = sortAgentsByRarity(AGENTS_FULL);
+    browseEl.innerHTML = items.map(k => `<div class="profile-agent-card" onclick="browsePresetsForAgent('${k}')">
+      <div class="pac-name">${escapeHtml(cardName(k))}</div>
+      <div class="pac-sub">${getAgentPresets(k).length}/${PRESET_LIMIT} presets</div>
+    </div>`).join('');
+  } else if (profileLeftMode === 'presetList') {
+    const agentKey = profilePresetBrowseAgentKey;
+    const presets = getAgentPresets(agentKey);
+    const backRow = `<div class="profile-agent-card preset-list-back" onclick="backToPresetAgentPicker()">
+      <div class="pac-name">← ${escapeHtml(cardName(agentKey))}</div>
+    </div>`;
+    const rows = presets.map(p => {
+      const { missing } = evaluatePresetApplicability(p, null);
+      const broken = missing.length > 0;
+      return `<div class="profile-agent-card${broken ? ' broken' : ''}" onclick="viewPresetDetail('${agentKey}','${p.id}')">
+        <div class="pac-name">${escapeHtml(p.name)}${broken ? ' <span class="preset-chip-warn" style="position:static;display:inline-flex;vertical-align:middle;margin-left:4px">!</span>' : ''}</div>
+      </div>`;
+    }).join('');
+    const addRow = presets.length < PRESET_LIMIT
+      ? `<div class="profile-agent-card preset-list-add" onclick="openPresetCreateForm('${agentKey}')">+ New Preset</div>`
+      : '';
+    browseEl.innerHTML = backRow + rows + addRow;
+  }
+}
+
+function browsePresetsForAgent(agentKey) {
+  profileLeftMode = 'presetList';
+  profilePresetBrowseAgentKey = agentKey;
+  renderProfileLeftExtra();
+  document.getElementById('profileDetail').innerHTML = `<div class="profile-detail-empty">Select a preset to view it.</div>`;
+}
+
+async function viewPresetDetail(agentKey, presetId) {
+  const preset = getPresetById(agentKey, presetId);
+  if (!preset) return;
+  document.getElementById('profileDetail').innerHTML = await presetDetailHtml(agentKey, preset);
+}
+
+// Refreshes whichever preset UI is currently on screen for a given agent —
+// either the showcase character's own read-only Presets section (if that's
+// what's showing) or the standalone left-column preset list (if active).
+function refreshPresetViews(agentKey) {
+  const oldSection = document.getElementById('profilePresetsSection');
+  if (oldSection) refreshProfilePresetsSection(agentKey);
+  if (profileLeftMode === 'presetList' && profilePresetBrowseAgentKey === agentKey) renderProfileLeftExtra();
 }
 
 // Same shape as enkaEquipmentToDiscEntry(), but scales the main stat with
@@ -8656,7 +8733,7 @@ function savePresetDraft() {
   if (preset) {
     showToast(`Пресет «${preset.name}» сохранён.`, 'success');
     closePresetForm();
-    refreshProfilePresetsSection(agentKey);
+    refreshPresetViews(agentKey);
   }
 }
 
@@ -8684,7 +8761,7 @@ async function renamePresetPrompt(agentKey, presetId) {
   const name = await customPrompt('Новое название пресета:', preset.name);
   if (name === null) return;
   renameAgentPreset(agentKey, presetId, name);
-  refreshProfilePresetsSection(agentKey);
+  refreshPresetViews(agentKey);
 }
 async function deletePresetPrompt(agentKey, presetId) {
   const preset = getPresetById(agentKey, presetId);
@@ -8693,7 +8770,10 @@ async function deletePresetPrompt(agentKey, presetId) {
   if (!ok) return;
   deleteAgentPreset(agentKey, presetId);
   if (profileSelectedPresetId === presetId) profileSelectedPresetId = null;
-  refreshProfilePresetsSection(agentKey);
+  if (profileLeftMode === 'presetList' && profilePresetBrowseAgentKey === agentKey) {
+    document.getElementById('profileDetail').innerHTML = `<div class="profile-detail-empty">Select a preset to view it.</div>`;
+  }
+  refreshPresetViews(agentKey);
 }
 
 async function renderProfilePresetsSection(agentKey) {
@@ -8711,9 +8791,6 @@ async function renderProfilePresetsSection(agentKey) {
       ${broken ? '<span class="preset-chip-warn">!</span>' : ''}
     </div>`;
   }).join('');
-  const addBtn = presets.length < PRESET_LIMIT
-    ? `<button class="lib-pill-btn" onclick="openPresetCreateForm('${agentKey}')">+ New Preset</button>`
-    : '';
 
   let expandedHtml = '';
   if (profileSelectedPresetId) {
@@ -8723,7 +8800,7 @@ async function renderProfilePresetsSection(agentKey) {
 
   return `
     <div class="pd-section-title">Presets</div>
-    <div class="pd-presets-row">${chips || '<span class="pd-sub">No presets yet.</span>'}${addBtn}</div>
+    <div class="pd-presets-row">${chips || '<span class="pd-sub">No presets yet.</span>'}</div>
     ${expandedHtml}
   `;
 }
@@ -10462,7 +10539,7 @@ function pickItem(key) {
     const s=ag.icons[discIdx]===key; ag.icons[discIdx]=s?null:key;
   }
   if (type === 'preset-wengine') { renderPresetDraftEditor(); closeModal(); }
-  else if (type === 'preset-agent') { closeModal(); showPresetsForAgent(key); }
+  else if (type === 'preset-agent') { closeModal(); browsePresetsForAgent(key); }
   else { renderAgents(); closeModal(); }
 }
 
