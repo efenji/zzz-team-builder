@@ -7988,16 +7988,26 @@ async function buildManualAgentStatSheet(agentKey, wengineKey, discEntries) {
   }
 
   const setCounts = {};
+  // mainStatValue / subStats[].value on a disc entry are already "clean"
+  // display numbers (see enkaBuildDiscDisplayEntry / discStatValueDisplay:
+  // for anything in ENKA_PERCENT_PROPS, that's raw/100, e.g. CRIT Rate
+  // 2400 → 24). noteFam()/assemble() below expect the SAME raw, undivided
+  // scale buildEnkaAgentStatSheet feeds it directly from PropertyValue*procs
+  // — so those clean numbers have to be scaled back up by ×100 here, or every
+  // percent-based stat (CRIT Rate/DMG, PEN Ratio, ATK%/HP%/DEF%, Energy
+  // Regen, elemental DMG Bonus, Anomaly Mastery, Impact) ends up divided by
+  // 100 an extra time and comes out ~100x too small in the final sheet.
+  const toRawPropValue = (id, clean) => ENKA_PERCENT_PROPS.has(id) ? clean * 100 : clean;
   (discEntries || []).forEach(d => {
     if (!d) return;
     if (d.setName) setCounts[d.setName] = (setCounts[d.setName] || 0) + 1;
     const mainId = NAME_TO_ENKA_PROP_ID[d.mainStat];
     if (mainId != null && d.mainStatValue != null) {
-      noteFam(mainId, enkaPropBucket(mainId), parseFloat(d.mainStatValue) || 0);
+      noteFam(mainId, enkaPropBucket(mainId), toRawPropValue(mainId, parseFloat(d.mainStatValue) || 0));
     }
     (d.subStats || []).forEach(s => {
       const subId = NAME_TO_ENKA_PROP_ID[s.name];
-      if (subId != null) noteFam(subId, enkaPropBucket(subId), parseFloat(s.value) || 0);
+      if (subId != null) noteFam(subId, enkaPropBucket(subId), toRawPropValue(subId, parseFloat(s.value) || 0));
     });
   });
 
