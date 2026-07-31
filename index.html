@@ -628,12 +628,12 @@ select {
 }
 .ag-presets-list { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
 .preset-chip {
-  width: 26px; height: 26px; border-radius: 50%; overflow: hidden;
+  width: 26px; height: 26px; border-radius: 50%; position: relative;
   background: var(--bg); border: 1px solid var(--border); cursor: pointer;
   transition: border-color .15s, transform .1s;
 }
 .preset-chip:hover { border-color: var(--accent); transform: scale(1.08); }
-.preset-chip img { width: 100%; height: 100%; object-fit: cover; }
+.preset-chip img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 .preset-save-btn {
   width: 26px; height: 26px; border-radius: 50%;
   background: var(--bg); border: 1px dashed var(--border2); color: var(--text-mid);
@@ -642,6 +642,19 @@ select {
 }
 .preset-save-btn:hover { border-color: var(--accent); color: var(--accent); }
 .preset-empty { font-size: 10px; color: var(--text-dim); }
+.preset-chip.broken, .preset-chip-lg.broken { border-color: #b45309; }
+.preset-chip-warn {
+  position: absolute; top: -3px; right: -3px;
+  width: 13px; height: 13px; border-radius: 50%;
+  background: #b45309; color: #1a1200; font-size: 9px; font-weight: 900;
+  display: flex; align-items: center; justify-content: center; line-height: 1;
+  box-shadow: 0 0 0 2px var(--bg3);
+}
+.pd-preset-warn {
+  font-size: 12px; color: #f0b429; background: rgba(180,83,9,.12);
+  border: 1px solid #b45309; border-radius: var(--r-sm);
+  padding: 8px 12px; margin-bottom: 14px; line-height: 1.5;
+}
 
 /* ── BANGBOO CARD ── */
 .boo-card {
@@ -1117,7 +1130,7 @@ select {
 /* ── PRESETS (Profile tab) ── */
 .pd-presets-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .preset-chip-lg {
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: 6px; position: relative;
   background: var(--bg3); border: 1px solid var(--border); border-radius: 999px;
   padding: 4px 12px 4px 4px; cursor: pointer; font-size: 12px; color: var(--text-mid);
   transition: border-color .15s, color .15s, background .15s;
@@ -8627,11 +8640,19 @@ async function deletePresetPrompt(agentKey, presetId) {
 
 async function renderProfilePresetsSection(agentKey) {
   const presets = getAgentPresets(agentKey);
-  const chips = presets.map(p => `
-    <div class="preset-chip-lg${p.id === profileSelectedPresetId ? ' selected' : ''}" onclick="toggleProfilePreset('${agentKey}','${p.id}')" title="${escapeHtml(p.name)}">
+  const chips = presets.map(p => {
+    const { missing } = evaluatePresetApplicability(p, null);
+    const broken = missing.length > 0;
+    const title = broken
+      ? `${escapeHtml(p.name)} — ${missing.length} disc(s) no longer match anything in your Drive Disc Library`
+      : escapeHtml(p.name);
+    return `
+    <div class="preset-chip-lg${p.id === profileSelectedPresetId ? ' selected' : ''}${broken ? ' broken' : ''}" onclick="toggleProfilePreset('${agentKey}','${p.id}')" title="${title}">
       <img src="${wengineUrl(p.wengine)}" onerror="this.style.opacity=.2">
       <span>${escapeHtml(p.name)}</span>
-    </div>`).join('');
+      ${broken ? '<span class="preset-chip-warn">!</span>' : ''}
+    </div>`;
+  }).join('');
   const addBtn = presets.length < PRESET_LIMIT
     ? `<button class="lib-pill-btn" onclick="openPresetCreateForm('${agentKey}')">+ New Preset</button>`
     : '';
@@ -8664,6 +8685,10 @@ async function presetDetailHtml(agentKey, preset) {
   const wengineInfo = preset.wengine ? WENGINE_INFO[preset.wengine] : null;
   const wengineLibLevel = preset.wengine ? (getWengineLibEntry(preset.wengine).level || 60) : 60;
   const coreLetter = libEntry.coreSkillEnhancement ? enkaCoreSkillLetter(libEntry.coreSkillEnhancement) : null;
+  const { missing } = evaluatePresetApplicability(preset, null);
+  const missingBanner = missing.length
+    ? `<div class="pd-preset-warn">⚠ ${missing.length} of 6 discs no longer match anything in your Drive Disc Library (edited or deleted since this preset was saved). The stats below still use the saved snapshot, but applying this preset to a team will skip those slots. Delete and re-save the preset to fix.</div>`
+    : '';
 
   const statsHtml = sheet
     ? sheet.map(s => `
@@ -8712,6 +8737,8 @@ async function presetDetailHtml(agentKey, preset) {
           </div>
         </div>
       </div>
+
+      ${missingBanner}
 
       <div class="pd-section-title">Stats <span class="pd-stat-approx" title="Theoretical build: Level/Core Skill from the Agent Library, this W-Engine's Level from the W-Engine Library — same formulas as the Enka import above">ⓘ</span></div>
       <div class="pd-cols">${statsHtml}</div>
@@ -9737,6 +9764,26 @@ function findAgentUsingDiscId(discId, excludeAgentIdx) {
   return null;
 }
 
+// Single source of truth for "can this preset actually be applied right
+// now" — used both by applyAgentPreset (to decide whether to go ahead or
+// show the conflict modal) and by the preset chips themselves (to show a
+// warning badge up front, before the user even clicks). Pass agentIdx=null
+// when there's no team context to check conflicts against (e.g. the
+// Profile-tab chips, which only care whether discs still exist at all).
+function evaluatePresetApplicability(preset, agentIdx) {
+  const resolved = [], missing = [], conflicts = [];
+  (preset.discs || []).forEach(snap => {
+    const id = findLibraryDiscIdForSnapshot(snap);
+    if (!id) { missing.push(snap); return; }
+    if (agentIdx != null) {
+      const conflictAgent = findAgentUsingDiscId(id, agentIdx);
+      if (conflictAgent) { conflicts.push({ snap, agentName: conflictAgent }); return; }
+    }
+    resolved.push({ slot: snap.slot, id });
+  });
+  return { resolved, missing, conflicts };
+}
+
 async function saveCurrentAsPreset(agentIdx) {
   const ag = currentTeam.agents[agentIdx];
   if (!ag || !ag.key) return;
@@ -9777,14 +9824,7 @@ function applyAgentPreset(agentIdx, presetId) {
   const preset = getPresetById(ag.key, presetId);
   if (!preset) return;
 
-  const resolved = [], missing = [], conflicts = [];
-  preset.discs.forEach(snap => {
-    const id = findLibraryDiscIdForSnapshot(snap);
-    if (!id) { missing.push(snap); return; }
-    const conflictAgent = findAgentUsingDiscId(id, agentIdx);
-    if (conflictAgent) { conflicts.push({ snap, agentName: conflictAgent }); return; }
-    resolved.push({ slot: snap.slot, id });
-  });
+  const { resolved, missing, conflicts } = evaluatePresetApplicability(preset, agentIdx);
 
   if (missing.length || conflicts.length) {
     showPresetConflictModal(preset, missing, conflicts);
@@ -9905,9 +9945,18 @@ function renderAgents() {
       let presetsCard = '';
       if (discAdvActive) {
         const presets = hasA ? getAgentPresets(a.key) : [];
-        const chips = presets.map(p => `<div class="preset-chip" onclick="applyAgentPreset(${i},'${p.id}')" title="${escapeHtml(p.name)}">
+        const chips = presets.map(p => {
+          const { missing, conflicts } = evaluatePresetApplicability(p, i);
+          const broken = missing.length || conflicts.length;
+          const titleBits = [];
+          if (missing.length) titleBits.push(`${missing.length} disc(s) missing from library`);
+          if (conflicts.length) titleBits.push(`${conflicts.length} disc(s) already used by another agent`);
+          const title = broken ? `${escapeHtml(p.name)} — ${titleBits.join('; ')}` : escapeHtml(p.name);
+          return `<div class="preset-chip${broken ? ' broken' : ''}" onclick="applyAgentPreset(${i},'${p.id}')" title="${title}">
             <img src="${wengineUrl(p.wengine)}" onerror="this.style.opacity=.2">
-          </div>`).join('');
+            ${broken ? '<span class="preset-chip-warn">!</span>' : ''}
+          </div>`;
+        }).join('');
         const canSave = hasA && presets.length < PRESET_LIMIT;
         const saveBtn = canSave
           ? `<button class="preset-save-btn" onclick="saveCurrentAsPreset(${i})" title="Save current W-Engine + all 6 discs as a preset">💾</button>`
