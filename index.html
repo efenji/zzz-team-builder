@@ -655,6 +655,9 @@ select {
   border: 1px solid #b45309; border-radius: var(--r-sm);
   padding: 8px 12px; margin-bottom: 14px; line-height: 1.5;
 }
+.pd-preset-warn.pd-preset-note {
+  color: var(--text-mid); background: var(--bg3); border-color: var(--border);
+}
 
 /* ── BANGBOO CARD ── */
 .boo-card {
@@ -1155,6 +1158,10 @@ select {
 
 /* ── PRESET CREATION FORM ── */
 .preset-form-box { max-width: 480px; height: auto; max-height: 88vh; }
+.public-presets-box { max-width: 1100px; width: 100%; height: 85vh; }
+.public-presets-body { flex: 1; min-height: 0; display: flex; gap: 16px; padding: 16px 20px; overflow: hidden; }
+.public-presets-body .profile-agent-list { width: 240px; flex-shrink: 0; overflow-y: auto; }
+.public-presets-body .profile-detail { flex: 1; overflow-y: auto; }
 .preset-form-body { padding: 16px 20px; overflow-y: auto; }
 .preset-form-row { margin-bottom: 12px; }
 .preset-form-label {
@@ -1858,6 +1865,21 @@ select {
       <button class="btn-save" onclick="savePresetDraft()">Save</button>
     </div>
     <div class="preset-form-body" id="presetFormBody"></div>
+  </div>
+</div>
+
+<!-- PRESETS: read-only viewer for another user's published presets (Feed → click author) -->
+<div class="lib-modal-bg hidden" id="publicPresetsBg" onclick="publicPresetsBgClick(event)">
+  <div class="lib-modal-box public-presets-box">
+    <div class="lib-modal-hd">
+      <button class="modal-x" onclick="closePublicPresetsViewer()">✕</button>
+      <div class="lib-modal-ttl" id="publicPresetsTtl">Presets</div>
+      <div style="width:32px"></div>
+    </div>
+    <div class="public-presets-body">
+      <div class="profile-agent-list" id="publicPresetsAgentList"></div>
+      <div class="profile-detail" id="publicPresetsDetail"><div class="profile-detail-empty">Select an agent to see their published presets.</div></div>
+    </div>
   </div>
 </div>
 
@@ -8737,19 +8759,157 @@ async function toggleProfilePreset(agentKey, presetId) {
   await refreshProfilePresetsSection(agentKey);
 }
 
+/* ── PUBLISHING PRESETS (Phase 6) ─────────────────────────────────────────
+   A row in Supabase's `presets` table = a published preset, full stop —
+   no separate public/private flag. Publishing copies the same snapshot
+   shape (wengine/wrank/discs) already used locally; unpublishing just
+   deletes that row. `preset.publishedId` (local-only field) remembers
+   which cloud row belongs to this preset, if any. */
+async function publishPreset(agentKey, presetId) {
+  if (!currentUser) { showToast('Войдите через Discord, чтобы публиковать пресеты.', 'error'); return; }
+  const preset = getPresetById(agentKey, presetId);
+  if (!preset) return;
+  try {
+    const { data, error } = await sb.from('presets').insert({
+      user_id: currentUser.id,
+      agent_key: agentKey,
+      name: preset.name,
+      wengine: preset.wengine,
+      wrank: preset.wrank || 1,
+      discs: preset.discs,
+    }).select('id').single();
+    if (error) throw error;
+    preset.publishedId = data.id;
+    saveAgentPresets();
+    showToast('Пресет опубликован — теперь виден другим на вашем профиле.', 'success');
+  } catch (err) {
+    showToast('Не удалось опубликовать: ' + (err.message || err), 'error');
+  }
+  refreshPresetViews(agentKey);
+}
+
+async function unpublishPreset(agentKey, presetId) {
+  const preset = getPresetById(agentKey, presetId);
+  if (!preset || !preset.publishedId) return;
+  const ok = await customConfirm(
+    'Снять пресет с публикации? Другие пользователи больше не смогут его увидеть.',
+    { okLabel: 'Unpublish', danger: true }
+  );
+  if (!ok) return;
+  try {
+    const { error } = await sb.from('presets').delete().eq('id', preset.publishedId);
+    if (error) throw error;
+  } catch (err) {
+    console.error('[Presets] unpublish failed:', err.message || err);
+  }
+  preset.publishedId = null;
+  saveAgentPresets();
+  showToast('Пресет снят с публикации.', 'success');
+  refreshPresetViews(agentKey);
+}
+
+/* ── VIEWING SOMEONE ELSE'S PUBLISHED PRESETS (Feed → click author) ───────
+   Same two-level drill-down as the standalone browser in the Profile tab
+   (agent list → that agent's presets → detail), just sourced from the
+   `presets` table instead of local storage, and rendered read-only. */
+let publicPresetsCache = [];
+let publicPresetsOwnerLabel = '';
+let currentPublicPresetView = null; // { agentKey, preset } for whichever one is on screen
+
+async function openPublicPresetsViewer(userId, encodedUsername) {
+  publicPresetsOwnerLabel = decodeURIComponent(encodedUsername || '???');
+  document.getElementById('publicPresetsTtl').textContent = `${publicPresetsOwnerLabel}'s Presets`;
+  document.getElementById('publicPresetsAgentList').innerHTML = '<div class="empty-state" style="padding:16px">Loading…</div>';
+  document.getElementById('publicPresetsDetail').innerHTML = '<div class="profile-detail-empty">Select an agent to see their published presets.</div>';
+  document.getElementById('publicPresetsBg').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  try {
+    const { data, error } = await sb.from('presets').select('*').eq('user_id', userId).order('agent_key');
+    if (error) throw error;
+    publicPresetsCache = data || [];
+  } catch (err) {
+    document.getElementById('publicPresetsAgentList').innerHTML = `<div class="empty-state" style="padding:16px;color:var(--red)">Failed to load: ${escapeHtml(err.message || String(err))}</div>`;
+    return;
+  }
+
+  if (!publicPresetsCache.length) {
+    document.getElementById('publicPresetsAgentList').innerHTML = '<div class="empty-state" style="padding:16px">No published presets yet.</div>';
+    return;
+  }
+
+  const agentKeys = [...new Set(publicPresetsCache.map(r => r.agent_key))];
+  document.getElementById('publicPresetsAgentList').innerHTML = sortAgentsByRarity(agentKeys).map(k => {
+    const count = publicPresetsCache.filter(r => r.agent_key === k).length;
+    return `<div class="profile-agent-card" onclick="showPublicAgentPresets('${k}')">
+      <div class="pac-name">${escapeHtml(cardName(k))}</div>
+      <div class="pac-sub">${count} preset${count === 1 ? '' : 's'}</div>
+    </div>`;
+  }).join('');
+}
+
+function closePublicPresetsViewer() {
+  document.getElementById('publicPresetsBg').classList.add('hidden');
+  document.body.style.overflow = '';
+  publicPresetsCache = [];
+  currentPublicPresetView = null;
+}
+function publicPresetsBgClick(e) { if (e.target === document.getElementById('publicPresetsBg')) closePublicPresetsViewer(); }
+
+function showPublicAgentPresets(agentKey) {
+  const rows = publicPresetsCache.filter(r => r.agent_key === agentKey);
+  document.getElementById('publicPresetsDetail').innerHTML = `<div class="pd-presets-row">${rows.map(r =>
+    `<div class="preset-chip-lg" onclick="viewPublicPresetDetail(${r.id})"><span>${escapeHtml(r.name)}</span></div>`
+  ).join('')}</div>`;
+}
+
+async function viewPublicPresetDetail(rowId) {
+  const row = publicPresetsCache.find(r => r.id === rowId);
+  if (!row) return;
+  const preset = { id: row.id, name: row.name, wengine: row.wengine, wrank: row.wrank, discs: row.discs || [] };
+  currentPublicPresetView = { agentKey: row.agent_key, preset };
+  document.getElementById('publicPresetsDetail').innerHTML =
+    await presetDetailHtml(row.agent_key, preset, { readOnly: true, ownerLabel: publicPresetsOwnerLabel });
+}
+
+function copyPublicPresetToMine() {
+  if (!currentPublicPresetView) return;
+  const { agentKey, preset } = currentPublicPresetView;
+  if (getAgentPresets(agentKey).length >= PRESET_LIMIT) {
+    showToast(`У агента ${cardName(agentKey)} уже максимум пресетов (${PRESET_LIMIT}). Удалите один, чтобы скопировать этот.`, 'error');
+    return;
+  }
+  const created = createAgentPreset(agentKey, preset.wengine, preset.wrank || 1, (preset.discs || []).map(d => ({ ...d })), `${preset.name} (copy)`);
+  if (created) {
+    showToast(`Пресет «${created.name}» добавлен в ваши пресеты.`, 'success');
+    refreshPresetViews(agentKey);
+  }
+}
+
 async function renamePresetPrompt(agentKey, presetId) {
   const preset = getPresetById(agentKey, presetId);
   if (!preset) return;
   const name = await customPrompt('Новое название пресета:', preset.name);
   if (name === null) return;
   renameAgentPreset(agentKey, presetId, name);
+  if (preset.publishedId) {
+    try { await sb.from('presets').update({ name: preset.name }).eq('id', preset.publishedId); }
+    catch (err) { console.error('[Presets] failed to sync rename to public copy:', err.message || err); }
+  }
   refreshPresetViews(agentKey);
 }
 async function deletePresetPrompt(agentKey, presetId) {
   const preset = getPresetById(agentKey, presetId);
   if (!preset) return;
-  const ok = await customConfirm(`Удалить пресет «${preset.name}»?`, { okLabel: 'Delete', danger: true });
+  const msg = preset.publishedId
+    ? `Удалить пресет «${preset.name}»? Он также будет снят с публикации — другие перестанут его видеть.`
+    : `Удалить пресет «${preset.name}»?`;
+  const ok = await customConfirm(msg, { okLabel: 'Delete', danger: true });
   if (!ok) return;
+  if (preset.publishedId) {
+    try { await sb.from('presets').delete().eq('id', preset.publishedId); }
+    catch (err) { console.error('[Presets] failed to remove public copy:', err.message || err); }
+  }
   deleteAgentPreset(agentKey, presetId);
   if (profileSelectedPresetId === presetId) profileSelectedPresetId = null;
   if (profilePresetBrowseAgentKey === agentKey) {
@@ -8795,7 +8955,8 @@ async function renderProfilePresetsSection(agentKey) {
 // account. Mindscape/skill levels are shown for context only — per Phase 1,
 // they aren't modeled in the calc, same as the Enka path's own "approximate"
 // convention for kit-specific bonuses it can't compute.
-async function presetDetailHtml(agentKey, preset) {
+async function presetDetailHtml(agentKey, preset, opts = {}) {
+  const { readOnly = false, ownerLabel = null } = opts;
   const sheet = await buildManualAgentStatSheet(agentKey, preset.wengine, preset.discs).catch(() => null);
   const profile = AGENT_PROFILE[agentKey];
   const libEntry = getAgentLibEntry(agentKey);
@@ -8803,8 +8964,11 @@ async function presetDetailHtml(agentKey, preset) {
   const wengineLibLevel = preset.wengine ? (getWengineLibEntry(preset.wengine).level || 60) : 60;
   const coreLetter = libEntry.coreSkillEnhancement ? enkaCoreSkillLetter(libEntry.coreSkillEnhancement) : null;
   const { missing } = evaluatePresetApplicability(preset, null);
-  const missingBanner = missing.length
+  const missingBanner = (!readOnly && missing.length)
     ? `<div class="pd-preset-warn">⚠ ${missing.length} of 6 discs no longer match anything in your Drive Disc Library (edited or deleted since this preset was saved). The stats below still use the saved snapshot, but applying this preset to a team will skip those slots. Delete and re-save the preset to fix.</div>`
+    : '';
+  const publicNote = readOnly
+    ? `<div class="pd-preset-warn pd-preset-note">ℹ Shared build${ownerLabel ? ` by ${escapeHtml(ownerLabel)}` : ''}. The Level/Core Skill Enhancement shown use <em>your own</em> Agent Library settings for ${escapeHtml(cardName(agentKey))} — only the W-Engine and discs are actually part of what was published.</div>`
     : '';
 
   const statsHtml = sheet
@@ -8856,6 +9020,7 @@ async function presetDetailHtml(agentKey, preset) {
       </div>
 
       ${missingBanner}
+      ${publicNote}
 
       <div class="pd-section-title">Stats <span class="pd-stat-approx" title="Theoretical build: Level/Core Skill from the Agent Library, this W-Engine's Level from the W-Engine Library — same formulas as the Enka import above">ⓘ</span></div>
       <div class="pd-cols">${statsHtml}</div>
@@ -8873,8 +9038,13 @@ async function presetDetailHtml(agentKey, preset) {
       ${discsHtml}
 
       <div class="pd-preset-actions">
-        <button class="lib-pill-btn" onclick="renamePresetPrompt('${agentKey}','${preset.id}')">Rename</button>
-        <button class="lib-pill-btn danger" onclick="deletePresetPrompt('${agentKey}','${preset.id}')">Delete</button>
+        ${readOnly
+          ? `<button class="lib-pill-btn" onclick="copyPublicPresetToMine()">📋 Copy to my presets</button>`
+          : `<button class="lib-pill-btn" onclick="renamePresetPrompt('${agentKey}','${preset.id}')">Rename</button>
+             ${preset.publishedId
+               ? `<button class="lib-pill-btn" onclick="unpublishPreset('${agentKey}','${preset.id}')" title="Others can currently see this preset on your public profile">🌐 Published — click to unpublish</button>`
+               : `<button class="lib-pill-btn" onclick="publishPreset('${agentKey}','${preset.id}')" title="Makes this build visible to others via your Discord profile">Publish</button>`}
+             <button class="lib-pill-btn danger" onclick="deletePresetPrompt('${agentKey}','${preset.id}')">Delete</button>`}
       </div>
     </div>
   `;
@@ -10946,7 +11116,7 @@ function feedPostHtml(p) {
     <div class="feed-post-body">
       <div class="feed-post-head">
         ${p.discord_avatar_url ? `<img class="feed-author-avatar" src="${p.discord_avatar_url}" onerror="this.style.display='none'">` : ''}
-        <span class="feed-author-name">${escapeHtml(p.discord_username || '???')}</span>
+        <span class="feed-author-name" onclick="openPublicPresetsViewer('${p.user_id}', '${encodeURIComponent(p.discord_username || '???')}')" style="cursor:pointer" title="View this user's published presets">${escapeHtml(p.discord_username || '???')}</span>
         <span class="feed-post-title">${escapeHtml(p.title)}</span>
       </div>
       <div class="feed-team-preview">${feedTeamPreviewHtml(p.team_json)}</div>
