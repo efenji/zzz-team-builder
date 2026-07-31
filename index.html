@@ -1090,6 +1090,7 @@ select {
 .profile-current-player { font-size: 13px; color: var(--text-mid); margin-bottom: 10px; }
 .profile-current-player b { color: var(--text); font-weight: 700; }
 .pd-head { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 16px; }
+.pd-head-actions { margin-left: auto; flex-shrink: 0; }
 .pd-portrait { width: 96px; height: 96px; border-radius: 10px; overflow: hidden; background: var(--bg4); flex-shrink: 0; }
 .pd-portrait img { width: 100%; height: 100%; object-fit: cover; }
 .pd-name { font-family: 'Barlow Condensed', 'Oswald', sans-serif; font-size: 22px; font-weight: 900; }
@@ -1823,7 +1824,7 @@ select {
   <div class="lib-modal-box preset-form-box">
     <div class="lib-modal-hd">
       <button class="modal-x" onclick="closePresetForm()">✕</button>
-      <div class="lib-modal-ttl">New Preset</div>
+      <div class="lib-modal-ttl" id="presetFormTitle">New Preset</div>
       <button class="btn-save" onclick="savePresetDraft()">Save</button>
     </div>
     <div class="preset-form-body" id="presetFormBody"></div>
@@ -7522,6 +7523,27 @@ function deleteAgentPreset(agentKey, presetId) {
   saveAgentPresets();
 }
 
+// Overwrites an existing preset's W-Engine/discs/name in place — keeps its
+// id (so any published copy still points at "the same" preset) but drops
+// `source`, since editing necessarily re-derives the discs from the user's
+// own Drive Disc Library (via the same picker createAgentPreset's caller
+// uses), so it's no longer a pure showcase snapshot once saved this way.
+function updateAgentPreset(agentKey, presetId, wengineKey, wrank, discEntries, name) {
+  const p = getPresetById(agentKey, presetId);
+  if (!p) return null;
+  if (!wengineKey) { showToast('Выберите W-Engine перед сохранением пресета.', 'error'); return null; }
+  const discs = (discEntries || []).filter(Boolean);
+  if (discs.length !== 6) { showToast('Нужно выбрать все 6 дисков перед сохранением пресета.', 'error'); return null; }
+
+  p.name = (name && name.trim()) || p.name;
+  p.wengine = wengineKey;
+  p.wrank = wrank || 1;
+  p.discs = discs.slice().sort((a, b) => a.slot - b.slot).map(discToSnapshot);
+  p.source = null;
+  saveAgentPresets();
+  return p;
+}
+
 /* ── ENKA.NETWORK IMPORT ──
    Reads a player's Character Showcase via a small proxy (enka.network's
    antibot blocks direct serverless/edge traffic, but a Vercel function
@@ -8472,10 +8494,33 @@ function aggregateProfileDiscSubstats(discEntries) {
    that the team editor's Advanced Mode already uses, so there's exactly
    one "choose a W-Engine" UI and one "choose a disc" UI in the whole app,
    not a second parallel picker built just for this form. */
-let presetDraft = null; // { agentKey, name, wengine, wrank, discSlots: [6] }
+let presetDraft = null; // { agentKey, name, wengine, wrank, discSlots: [6], editingPresetId }
 
 function openPresetCreateForm(agentKey) {
-  presetDraft = { agentKey, name: '', wengine: null, wrank: 1, discSlots: [null, null, null, null, null, null] };
+  presetDraft = { agentKey, name: '', wengine: null, wrank: 1, discSlots: [null, null, null, null, null, null], editingPresetId: null };
+  document.getElementById('presetFormTitle').textContent = 'New Preset';
+  renderPresetDraftEditor();
+  document.getElementById('presetFormBg').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+// Opens the same form pre-filled from an existing preset, so its W-Engine/
+// discs/name can be changed instead of only delete-and-recreate. Each disc
+// snapshot is resolved back to whichever CURRENT Drive Disc Library entry
+// matches it (same fingerprint lookup evaluatePresetApplicability uses) —
+// slots that don't resolve (snapshot no longer matches anything, or this is
+// a showcase-imported preset with no library backing at all) just start
+// empty, ready to be pointed at a real disc.
+function editAgentPreset(agentKey, presetId) {
+  const preset = getPresetById(agentKey, presetId);
+  if (!preset) return;
+  const discSlots = [null, null, null, null, null, null];
+  (preset.discs || []).forEach(snap => {
+    const id = findLibraryDiscIdForSnapshot(snap);
+    if (id && snap.slot >= 1 && snap.slot <= 6) discSlots[snap.slot - 1] = id;
+  });
+  presetDraft = { agentKey, name: preset.name, wengine: preset.wengine, wrank: preset.wrank || 1, discSlots, editingPresetId: presetId };
+  document.getElementById('presetFormTitle').textContent = 'Edit Preset';
   renderPresetDraftEditor();
   document.getElementById('presetFormBg').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
@@ -8538,16 +8583,18 @@ function renderPresetDraftEditor() {
 
 function savePresetDraft() {
   if (!presetDraft) return;
-  const { agentKey, wengine, wrank, discSlots } = presetDraft;
+  const { agentKey, wengine, wrank, discSlots, editingPresetId } = presetDraft;
   const nameInput = document.getElementById('presetDraftName');
   const name = nameInput ? nameInput.value.trim() : '';
   const discEntries = (discSlots || []).map(id => id ? driveDiscLibrary.find(d => d.id === id) : null).filter(Boolean);
 
   if (!wengine) { showToast('Выберите W-Engine.', 'error'); return; }
   if (discEntries.length !== 6) { showToast('Нужно выбрать диски во все 6 слотов.', 'error'); return; }
-  if (getAgentPresets(agentKey).length >= PRESET_LIMIT) { showToast(`У этого агента уже максимум пресетов (${PRESET_LIMIT}).`, 'error'); return; }
+  if (!editingPresetId && getAgentPresets(agentKey).length >= PRESET_LIMIT) { showToast(`У этого агента уже максимум пресетов (${PRESET_LIMIT}).`, 'error'); return; }
 
-  const preset = createAgentPreset(agentKey, wengine, wrank || 1, discEntries, name);
+  const preset = editingPresetId
+    ? updateAgentPreset(agentKey, editingPresetId, wengine, wrank || 1, discEntries, name)
+    : createAgentPreset(agentKey, wengine, wrank || 1, discEntries, name);
   if (preset) {
     showToast(`Пресет «${preset.name}» сохранён.`, 'success');
     closePresetForm();
@@ -8751,22 +8798,6 @@ async function renderProfilePresetsSection(agentKey) {
     </div>`;
   }).join('');
 
-  // "Save current build" reflects the LIVE agent currently on screen, not
-  // whichever preset chip (if any) happens to be expanded below — so it's
-  // always offered here regardless of profileSelectedPresetId, as long as
-  // this is really the agent renderProfileDetail() last drew.
-  const liveBuild = (profileCurrentLiveBuild && profileCurrentLiveBuild.agentKey === agentKey) ? profileCurrentLiveBuild : null;
-  const filledDiscs = liveBuild ? liveBuild.discEntries.filter(Boolean).length : 0;
-  const atLimit = getAgentPresets(agentKey).length >= PRESET_LIMIT;
-  const saveDisabledReason = !liveBuild ? ''
-    : !liveBuild.wengine ? 'No W-Engine equipped on the showcase.'
-    : filledDiscs !== 6 ? `Needs all 6 Drive Discs equipped (currently ${filledDiscs}/6).`
-    : atLimit ? `Max ${PRESET_LIMIT} presets reached for this agent.`
-    : '';
-  const saveBtn = liveBuild
-    ? `<button class="lib-pill-btn" ${saveDisabledReason ? 'disabled' : ''} onclick="saveCurrentShowcaseBuildAsPreset('${agentKey}')" title="${escapeHtml(saveDisabledReason || 'Save this character\u2019s current W-Engine + Drive Discs as a new preset')}">💾 Save current build</button>`
-    : '';
-
   let expandedHtml = '';
   let expandedActionsHtml = '';
   if (profileSelectedPresetId) {
@@ -8780,7 +8811,7 @@ async function renderProfilePresetsSection(agentKey) {
   return `
     <div class="pd-presets-header-row">
       <div class="pd-section-title">Presets</div>
-      <div class="pd-preset-actions-inline">${saveBtn}${expandedActionsHtml}</div>
+      <div class="pd-preset-actions-inline">${expandedActionsHtml}</div>
     </div>
     <div class="pd-presets-row">${chips || '<span class="pd-sub">No presets yet.</span>'}</div>
     ${expandedHtml}
@@ -8823,7 +8854,8 @@ async function saveCurrentShowcaseBuildAsPreset(agentKey) {
 function presetActionsHtml(agentKey, preset, opts = {}) {
   const { readOnly = false } = opts;
   if (readOnly) return `<button class="lib-pill-btn" onclick="copyPublicPresetToMine()">📋 Copy to my presets</button>`;
-  return `<button class="lib-pill-btn" onclick="renamePresetPrompt('${agentKey}','${preset.id}')">Rename</button>
+  return `<button class="lib-pill-btn" onclick="editAgentPreset('${agentKey}','${preset.id}')">Edit</button>
+    <button class="lib-pill-btn" onclick="renamePresetPrompt('${agentKey}','${preset.id}')">Rename</button>
     ${preset.publishedId
       ? `<button class="lib-pill-btn" onclick="unpublishPreset('${agentKey}','${preset.id}')" title="Others can currently see this preset on your public profile">🌐 Published — click to unpublish</button>`
       : `<button class="lib-pill-btn" onclick="publishPreset('${agentKey}','${preset.id}')" title="Makes this build visible to others via your Discord profile">Publish</button>`}
@@ -8947,6 +8979,20 @@ async function renderProfileDetail(i) {
     ? { agentKey: slug, wengine: wengineSlug, wrank: a.Weapon ? Math.max(1, a.Weapon.UpgradeLevel || 1) : 0, discEntries }
     : null;
 
+  // Lives in pd-head (top of the card) rather than down by the Presets
+  // section, so it's reachable without scrolling while browsing anyone's
+  // stand — yours or someone else's.
+  const filledDiscs = discEntries.filter(Boolean).length;
+  const atPresetLimit = slug ? getAgentPresets(slug).length >= PRESET_LIMIT : false;
+  const saveDisabledReason = !slug ? ''
+    : !wengineSlug ? 'No W-Engine equipped on the showcase.'
+    : filledDiscs !== 6 ? `Needs all 6 Drive Discs equipped (currently ${filledDiscs}/6).`
+    : atPresetLimit ? `Max ${PRESET_LIMIT} presets reached for this agent.`
+    : '';
+  const saveBuildBtnHtml = slug
+    ? `<button class="lib-pill-btn" ${saveDisabledReason ? 'disabled' : ''} onclick="saveCurrentShowcaseBuildAsPreset('${slug}')" title="${escapeHtml(saveDisabledReason || 'Save this character\u2019s current W-Engine + Drive Discs as a new preset')}">💾 Save current build</button>`
+    : '';
+
   const skillLevels = enkaSkillLevels(a);
   const coreLetter = enkaCoreSkillLetter(a.CoreSkillEnhancement || 0);
 
@@ -8996,6 +9042,7 @@ async function renderProfileDetail(i) {
           <span class="pd-badge">Mindscape M${a.TalentLevel || 0}</span>
         </div>
       </div>
+      <div class="pd-head-actions">${saveBuildBtnHtml}</div>
     </div>
 
     <div class="pd-section-title">Stats</div>
