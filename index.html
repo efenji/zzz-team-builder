@@ -95,31 +95,6 @@ header {
 .tb-toggle:hover { border-color: var(--border2); color: var(--text); }
 .tb-toggle.active { border-color: var(--accent); background: var(--accent-d); color: var(--accent); }
 
-/* ── ADVANCED MODE SWITCH ──
-   Outer size matches two tb-btn (34px) plus the gap between them (5px) = 73×34,
-   so it reads as "one toolbar control" the same footprint as a button pair. */
-.tb-switch {
-  position: relative;
-  width: 73px; height: 34px;
-  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
-  padding: 3px; box-sizing: border-box;
-  cursor: pointer; flex-shrink: 0;
-  transition: border-color .15s;
-}
-.tb-switch:hover { border-color: var(--border2); }
-.tb-switch-knob {
-  position: absolute; top: 3px; left: 3px;
-  width: 32px; height: 26px;
-  background: var(--bg4); border-radius: 6px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 13px; color: var(--text-mid);
-  transition: left .15s, background .15s, color .15s;
-}
-.tb-switch.active { border-color: var(--accent); }
-.tb-switch.active .tb-switch-knob {
-  left: calc(100% - 32px - 3px);
-  background: var(--accent); color: #000;
-}
 
 /* ── LAYOUT ── */
 .page { max-width: 1600px; margin: 0 auto; padding: 20px 16px 80px; }
@@ -1448,17 +1423,13 @@ select {
   </div>
   <div class="tb-sep"></div>
   <div class="tb-group" style="margin-left:auto; align-items:center;">
-    <div class="tb-group" id="advLibGroup" style="display:none">
+    <div class="tb-group" id="advLibGroup">
       <button class="tb-btn" onclick="openLibraryModal('agent')" title="Agent Library"><img src="https://efenji.github.io/zzz-team-builder/zzz/icons/character.webp" style="width:18px;height:18px;object-fit:contain" onerror="this.style.opacity=.2"></button>
       <button class="tb-btn" onclick="openLibraryModal('wengine')" title="W-Engine Library"><img src="https://efenji.github.io/zzz-team-builder/zzz/icons/weapon.webp" style="width:18px;height:18px;object-fit:contain" onerror="this.style.opacity=.2"></button>
       <button class="tb-btn" onclick="openLibraryModal('bangboo')" title="Bangboo Library"><img src="https://efenji.github.io/zzz-team-builder/zzz/icons/bangboo.webp" style="width:18px;height:18px;object-fit:contain" onerror="this.style.opacity=.2"></button>
       <button class="tb-btn" onclick="openLibraryModal('disc')" title="Drive Disc Library"><img src="https://efenji.github.io/zzz-team-builder/zzz/icons/drivediscs.webp" style="width:18px;height:18px;object-fit:contain" onerror="this.style.opacity=.2"></button>
       <button class="tb-btn" onclick="openEnkaImport()" title="Import from Enka.Network (by UID)">UID</button>
     </div>
-    <div class="tb-sep" id="advLibSep" style="display:none"></div>
-    <button class="tb-switch" id="advModeSwitch" onclick="toggleAdvancedMode()" title="Advanced Mode">
-      <span class="tb-switch-knob">⚡</span>
-    </button>
   </div>
 </div>
 
@@ -6768,32 +6739,14 @@ document.addEventListener('keydown', e => {
 let displayOptions = Object.assign({attr:true, class:true, ability:true, wengine:true, boo:true, name:true, discs:true, shiyu:true},
   JSON.parse(localStorage.getItem('zzz_display_options') || '{}'));
 
-/* ── ADVANCED MODE ──
-   Toggle only for now; the actual behavior it controls is defined later. */
-let advancedMode = JSON.parse(localStorage.getItem('zzz_advanced_mode') || 'false');
-// Independent sub-toggle for the disc-slot picker inside the team editor.
-// Turning the MAIN advanced-mode switch ON always forces this ON too; the
-// user can then freely switch it off/on again without affecting the main one.
+/* ── DRIVE DISC PICKER MODE ──
+   All library management (Agent/W-Engine/Bangboo/Drive Disc) is available by
+   default now — there used to be a top-level "Advanced Mode" switch gating
+   it, removed since every visitor is expected to use the full toolset. This
+   sub-toggle survives on its own: it only decides whether the team editor's
+   disc slots use the quick main-stat picker or the full pick-from-library
+   flow, and plenty of users won't want to scan/import their discs at all. */
 let discAdvancedMode = JSON.parse(localStorage.getItem('zzz_disc_advanced_mode') || 'false');
-function updateAdvancedModeUI() {
-  const el = document.getElementById('advModeSwitch');
-  if (el) el.classList.toggle('active', advancedMode);
-  const grp = document.getElementById('advLibGroup');
-  const sep = document.getElementById('advLibSep');
-  if (grp) grp.style.display = advancedMode ? 'flex' : 'none';
-  if (sep) sep.style.display = advancedMode ? 'block' : 'none';
-}
-function toggleAdvancedMode() {
-  const turningOn = !advancedMode;
-  advancedMode = !advancedMode;
-  localStorage.setItem('zzz_advanced_mode', JSON.stringify(advancedMode));
-  if (turningOn) {
-    discAdvancedMode = true;
-    localStorage.setItem('zzz_disc_advanced_mode', JSON.stringify(discAdvancedMode));
-  }
-  updateAdvancedModeUI();
-  if (currentTeam) renderAgents();
-}
 function toggleDiscAdvancedMode() {
   discAdvancedMode = !discAdvancedMode;
   localStorage.setItem('zzz_disc_advanced_mode', JSON.stringify(discAdvancedMode));
@@ -10131,7 +10084,7 @@ function applyAgentPreset(agentIdx, presetId) {
 
 
 function renderAgents() {
-  const discAdvActive = advancedMode && discAdvancedMode;
+  const discAdvActive = discAdvancedMode;
   const portraitCards = [], weCards = [], slotsCards = [], presetsCards = [];
 
   currentTeam.agents.forEach((a, i) => {
@@ -10262,12 +10215,10 @@ function renderAgents() {
       presetsCards.push(presetsCard);
   });
 
-  const advToggleBar = advancedMode
-    ? `<div class="disc-adv-bar">
+  const advToggleBar = `<div class="disc-adv-bar">
         <span class="disc-adv-label">Drive Discs</span>
         <button class="disc-adv-toggle${discAdvancedMode ? ' active' : ''}" onclick="toggleDiscAdvancedMode()" title="Pick specific discs from your Drive Disc Library">Advanced</button>
-      </div>`
-    : '';
+      </div>`;
 
   document.getElementById('agentsRow').innerHTML =
     `<div class="agents-grid">${portraitCards.join('')}</div>` +
@@ -10480,7 +10431,7 @@ function libraryHasEnabledAgents() {
   return Object.keys(agentLibrary).some(k => agentLibrary[k] && agentLibrary[k].enabled);
 }
 function agentPoolForModal() {
-  if (advancedMode && libraryHasEnabledAgents()) {
+  if (libraryHasEnabledAgents()) {
     return AGENTS_FULL.filter(k => agentLibrary[k] && agentLibrary[k].enabled);
   }
   return AGENTS_FULL;
@@ -10506,7 +10457,7 @@ function libraryHasEnabledWengines() {
   return Object.keys(wengineLibrary).some(k => wengineLibrary[k] && wengineLibrary[k].enabled);
 }
 function wenginePoolForModal() {
-  if (advancedMode && libraryHasEnabledWengines()) {
+  if (libraryHasEnabledWengines()) {
     return WENGINES.filter(k => wengineLibrary[k] && wengineLibrary[k].enabled);
   }
   return WENGINES;
@@ -10515,7 +10466,7 @@ function libraryHasEnabledBangboos() {
   return Object.keys(bangbooLibrary).some(k => bangbooLibrary[k] && bangbooLibrary[k].enabled);
 }
 function bangbooPoolForModal() {
-  if (advancedMode && libraryHasEnabledBangboos()) {
+  if (libraryHasEnabledBangboos()) {
     return BANGBOOS.filter(k => bangbooLibrary[k] && bangbooLibrary[k].enabled);
   }
   return BANGBOOS;
@@ -10655,7 +10606,7 @@ function pickItem(key) {
   if(type==='agent')   {
     const s=currentTeam.agents[agentIdx].key===key;
     currentTeam.agents[agentIdx].key=s?null:key;
-    if (!s && advancedMode && libraryHasEnabledAgents()) {
+    if (!s && libraryHasEnabledAgents()) {
       const entry = agentLibrary[key];
       if (entry && entry.enabled) currentTeam.agents[agentIdx].eidolons = entry.mindscape || 0;
     }
@@ -10665,7 +10616,7 @@ function pickItem(key) {
     const s=ag.wengine===key;
     ag.wengine=s?null:key;
     if (ag.wengine && !ag.wrank) ag.wrank = 1;
-    if (!s && ag.wengine && advancedMode && libraryHasEnabledWengines()) {
+    if (!s && ag.wengine && libraryHasEnabledWengines()) {
       const entry = wengineLibrary[key];
       if (entry && entry.enabled) ag.wrank = entry.refinement || 1;
     }
@@ -10680,7 +10631,7 @@ function pickItem(key) {
   else if(type==='bangboo') {
     const s=currentTeam.bangboo===key;
     currentTeam.bangboo=s?null:key;
-    if (!s && currentTeam.bangboo && advancedMode && libraryHasEnabledBangboos()) {
+    if (!s && currentTeam.bangboo && libraryHasEnabledBangboos()) {
       const entry = bangbooLibrary[key];
       if (entry && entry.enabled) currentTeam.booMindscape = entry.mindscape || 0;
     }
@@ -11192,7 +11143,6 @@ initAuth();
 initAccentColor();
 initToolbarToggles();
 populateShiyuFilterSelect();
-updateAdvancedModeUI();
 updateUndoRedoButtons();
 renderTeams();
 
