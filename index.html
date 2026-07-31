@@ -625,6 +625,13 @@ select {
   display: flex; align-items: center; justify-content: center; line-height: 1;
   box-shadow: 0 0 0 2px var(--bg3);
 }
+.preset-chip-imported {
+  position: absolute; top: -3px; right: -3px;
+  width: 13px; height: 13px; border-radius: 50%;
+  background: var(--bg4); font-size: 8px;
+  display: flex; align-items: center; justify-content: center; line-height: 1;
+  box-shadow: 0 0 0 2px var(--bg3);
+}
 .pd-preset-warn {
   font-size: 12px; color: #f0b429; background: rgba(180,83,9,.12);
   border: 1px solid #b45309; border-radius: var(--r-sm);
@@ -7474,9 +7481,14 @@ function nextPresetName(agentKey) {
 
 // wengineKey + wrank + exactly 6 non-null discEntries (driveDiscLibrary
 // shape) are all required — presets are all-or-nothing by design (per the
-// "1 - заполнены оба, 6 дисков и w engine" decision). Returns the new
-// preset, or null (with a toast) if a precondition fails.
-function createAgentPreset(agentKey, wengineKey, wrank, discEntries, name) {
+// "1 - заполнены оба, 6 дисков и w engine" decision). `source`, if given
+// ({ uid, nickname }), marks this as a snapshot pulled straight off a live
+// Enka showcase (yours or someone else's) rather than built from this
+// tool's own Drive Disc Library — see evaluatePresetApplicability(), which
+// skips the "missing from your library" check for these entirely, since
+// that check was never meaningful for them in the first place. Returns the
+// new preset, or null (with a toast) if a precondition fails.
+function createAgentPreset(agentKey, wengineKey, wrank, discEntries, name, source = null) {
   if (!agentKey) return null;
   if (!wengineKey) { showToast('Выберите W-Engine перед сохранением пресета.', 'error'); return null; }
   const discs = (discEntries || []).filter(Boolean);
@@ -7490,6 +7502,7 @@ function createAgentPreset(agentKey, wengineKey, wrank, discEntries, name) {
     wengine: wengineKey,
     wrank: wrank || 1,
     discs: discs.slice().sort((a, b) => a.slot - b.slot).map(discToSnapshot),
+    source: source ? { uid: source.uid || null, nickname: source.nickname || null } : null,
   };
   agentPresets[agentKey] = [...list, preset];
   saveAgentPresets();
@@ -8356,16 +8369,16 @@ async function renderAgentPresetView() {
   profilePresetViewPresetId = preset.id;
 
   const tabsHtml = presets.map(p => {
-    const { missing } = evaluatePresetApplicability(p, null);
+    const missing = p.source ? [] : evaluatePresetApplicability(p, null).missing;
     const broken = missing.length > 0;
     const title = broken
       ? `${escapeHtml(p.name)} — ${missing.length} disc(s) no longer match anything in your Drive Disc Library`
-      : escapeHtml(p.name);
+      : p.source ? `${escapeHtml(p.name)} — imported from ${p.source.nickname ? escapeHtml(p.source.nickname) + "'s" : 'a'} showcase` : escapeHtml(p.name);
     return `
     <div class="preset-chip-lg${p.id === preset.id ? ' selected' : ''}${broken ? ' broken' : ''}" onclick="selectAgentPresetTab('${p.id}')" title="${title}">
       <img src="${wengineUrl(p.wengine)}" onerror="this.style.opacity=.2">
       <span>${escapeHtml(p.name)}</span>
-      ${broken ? '<span class="preset-chip-warn">!</span>' : ''}
+      ${broken ? '<span class="preset-chip-warn">!</span>' : p.source ? '<span class="preset-chip-imported" title="Imported build — reference only">📥</span>' : ''}
     </div>`;
   }).join('');
 
@@ -8725,16 +8738,16 @@ async function deletePresetPrompt(agentKey, presetId) {
 async function renderProfilePresetsSection(agentKey) {
   const presets = getAgentPresets(agentKey);
   const chips = presets.map(p => {
-    const { missing } = evaluatePresetApplicability(p, null);
+    const missing = p.source ? [] : evaluatePresetApplicability(p, null).missing;
     const broken = missing.length > 0;
     const title = broken
       ? `${escapeHtml(p.name)} — ${missing.length} disc(s) no longer match anything in your Drive Disc Library`
-      : escapeHtml(p.name);
+      : p.source ? `${escapeHtml(p.name)} — imported from ${p.source.nickname ? escapeHtml(p.source.nickname) + "'s" : 'a'} showcase` : escapeHtml(p.name);
     return `
     <div class="preset-chip-lg${p.id === profileSelectedPresetId ? ' selected' : ''}${broken ? ' broken' : ''}" onclick="toggleProfilePreset('${agentKey}','${p.id}')" title="${title}">
       <img src="${wengineUrl(p.wengine)}" onerror="this.style.opacity=.2">
       <span>${escapeHtml(p.name)}</span>
-      ${broken ? '<span class="preset-chip-warn">!</span>' : ''}
+      ${broken ? '<span class="preset-chip-warn">!</span>' : p.source ? '<span class="preset-chip-imported" title="Imported build — reference only">📥</span>' : ''}
     </div>`;
   }).join('');
 
@@ -8788,7 +8801,8 @@ async function saveCurrentShowcaseBuildAsPreset(agentKey) {
 
   const name = await customPrompt('Название пресета:', nextPresetName(agentKey));
   if (name === null) return;
-  const preset = createAgentPreset(agentKey, liveBuild.wengine, liveBuild.wrank || 1, discEntries, name);
+  const preset = createAgentPreset(agentKey, liveBuild.wengine, liveBuild.wrank || 1, discEntries, name,
+    { uid: profileCurrentUid, nickname: profileCurrentNickname || null });
   if (preset) {
     showToast(`Пресет «${preset.name}» сохранён.`, 'success');
     refreshPresetViews(agentKey);
@@ -8824,9 +8838,12 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
   const wengineInfo = preset.wengine ? WENGINE_INFO[preset.wengine] : null;
   const wengineLibLevel = preset.wengine ? (getWengineLibEntry(preset.wengine).level || 60) : 60;
   const coreLetter = libEntry.coreSkillEnhancement ? enkaCoreSkillLetter(libEntry.coreSkillEnhancement) : null;
-  const { missing } = evaluatePresetApplicability(preset, null);
-  const missingBanner = (!readOnly && missing.length)
+  const { missing } = preset.source ? { missing: [] } : evaluatePresetApplicability(preset, null);
+  const missingBanner = (!readOnly && !preset.source && missing.length)
     ? `<div class="pd-preset-warn">⚠ ${missing.length} of 6 discs no longer match anything in your Drive Disc Library (edited or deleted since this preset was saved). The stats below still use the saved snapshot, but applying this preset to a team will skip those slots. Delete and re-save the preset to fix.</div>`
+    : '';
+  const importedNote = (!readOnly && preset.source)
+    ? `<div class="pd-preset-warn pd-preset-note">ℹ Imported build${preset.source.nickname ? ` — from ${escapeHtml(preset.source.nickname)}'s showcase` : ''}${preset.source.uid ? ` (UID ${escapeHtml(preset.source.uid)})` : ''}. This is a reference snapshot straight off that account's stand, not tied to your own Drive Disc Library, so it can't be applied directly to a team.</div>`
     : '';
   const publicNote = readOnly
     ? `<div class="pd-preset-warn pd-preset-note">ℹ Shared build${ownerLabel ? ` by ${escapeHtml(ownerLabel)}` : ''}. The Level/Core Skill Enhancement shown use <em>your own</em> Agent Library settings for ${escapeHtml(cardName(agentKey))} — only the W-Engine and discs are actually part of what was published.</div>`
@@ -8881,6 +8898,7 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
       </div>
 
       ${missingBanner}
+      ${importedNote}
       ${publicNote}
 
       <div class="pd-section-title">Stats <span class="pd-stat-approx" title="Theoretical build: Level/Core Skill from the Agent Library, this W-Engine's Level from the W-Engine Library — same formulas as the Enka import above">ⓘ</span></div>
@@ -9949,7 +9967,11 @@ async function saveCurrentAsPreset(agentIdx) {
 function showPresetConflictModal(preset, missing, conflicts) {
   const lines = [];
   conflicts.forEach(c => lines.push(`«${c.snap.setName}» [слот ${c.snap.slot}] уже используется агентом ${c.agentName}.`));
-  missing.forEach(m => lines.push(`«${m.setName}» [слот ${m.slot}] не найден в текущей библиотеке дисков.`));
+  if (preset.source) {
+    if (missing.length) lines.push('Этот пресет импортирован прямо со стенда (не из твоей библиотеки дисков), поэтому применить его к команде нельзя — только посмотреть.');
+  } else {
+    missing.forEach(m => lines.push(`«${m.setName}» [слот ${m.slot}] не найден в текущей библиотеке дисков.`));
+  }
   const bg = document.getElementById('dlgBg');
   document.getElementById('dlgMsg').textContent = `Пресет «${preset.name}» нельзя применить:\n\n${lines.join('\n')}`;
   document.getElementById('dlgInput').classList.add('hidden');
@@ -10093,7 +10115,11 @@ function renderAgents() {
           const { missing, conflicts } = evaluatePresetApplicability(p, i);
           const broken = missing.length || conflicts.length;
           const titleBits = [];
-          if (missing.length) titleBits.push(`${missing.length} disc(s) missing from library`);
+          if (p.source) {
+            if (missing.length) titleBits.push('imported from a showcase — reference only, can\'t apply to a team');
+          } else if (missing.length) {
+            titleBits.push(`${missing.length} disc(s) missing from library`);
+          }
           if (conflicts.length) titleBits.push(`${conflicts.length} disc(s) already used by another agent`);
           const title = broken ? `${escapeHtml(p.name)} — ${titleBits.join('; ')}` : escapeHtml(p.name);
           return `<div class="preset-chip${broken ? ' broken' : ''}" onclick="applyAgentPreset(${i},'${p.id}')" title="${title}">
