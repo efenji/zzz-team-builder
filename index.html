@@ -10626,6 +10626,24 @@ async function pullCloudSnapshot() {
     return;
   }
 
+  // Content check BEFORE anything else: if this browser already holds
+  // exactly what's in the cloud — e.g. right after a previous "Load from
+  // cloud" + reload — there is nothing to reconcile. Skipping this check
+  // and going straight to "is local non-empty" would re-show the conflict
+  // prompt forever, since applying the cloud copy makes localStorage
+  // non-empty, which then looks like a fresh conflict on the very next
+  // INITIAL_SESSION event after the reload.
+  const localSnapshot = {};
+  CLOUD_SYNC_KEYS.forEach(k => {
+    const v = localStorage.getItem(k);
+    if (v !== null) localSnapshot[k] = v;
+  });
+  const cloudKeys = Object.keys(row.data);
+  const localKeys = Object.keys(localSnapshot);
+  const alreadyInSync = cloudKeys.length === localKeys.length
+    && cloudKeys.every(k => localSnapshot[k] === row.data[k]);
+  if (alreadyInSync) return;
+
   const applyCloudSnapshot = () => {
     cloudSyncSuspended = true;
     Object.entries(row.data).forEach(([k, v]) => {
@@ -10637,9 +10655,10 @@ async function pullCloudSnapshot() {
   };
 
   if (hasMeaningfulLocalData()) {
-    // Cloud already has data AND this browser has its own — ask before either
-    // side overwrites the other. Cloud wins if confirmed; otherwise local
-    // stays and gets pushed up, overwriting the cloud copy instead.
+    // Cloud already has data AND this browser has its own, AND they actually
+    // differ (checked above) — ask before either side overwrites the other.
+    // Cloud wins if confirmed; otherwise local stays and gets pushed up,
+    // overwriting the cloud copy instead.
     const proceed = await customConfirm(
       'В облаке уже есть сохранённые данные для этого аккаунта Discord. Загрузить их и заменить команды/библиотеки, накопленные в этом браузере?',
       { okLabel: 'Загрузить из облака', danger: false }
