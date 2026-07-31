@@ -617,6 +617,32 @@ select {
 .disc-adv-toggle:hover { border-color: var(--border2); color: var(--text); }
 .disc-adv-toggle.active { border-color: var(--accent); background: var(--accent-d); color: var(--accent); }
 
+/* ── AGENT PRESETS ROW (Advanced Mode, sits below the disc-slot cards) ── */
+.ag-presets-card {
+  display: flex; flex-direction: column; gap: 5px;
+  padding: 6px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm);
+}
+.ag-presets-label {
+  font-size: 9px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-dim); font-family: 'Share Tech Mono', monospace;
+}
+.ag-presets-list { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.preset-chip {
+  width: 26px; height: 26px; border-radius: 50%; overflow: hidden;
+  background: var(--bg); border: 1px solid var(--border); cursor: pointer;
+  transition: border-color .15s, transform .1s;
+}
+.preset-chip:hover { border-color: var(--accent); transform: scale(1.08); }
+.preset-chip img { width: 100%; height: 100%; object-fit: cover; }
+.preset-save-btn {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--bg); border: 1px dashed var(--border2); color: var(--text-mid);
+  cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center;
+  transition: border-color .15s, color .15s;
+}
+.preset-save-btn:hover { border-color: var(--accent); color: var(--accent); }
+.preset-empty { font-size: 10px; color: var(--text-dim); }
+
 /* ── BANGBOO CARD ── */
 .boo-card {
   width: calc(33.33% - 6px);
@@ -993,7 +1019,7 @@ select {
   background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r);
   padding: 20px; width: 100%; max-width: 380px;
 }
-.dlg-msg { font-size: 14px; color: var(--text); line-height: 1.5; margin-bottom: 16px; }
+.dlg-msg { font-size: 14px; color: var(--text); line-height: 1.5; margin-bottom: 16px; white-space: pre-line; }
 .dlg-input {
   width: 100%; background: var(--bg3); border: 1px solid var(--border); color: var(--text);
   border-radius: var(--r-sm); padding: 9px 12px; font-size: 13px; margin-bottom: 16px;
@@ -1079,6 +1105,37 @@ select {
 .pd-agg-item { display: flex; gap: 5px; align-items: baseline; }
 .pd-agg-item .procs { color: var(--text-dim); }
 .pd-agg-item .val { color: var(--accent); font-weight: 700; }
+
+/* ── PRESETS (Profile tab) ── */
+.pd-presets-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.preset-chip-lg {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 999px;
+  padding: 4px 12px 4px 4px; cursor: pointer; font-size: 12px; color: var(--text-mid);
+  transition: border-color .15s, color .15s, background .15s;
+}
+.preset-chip-lg img { width: 22px; height: 22px; border-radius: 50%; object-fit: contain; background: var(--bg); }
+.preset-chip-lg:hover { border-color: var(--border2); color: var(--text); }
+.preset-chip-lg.selected { border-color: var(--accent); background: var(--accent-d); color: var(--accent); }
+.pd-preset-detail { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border2); }
+.pd-preset-actions { display: flex; gap: 8px; margin-top: 14px; }
+.lib-pill-btn.danger { color: var(--red); }
+.lib-pill-btn.danger:hover { border-color: var(--red); background: rgba(239,68,68,.12); color: var(--red); }
+
+/* ── PRESET CREATION FORM ── */
+.preset-form-box { max-width: 480px; height: auto; max-height: 88vh; }
+.preset-form-body { padding: 16px 20px; overflow-y: auto; }
+.preset-form-row { margin-bottom: 12px; }
+.preset-form-label {
+  display: block; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-dim); font-family: 'Share Tech Mono', monospace; margin-bottom: 5px;
+}
+.preset-form-input {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+  border-radius: var(--r-sm); padding: 9px 12px; font-size: 13px;
+}
+.preset-form-agent { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+.preset-form-agent img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
 
 /* ── Layout: grid on the left, fixed Detail panel on the right (mirrors the
    in-game Drive Disc Storage screen — selecting a card updates the panel). */
@@ -1754,6 +1811,18 @@ select {
       <div class="disc-lib-grid" id="advDiscModalGrid"></div>
       <div class="disc-detail-panel" id="advDiscDetailPanel"></div>
     </div>
+  </div>
+</div>
+
+<!-- PRESETS: creation form (Profile tab) -->
+<div class="lib-modal-bg hidden" id="presetFormBg" onclick="presetFormBgClick(event)">
+  <div class="lib-modal-box preset-form-box">
+    <div class="lib-modal-hd">
+      <button class="modal-x" onclick="closePresetForm()">✕</button>
+      <div class="lib-modal-ttl">New Preset</div>
+      <button class="btn-save" onclick="savePresetDraft()">Save</button>
+    </div>
+    <div class="preset-form-body" id="presetFormBody"></div>
   </div>
 </div>
 
@@ -7305,6 +7374,89 @@ function selectDriveDisc(id) {
   renderDriveDiscGrid();
 }
 
+/* ── AGENT PRESETS (Advanced Mode only) ──────────────────────────────────
+   A preset = one specific W-Engine+Refinement + all 6 Drive Discs saved
+   against a given agent, so it can be applied to any team without picking
+   everything again. Up to 6 presets per agent (PRESET_LIMIT).
+   Discs are stored as full SNAPSHOTS (setName/mainStat/subStats etc. copied
+   in directly), not as ids pointing back into driveDiscLibrary. Two reasons:
+     1. "Replace gallery" re-imports always mint new disc ids (see
+        normalizeDiscEntry), which would silently orphan any id-based
+        reference even when the physical disc is unchanged.
+     2. A snapshot is also what a future "view other people's public
+        presets" feature will need to send over the network — someone
+        else's browser has no access to your driveDiscLibrary at all, so
+        the preset has to be fully self-contained regardless.
+   Trade-off (accepted): editing a disc in the library later does NOT
+   retroactively update presets that already snapshotted it — the preset
+   has to be re-saved to pick up the correction. */
+const PRESET_LIMIT = 6;
+let agentPresets = JSON.parse(localStorage.getItem('zzz_agent_presets') || '{}');
+function saveAgentPresets() { localStorage.setItem('zzz_agent_presets', JSON.stringify(agentPresets)); }
+function getAgentPresets(agentKey) { return agentPresets[agentKey] || []; }
+function getPresetById(agentKey, presetId) { return getAgentPresets(agentKey).find(p => p.id === presetId) || null; }
+
+// Strips a driveDiscLibrary entry (or an Enka-derived disc display entry)
+// down to just the fields a preset needs to redraw itself anywhere — no
+// `id`/`addedAt` (library bookkeeping, meaningless once snapshotted).
+function discToSnapshot(d) {
+  return {
+    setName: d.setName || '',
+    slot: d.slot,
+    mainStat: d.mainStat || '',
+    mainStatValue: d.mainStatValue,
+    level: d.level,
+    maxLevel: d.maxLevel || 15,
+    subStats: (d.subStats || []).map(s => ({ name: s.name, procs: s.procs, value: s.value })),
+  };
+}
+
+function nextPresetName(agentKey) {
+  const existing = new Set(getAgentPresets(agentKey).map(p => p.name));
+  for (let i = 1; i <= PRESET_LIMIT; i++) {
+    const candidate = `Preset ${i}`;
+    if (!existing.has(candidate)) return candidate;
+  }
+  return `Preset ${Date.now()}`; // shouldn't happen at the 6-preset cap, just a safe fallback
+}
+
+// wengineKey + wrank + exactly 6 non-null discEntries (driveDiscLibrary
+// shape) are all required — presets are all-or-nothing by design (per the
+// "1 - заполнены оба, 6 дисков и w engine" decision). Returns the new
+// preset, or null (with a toast) if a precondition fails.
+function createAgentPreset(agentKey, wengineKey, wrank, discEntries, name) {
+  if (!agentKey) return null;
+  if (!wengineKey) { showToast('Выберите W-Engine перед сохранением пресета.', 'error'); return null; }
+  const discs = (discEntries || []).filter(Boolean);
+  if (discs.length !== 6) { showToast('Нужно выбрать все 6 дисков перед сохранением пресета.', 'error'); return null; }
+  const list = getAgentPresets(agentKey);
+  if (list.length >= PRESET_LIMIT) { showToast(`У этого агента уже максимум пресетов (${PRESET_LIMIT}).`, 'error'); return null; }
+
+  const preset = {
+    id: uid(),
+    name: (name && name.trim()) || nextPresetName(agentKey),
+    wengine: wengineKey,
+    wrank: wrank || 1,
+    discs: discs.slice().sort((a, b) => a.slot - b.slot).map(discToSnapshot),
+  };
+  agentPresets[agentKey] = [...list, preset];
+  saveAgentPresets();
+  return preset;
+}
+
+function renameAgentPreset(agentKey, presetId, newName) {
+  const p = getPresetById(agentKey, presetId);
+  if (!p || !newName || !newName.trim()) return;
+  p.name = newName.trim();
+  saveAgentPresets();
+}
+
+function deleteAgentPreset(agentKey, presetId) {
+  if (!agentPresets[agentKey]) return;
+  agentPresets[agentKey] = agentPresets[agentKey].filter(p => p.id !== presetId);
+  saveAgentPresets();
+}
+
 /* ── ENKA.NETWORK IMPORT ──
    Reads a player's Character Showcase via a small proxy (enka.network's
    antibot blocks direct serverless/edge traffic, but a Vercel function
@@ -8308,6 +8460,243 @@ function aggregateProfileDiscSubstats(discEntries) {
   return totals;
 }
 
+/* ── PRESET CREATION FORM (Profile tab) ──────────────────────────────────
+   A lightweight, self-contained "draft" state — reuses the same W-Engine
+   picker modal (via modalCtx.type === 'preset-wengine') and the same
+   per-slot Drive Disc picker modal (via advDiscCtx.target === 'preset')
+   that the team editor's Advanced Mode already uses, so there's exactly
+   one "choose a W-Engine" UI and one "choose a disc" UI in the whole app,
+   not a second parallel picker built just for this form. */
+let presetDraft = null; // { agentKey, name, wengine, wrank, discSlots: [6] }
+
+function openPresetCreateForm(agentKey) {
+  presetDraft = { agentKey, name: '', wengine: null, wrank: 1, discSlots: [null, null, null, null, null, null] };
+  renderPresetDraftEditor();
+  document.getElementById('presetFormBg').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+function closePresetForm() {
+  document.getElementById('presetFormBg').classList.add('hidden');
+  document.body.style.overflow = '';
+  presetDraft = null;
+}
+function presetFormBgClick(e) { if (e.target === document.getElementById('presetFormBg')) closePresetForm(); }
+
+function renderPresetDraftEditor() {
+  const body = document.getElementById('presetFormBody');
+  if (!body || !presetDraft) return;
+  const { agentKey, wengine, wrank, discSlots } = presetDraft;
+
+  const weImg = wengine
+    ? `<img src="${wengineUrl(wengine)}" onerror="this.style.opacity=.2">`
+    : `<span class="we-ph-ico">⚙️</span>`;
+  const rankTrack = makeSegTrack(5, wrank || 1, true, `data-action="preset-wrank" data-min="1"`);
+
+  const cells = [0, 1, 2, 3, 4, 5].map(si => {
+    const discId = discSlots[si];
+    const entry = discId ? driveDiscLibrary.find(d => d.id === discId) : null;
+    const label = entry
+      ? `${escapeHtml(entry.setName)} · ${escapeHtml(discStatLabel(entry.mainStat))} ${discStatValueDisplay(entry.mainStat, entry.mainStatValue)}`
+      : `Slot ${si + 1} — pick a disc`;
+    return `<div class="disc-slot${entry ? '' : ' empty-num'}" onclick="openPresetDiscPicker(${si})" title="${label}">
+      ${entry ? `<img src="${discUrl(entry.setName)}" onerror="this.style.opacity=.2">` : `<span class="dn">${si + 1}</span>`}
+    </div>`;
+  });
+
+  body.innerHTML = `
+    <div class="preset-form-row">
+      <label class="preset-form-label">Agent</label>
+      <div class="preset-form-agent"><img src="${agentUrl(agentKey)}" onerror="this.style.opacity=.15">${escapeHtml(cardName(agentKey))}</div>
+    </div>
+    <div class="preset-form-row">
+      <label class="preset-form-label">Name</label>
+      <input type="text" id="presetDraftName" class="preset-form-input" value="${escapeHtml(presetDraft.name || '')}" placeholder="${escapeHtml(nextPresetName(agentKey))}">
+    </div>
+    <div class="ag-we-card" style="margin:10px 0">
+      <div class="ag-we-top" onclick="openModal('preset-wengine', 0)">
+        <div class="ag-we-img">${weImg}</div>
+        <div class="ag-we-info">
+          <span class="ag-we-label">W-Engine</span>
+          <span class="ag-we-name${wengine ? '' : ' empty'}">${wengine ? prettyName(wengine) : 'Select'}</span>
+        </div>
+      </div>
+      ${wengine ? `<div class="ag-we-refrow" onclick="event.stopPropagation()">
+        <div class="seg-label purple"><span>Refinement</span><span class="seg-val">${wrank || 1}</span></div>
+        ${rankTrack}
+      </div>` : ''}
+    </div>
+    <div class="preset-form-label" style="margin-bottom:5px">Drive Discs</div>
+    <div class="ag-slots-row" style="margin-bottom:5px">${cells.slice(0, 3).join('')}</div>
+    <div class="ag-slots-row">${cells.slice(3, 6).join('')}</div>
+  `;
+}
+
+function savePresetDraft() {
+  if (!presetDraft) return;
+  const { agentKey, wengine, wrank, discSlots } = presetDraft;
+  const nameInput = document.getElementById('presetDraftName');
+  const name = nameInput ? nameInput.value.trim() : '';
+  const discEntries = (discSlots || []).map(id => id ? driveDiscLibrary.find(d => d.id === id) : null).filter(Boolean);
+
+  if (!wengine) { showToast('Выберите W-Engine.', 'error'); return; }
+  if (discEntries.length !== 6) { showToast('Нужно выбрать диски во все 6 слотов.', 'error'); return; }
+  if (getAgentPresets(agentKey).length >= PRESET_LIMIT) { showToast(`У этого агента уже максимум пресетов (${PRESET_LIMIT}).`, 'error'); return; }
+
+  const preset = createAgentPreset(agentKey, wengine, wrank || 1, discEntries, name);
+  if (preset) {
+    showToast(`Пресет «${preset.name}» сохранён.`, 'success');
+    closePresetForm();
+    refreshProfilePresetsSection(agentKey);
+  }
+}
+
+/* ── PRESETS DISPLAY (Profile tab) ────────────────────────────────────────
+   Sits right below the current showcase character, matching the "same
+   display format as viewing a character off the stand" requirement: a
+   preset's expanded card reuses the exact same pd-head/Stats/W-Engine/Discs
+   layout as renderProfileDetail above, just fed from buildManualAgentStatSheet
+   (Phase 1) instead of a real Enka avatar. */
+let profileSelectedPresetId = null;
+
+async function refreshProfilePresetsSection(agentKey) {
+  const container = document.getElementById('profilePresetsSection');
+  if (container) container.innerHTML = await renderProfilePresetsSection(agentKey);
+}
+
+async function toggleProfilePreset(agentKey, presetId) {
+  profileSelectedPresetId = (profileSelectedPresetId === presetId) ? null : presetId;
+  await refreshProfilePresetsSection(agentKey);
+}
+
+async function renamePresetPrompt(agentKey, presetId) {
+  const preset = getPresetById(agentKey, presetId);
+  if (!preset) return;
+  const name = await customPrompt('Новое название пресета:', preset.name);
+  if (name === null) return;
+  renameAgentPreset(agentKey, presetId, name);
+  refreshProfilePresetsSection(agentKey);
+}
+async function deletePresetPrompt(agentKey, presetId) {
+  const preset = getPresetById(agentKey, presetId);
+  if (!preset) return;
+  const ok = await customConfirm(`Удалить пресет «${preset.name}»?`, { okLabel: 'Delete', danger: true });
+  if (!ok) return;
+  deleteAgentPreset(agentKey, presetId);
+  if (profileSelectedPresetId === presetId) profileSelectedPresetId = null;
+  refreshProfilePresetsSection(agentKey);
+}
+
+async function renderProfilePresetsSection(agentKey) {
+  const presets = getAgentPresets(agentKey);
+  const chips = presets.map(p => `
+    <div class="preset-chip-lg${p.id === profileSelectedPresetId ? ' selected' : ''}" onclick="toggleProfilePreset('${agentKey}','${p.id}')" title="${escapeHtml(p.name)}">
+      <img src="${wengineUrl(p.wengine)}" onerror="this.style.opacity=.2">
+      <span>${escapeHtml(p.name)}</span>
+    </div>`).join('');
+  const addBtn = presets.length < PRESET_LIMIT
+    ? `<button class="lib-pill-btn" onclick="openPresetCreateForm('${agentKey}')">+ New Preset</button>`
+    : '';
+
+  let expandedHtml = '';
+  if (profileSelectedPresetId) {
+    const preset = getPresetById(agentKey, profileSelectedPresetId);
+    if (preset) expandedHtml = await presetDetailHtml(agentKey, preset);
+  }
+
+  return `
+    <div class="pd-section-title">Presets</div>
+    <div class="pd-presets-row">${chips || '<span class="pd-sub">No presets yet.</span>'}${addBtn}</div>
+    ${expandedHtml}
+  `;
+}
+
+// Renders one preset in the SAME visual shape as renderProfileDetail's own
+// output (pd-head / Stats / W-Engine / Drive Disc Sets / Sub-Stat Totals /
+// Drive Discs) — the "as if viewed off the stand" requirement — except the
+// numbers come from buildManualAgentStatSheet (a THEORETICAL build assuming
+// this agent's Agent Library Level/Core Skill Enhancement), not a real
+// account. Mindscape/skill levels are shown for context only — per Phase 1,
+// they aren't modeled in the calc, same as the Enka path's own "approximate"
+// convention for kit-specific bonuses it can't compute.
+async function presetDetailHtml(agentKey, preset) {
+  const sheet = await buildManualAgentStatSheet(agentKey, preset.wengine, preset.discs).catch(() => null);
+  const profile = AGENT_PROFILE[agentKey];
+  const libEntry = getAgentLibEntry(agentKey);
+  const wengineInfo = preset.wengine ? WENGINE_INFO[preset.wengine] : null;
+  const wengineLibLevel = preset.wengine ? (getWengineLibEntry(preset.wengine).level || 60) : 60;
+  const coreLetter = libEntry.coreSkillEnhancement ? enkaCoreSkillLetter(libEntry.coreSkillEnhancement) : null;
+
+  const statsHtml = sheet
+    ? sheet.map(s => `
+      <div class="disc-detail-row">
+        <div class="disc-detail-row-label">${escapeHtml(s.label)}${s.approximate ? ' <span class="pd-stat-approx" title="Kit-specific conditional bonus not modeled — may run slightly under the true value">⚠</span>' : ''}</div>
+        <div class="disc-detail-row-val">${formatEnkaStatValue(s.total, s.isPercent, s.fam)}
+          <span class="pd-stat-note">(${formatEnkaStatValue(s.base, s.isPercent, s.fam)} + ${formatEnkaStatValue(s.bonus, s.isPercent, s.fam)})</span>
+        </div>
+      </div>`).join('')
+    : '<div class="disc-detail-row-empty">No reference data available for this agent.</div>';
+
+  const wengineHtml = preset.wengine
+    ? `<div class="pd-wengine">
+        <img src="${wengineUrl(preset.wengine)}" onerror="this.style.opacity=.2">
+        <div>
+          <div style="font-weight:700">${escapeHtml(prettyName(preset.wengine))}</div>
+          <div class="pd-sub">Lv.${wengineLibLevel} · R${preset.wrank || 1}${wengineInfo ? ` · ${escapeHtml(wengineInfo.rarity)}-Rank ${escapeHtml(wengineInfo.specialty)}` : ''}</div>
+          ${wengineInfo ? `<div class="pd-sub">Base ATK ${wengineInfo.baseATK} · ${escapeHtml(wengineInfo.secondaryStat?.name || '')} ${escapeHtml(wengineInfo.secondaryStat?.value || '')}</div>` : ''}
+        </div>
+      </div>`
+    : '<div class="pd-sub">No W-Engine equipped.</div>';
+
+  const discEntries = (preset.discs || []).slice().sort((a, b) => a.slot - b.slot);
+  const setCounts = {};
+  discEntries.forEach(d => { setCounts[d.setName] = (setCounts[d.setName] || 0) + 1; });
+  const setsHtml = Object.entries(setCounts).map(([n, c]) => `<span class="pd-badge">${escapeHtml(n)} ×${c}</span>`).join('') || '<span class="pd-sub">—</span>';
+  const discsHtml = discEntries.length
+    ? `<div class="pd-discs-grid">${discEntries.map(d => `<div class="pd-disc-card">${discDetailBlockHtml(d)}</div>`).join('')}</div>`
+    : '<div class="pd-sub">No Drive Discs equipped.</div>';
+  const agg = aggregateProfileDiscSubstats(discEntries);
+  const aggHtml = Object.entries(agg).map(([name, t]) =>
+    `<div class="pd-agg-item"><span class="procs">${t.procs}</span> ${escapeHtml(name)} <span class="val">${Math.round(t.value * 10) / 10}${ENKA_PERCENT_PROPS_LABEL_HINT(name)}</span></div>`
+  ).join('') || '<span class="pd-sub">No sub-stats.</span>';
+
+  return `
+    <div class="pd-preset-detail">
+      <div class="pd-head">
+        <div class="pd-portrait"><img src="${agentUrl(agentKey)}" onerror="this.style.opacity=.15"></div>
+        <div>
+          <div class="pd-name">${escapeHtml(cardName(agentKey))} <span style="color:var(--text-mid);font-weight:500">· ${escapeHtml(preset.name)}</span></div>
+          <div class="pd-sub">${profile ? `${escapeHtml(profile.fullName || '')} · ${escapeHtml(profile.gender || '')} · ${escapeHtml(profile.stature || '')}` : ''}</div>
+          <div class="pd-badges">
+            <span class="pd-badge">Lv.${libEntry.level}</span>
+            <span class="pd-badge" title="Mindscape isn't modeled in this calc, same as skill levels — set from the Agent Library, shown here for context only">Mindscape M${libEntry.mindscape || 0}</span>
+            ${coreLetter ? `<span class="pd-badge">Core Skill ${coreLetter}</span>` : ''}
+          </div>
+        </div>
+      </div>
+
+      <div class="pd-section-title">Stats <span class="pd-stat-approx" title="Theoretical build: Level/Core Skill from the Agent Library, this W-Engine's Level from the W-Engine Library — same formulas as the Enka import above">ⓘ</span></div>
+      <div class="pd-cols">${statsHtml}</div>
+
+      <div class="pd-section-title">W-Engine</div>
+      ${wengineHtml}
+
+      <div class="pd-section-title">Drive Disc Sets</div>
+      <div class="pd-sets-list">${setsHtml}</div>
+
+      <div class="pd-section-title">Sub-Stat Totals (all equipped discs)</div>
+      <div class="pd-agg-row">${aggHtml}</div>
+
+      <div class="pd-section-title">Drive Discs</div>
+      ${discsHtml}
+
+      <div class="pd-preset-actions">
+        <button class="lib-pill-btn" onclick="renamePresetPrompt('${agentKey}','${preset.id}')">Rename</button>
+        <button class="lib-pill-btn danger" onclick="deletePresetPrompt('${agentKey}','${preset.id}')">Delete</button>
+      </div>
+    </div>
+  `;
+}
+
 async function renderProfileDetail(i) {
   const panel = document.getElementById('profileDetail');
   const a = profileLastAvatars[i];
@@ -8398,6 +8787,8 @@ async function renderProfileDetail(i) {
 
     <div class="pd-section-title">Drive Discs</div>
     ${discsHtml}
+
+    <div id="profilePresetsSection">${slug ? await renderProfilePresetsSection(slug) : ''}</div>
   `;
 }
 // Sub-stats that are inherently percent-valued get a "%" suffix in the
@@ -9172,9 +9563,18 @@ let advDiscCtx = {};
 let advDiscPreviewId = null; // which disc's stats are currently shown in the picker's detail panel
 
 function openAdvDiscPicker(agentIdx, slotIdx) {
-  advDiscCtx = { agentIdx, slotIdx };
+  advDiscCtx = { agentIdx, slotIdx, target: 'team' };
   const ag = currentTeam.agents[agentIdx];
   advDiscPreviewId = (ag.discSlots && ag.discSlots[slotIdx]) || null;
+  document.getElementById('advDiscModalTitle').textContent = `Slot ${slotIdx + 1}`;
+  renderAdvDiscModalGrid();
+  document.getElementById('advDiscModalBg').classList.remove('hidden');
+}
+// Same modal, but for the Profile-tab preset-creation form: picks straight
+// into presetDraft.discSlots instead of a team agent's discSlots.
+function openPresetDiscPicker(slotIdx) {
+  advDiscCtx = { slotIdx, target: 'preset' };
+  advDiscPreviewId = (presetDraft.discSlots && presetDraft.discSlots[slotIdx]) || null;
   document.getElementById('advDiscModalTitle').textContent = `Slot ${slotIdx + 1}`;
   renderAdvDiscModalGrid();
   document.getElementById('advDiscModalBg').classList.remove('hidden');
@@ -9187,11 +9587,11 @@ function closeAdvDiscModal() {
 function advDiscModalBgClick(e) { if (e.target === document.getElementById('advDiscModalBg')) closeAdvDiscModal(); }
 
 function renderAdvDiscModalGrid() {
-  const { agentIdx, slotIdx } = advDiscCtx;
+  const { agentIdx, slotIdx, target } = advDiscCtx;
   const slotNum = slotIdx + 1;
-  const ag = currentTeam.agents[agentIdx];
-  const currentId = ag.discSlots && ag.discSlots[slotIdx];
-  const used = usedDiscIdsInTeam(agentIdx, slotIdx);
+  const currentId = target === 'preset' ? (presetDraft.discSlots && presetDraft.discSlots[slotIdx]) : (currentTeam.agents[agentIdx].discSlots && currentTeam.agents[agentIdx].discSlots[slotIdx]);
+  const used = target === 'preset' ? usedDiscIdsInPresetDraft(slotIdx) : usedDiscIdsInTeam(agentIdx, slotIdx);
+  const conflictTitle = target === 'preset' ? 'Already used in another slot of this preset' : 'Already equipped elsewhere in this team';
   const pool = driveDiscLibrary.filter(d => d.slot === slotNum)
     .sort((a,b) => (discSetRank(a.setName) - discSetRank(b.setName)) || (b.addedAt - a.addedAt));
   const grid = document.getElementById('advDiscModalGrid');
@@ -9199,7 +9599,7 @@ function renderAdvDiscModalGrid() {
     ? pool.map(d => {
         const disabled = used.has(d.id) && d.id !== currentId;
         const sel = d.id === currentId;
-        return `<div class="disc-cell${sel?' selected':''}${disabled?' disabled':''}" title="${disabled ? 'Already equipped elsewhere in this team' : ''}" onclick="pickAdvDisc('${d.id}',${disabled})">
+        return `<div class="disc-cell${sel?' selected':''}${disabled?' disabled':''}" title="${disabled ? conflictTitle : ''}" onclick="pickAdvDisc('${d.id}',${disabled})">
           <div class="disc-cell-slot">${d.slot}</div>
           <img class="disc-cell-img" src="${discUrl(d.setName)}" onerror="this.style.opacity=.15">
           <div class="disc-cell-lv">Lv.${d.level}</div>
@@ -9222,12 +9622,18 @@ function renderAdvDiscDetail() {
 function pickAdvDisc(discId, disabled) {
   advDiscPreviewId = discId;
   if (!disabled) {
-    const { agentIdx, slotIdx } = advDiscCtx;
-    const ag = currentTeam.agents[agentIdx];
-    if (!ag.discSlots) ag.discSlots = [null,null,null,null,null,null];
-    ag.discSlots[slotIdx] = (ag.discSlots[slotIdx] === discId) ? null : discId;
-    syncDiscDerivedFields(ag, slotIdx);
-    renderAgents();
+    const { agentIdx, slotIdx, target } = advDiscCtx;
+    if (target === 'preset') {
+      if (!presetDraft.discSlots) presetDraft.discSlots = [null,null,null,null,null,null];
+      presetDraft.discSlots[slotIdx] = (presetDraft.discSlots[slotIdx] === discId) ? null : discId;
+      renderPresetDraftEditor();
+    } else {
+      const ag = currentTeam.agents[agentIdx];
+      if (!ag.discSlots) ag.discSlots = [null,null,null,null,null,null];
+      ag.discSlots[slotIdx] = (ag.discSlots[slotIdx] === discId) ? null : discId;
+      syncDiscDerivedFields(ag, slotIdx);
+      renderAgents();
+    }
   }
   renderAdvDiscModalGrid();
 }
@@ -9239,6 +9645,15 @@ function usedDiscIdsInTeam(excludeAgentIdx, excludeSlotIdx) {
       if (ai === excludeAgentIdx && si === excludeSlotIdx) return;
       used.add(id);
     });
+  });
+  return used;
+
+}
+function usedDiscIdsInPresetDraft(excludeSlotIdx) {
+  const used = new Set();
+  (presetDraft.discSlots || []).forEach((id, si) => {
+    if (!id || si === excludeSlotIdx) return;
+    used.add(id);
   });
   return used;
 }
@@ -9257,10 +9672,101 @@ function syncDiscDerivedFields(ag, slotIdx) {
   else ag.icons[slotNum - 4] = entry ? mainStatToIconKey(entry.mainStat) : null;
 }
 
+/* ── APPLYING / SAVING PRESETS FROM THE TEAM EDITOR ──────────────────────
+   Saving snapshots the agent's current W-Engine+Refinement+6 discs (see the
+   Phase 2 data-layer comment for why discs are copied by content, not id).
+   Applying does the reverse: for each of the preset's 6 disc snapshots, find
+   whichever CURRENT Drive Disc Library entry has that exact fingerprint, and
+   equip it via the normal discSlots-by-id mechanism — so everything else
+   (undo/redo, rendering, the per-slot picker) keeps working completely
+   unchanged. Two ways that resolution can fail, both surfaced up front
+   instead of silently applying a partial result:
+     - the disc no longer exists in the library at all (edited/deleted since
+       the preset was saved)
+     - it exists, but is already equipped on a DIFFERENT agent in this team */
+function findLibraryDiscIdForSnapshot(snapshot) {
+  const fp = discFingerprint(snapshot);
+  const match = driveDiscLibrary.find(d => discFingerprint(d) === fp);
+  return match ? match.id : null;
+}
+function findAgentUsingDiscId(discId, excludeAgentIdx) {
+  for (let ai = 0; ai < currentTeam.agents.length; ai++) {
+    if (ai === excludeAgentIdx) continue;
+    const ag = currentTeam.agents[ai];
+    if ((ag.discSlots || []).includes(discId)) return ag.key ? cardName(ag.key) : `Agent ${ai + 1}`;
+  }
+  return null;
+}
+
+async function saveCurrentAsPreset(agentIdx) {
+  const ag = currentTeam.agents[agentIdx];
+  if (!ag || !ag.key) return;
+  if (!ag.wengine) { showToast('Сначала выберите W-Engine.', 'error'); return; }
+  const slots = ag.discSlots || [];
+  const discEntries = slots.map(id => id ? driveDiscLibrary.find(d => d.id === id) : null).filter(Boolean);
+  if (discEntries.length !== 6) { showToast('Нужно выбрать все 6 дисков перед сохранением пресета.', 'error'); return; }
+  if (getAgentPresets(ag.key).length >= PRESET_LIMIT) { showToast(`У агента ${cardName(ag.key)} уже максимум пресетов (${PRESET_LIMIT}).`, 'error'); return; }
+
+  const name = await customPrompt('Название пресета:', nextPresetName(ag.key));
+  if (name === null) return; // cancelled
+  const preset = createAgentPreset(ag.key, ag.wengine, ag.wrank || 1, discEntries, name);
+  if (preset) {
+    showToast(`Пресет «${preset.name}» сохранён.`, 'success');
+    renderAgents();
+  }
+}
+
+function showPresetConflictModal(preset, missing, conflicts) {
+  const lines = [];
+  conflicts.forEach(c => lines.push(`«${c.snap.setName}» [слот ${c.snap.slot}] уже используется агентом ${c.agentName}.`));
+  missing.forEach(m => lines.push(`«${m.setName}» [слот ${m.slot}] не найден в текущей библиотеке дисков.`));
+  const bg = document.getElementById('dlgBg');
+  document.getElementById('dlgMsg').textContent = `Пресет «${preset.name}» нельзя применить:\n\n${lines.join('\n')}`;
+  document.getElementById('dlgInput').classList.add('hidden');
+  document.getElementById('dlgActions').innerHTML = '';
+  bg.classList.remove('hidden');
+  const okBtn = document.createElement('button');
+  okBtn.className = 'dlg-btn primary';
+  okBtn.textContent = 'Понятно';
+  okBtn.onclick = () => closeDlg();
+  document.getElementById('dlgActions').appendChild(okBtn);
+}
+
+function applyAgentPreset(agentIdx, presetId) {
+  const ag = currentTeam.agents[agentIdx];
+  if (!ag || !ag.key) return;
+  const preset = getPresetById(ag.key, presetId);
+  if (!preset) return;
+
+  const resolved = [], missing = [], conflicts = [];
+  preset.discs.forEach(snap => {
+    const id = findLibraryDiscIdForSnapshot(snap);
+    if (!id) { missing.push(snap); return; }
+    const conflictAgent = findAgentUsingDiscId(id, agentIdx);
+    if (conflictAgent) { conflicts.push({ snap, agentName: conflictAgent }); return; }
+    resolved.push({ slot: snap.slot, id });
+  });
+
+  if (missing.length || conflicts.length) {
+    showPresetConflictModal(preset, missing, conflicts);
+    return;
+  }
+
+  ag.wengine = preset.wengine;
+  ag.wrank = preset.wrank || 1;
+  if (!ag.discSlots) ag.discSlots = [null, null, null, null, null, null];
+  resolved.forEach(r => {
+    ag.discSlots[r.slot - 1] = r.id;
+    syncDiscDerivedFields(ag, r.slot - 1);
+  });
+  renderAgents();
+  showToast(`Пресет «${preset.name}» применён.`, 'success');
+}
+
 
 function renderAgents() {
   const discAdvActive = advancedMode && discAdvancedMode;
-  const portraitCards = [], weCards = [], slotsCards = [];
+  const portraitCards = [], weCards = [], slotsCards = [], presetsCards = [];
 
   currentTeam.agents.forEach((a, i) => {
       const hasA = !!a.key;
@@ -9356,9 +9862,29 @@ function renderAgents() {
         <div class="ag-slots-row">${stubs}</div>
       </div>`;
 
+      // ── PRESETS ROW (Advanced Mode only — presets are always full W-Engine+6-disc snapshots) ──
+      let presetsCard = '';
+      if (discAdvActive) {
+        const presets = hasA ? getAgentPresets(a.key) : [];
+        const chips = presets.map(p => `<div class="preset-chip" onclick="applyAgentPreset(${i},'${p.id}')" title="${escapeHtml(p.name)}">
+            <img src="${wengineUrl(p.wengine)}" onerror="this.style.opacity=.2">
+          </div>`).join('');
+        const canSave = hasA && presets.length < PRESET_LIMIT;
+        const saveBtn = canSave
+          ? `<button class="preset-save-btn" onclick="saveCurrentAsPreset(${i})" title="Save current W-Engine + all 6 discs as a preset">💾</button>`
+          : '';
+        presetsCard = `<div class="ag-presets-card">
+          <div class="ag-presets-label">Presets</div>
+          <div class="ag-presets-list">
+            ${chips}${!chips && !saveBtn ? '<span class="preset-empty">—</span>' : ''}${saveBtn}
+          </div>
+        </div>`;
+      }
+
       portraitCards.push(portraitCard);
       weCards.push(weCard);
       slotsCards.push(slotsCard);
+      presetsCards.push(presetsCard);
   });
 
   const advToggleBar = advancedMode
@@ -9372,7 +9898,8 @@ function renderAgents() {
     `<div class="agents-grid">${portraitCards.join('')}</div>` +
     `<div class="agents-grid">${weCards.join('')}</div>` +
     advToggleBar +
-    `<div class="agents-grid">${slotsCards.join('')}</div>`;
+    `<div class="agents-grid">${slotsCards.join('')}</div>` +
+    (discAdvActive ? `<div class="agents-grid">${presetsCards.join('')}</div>` : '');
 
   renderBangboo();
 }
@@ -9469,6 +9996,7 @@ function setBooMindscape(n){ currentTeam.booMindscape=n; renderBangboo(); }
     else if (action === 'lib-mindscape') setLibMindscape(track.dataset.key, val);
     else if (action === 'lib-coreskill') setLibCoreSkill(track.dataset.key, val);
     else if (action === 'lib-refinement') setLibRefinement(track.dataset.key, val);
+    else if (action === 'preset-wrank') { presetDraft.wrank = Math.max(1, val); renderPresetDraftEditor(); }
     else if (action === 'lib-boomindscape') setLibBangbooMindscape(track.dataset.key, val);
     else if (action === 'sub-proc') onManualSubProcsChange(+track.dataset.row, val);
   }
@@ -9631,17 +10159,31 @@ function sortWenginesForAgent(agentIdx) {
   const rest = sortByRarity(pool.filter(w => w !== sig && !classPool.includes(w)));
   return [...first, ...sameClass, ...rest];
 }
+// Same ordering as sortWenginesForAgent, but for the Profile-tab preset
+// creation form, which has no currentTeam/agentIdx to read from — just a
+// plain agent key.
+function sortWenginesForPresetAgent(agentKey) {
+  const pool = wenginePoolForModal();
+  if (!agentKey) return sortByRarity(pool);
+  const sig = AGENT_SIGNATURE_WENGINE[agentKey];
+  const cls = getAgentClasses(agentKey)[0];
+  const classPool = cls ? (WENGINE_SPECIALTIES[cls] || []) : [];
+  const first = (sig && pool.includes(sig)) ? [sig] : [];
+  const sameClass = sortByRarity(pool.filter(w => classPool.includes(w) && w !== sig));
+  const rest = sortByRarity(pool.filter(w => w !== sig && !classPool.includes(w)));
+  return [...first, ...sameClass, ...rest];
+}
 function openModal(type,agentIdx,discIdx) {
   modalCtx={type,agentIdx,discIdx};
-  const titles={agent:'Select Agent',wengine:'Select W-Engine',disc:'Select Drive Disc',bangboo:'Select Bangboo',icon:'Select Icon'};
+  const titles={agent:'Select Agent',wengine:'Select W-Engine','preset-wengine':'Select W-Engine',disc:'Select Drive Disc',bangboo:'Select Bangboo',icon:'Select Icon'};
   document.getElementById('modalTitle').textContent=titles[type];
   document.getElementById('modalSearch').value='';
-  modalItems = type==='agent'?sortAgentsForSlot(agentIdx):type==='wengine'?sortWenginesForAgent(agentIdx):type==='disc'?DISCS:type==='icon'?(ICONS_BY_SLOT[discIdx]||ICONS_BY_SLOT[0]):bangbooPoolForModal();
+  modalItems = type==='agent'?sortAgentsForSlot(agentIdx):type==='wengine'?sortWenginesForAgent(agentIdx):type==='preset-wengine'?sortWenginesForPresetAgent(presetDraft?.agentKey):type==='disc'?DISCS:type==='icon'?(ICONS_BY_SLOT[discIdx]||ICONS_BY_SLOT[0]):bangbooPoolForModal();
   activeSpec = null;
   activeAttr = null;
   document.querySelectorAll('.spec-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('modalSpec').classList.toggle('visible', type==='agent');
-  document.getElementById('modalSpecWE').classList.toggle('visible', type==='wengine');
+  document.getElementById('modalSpecWE').classList.toggle('visible', type==='wengine' || type==='preset-wengine');
   document.getElementById('modalAttr').classList.toggle('visible', type==='agent');
   renderGrid(modalItems);
   document.getElementById('modalBg').classList.remove('hidden');
@@ -9696,10 +10238,10 @@ function filterModal() {
       items = sortAgentsByRarity(items);
     }
   }
-  if (activeSpec && modalCtx.type === 'wengine') {
+  if (activeSpec && (modalCtx.type === 'wengine' || modalCtx.type === 'preset-wengine')) {
     const pool = WENGINE_SPECIALTIES[activeSpec] || [];
     items = items.filter(k => pool.includes(k));
-    const agKey = currentTeam.agents[modalCtx.agentIdx]?.key;
+    const agKey = modalCtx.type === 'wengine' ? currentTeam.agents[modalCtx.agentIdx]?.key : presetDraft?.agentKey;
     const sig = agKey ? AGENT_SIGNATURE_WENGINE[agKey] : null;
     if (sig && items.includes(sig)) {
       items = [sig, ...sortByRarity(items.filter(k => k !== sig))];
@@ -9713,15 +10255,17 @@ function getSelected() {
   const {type,agentIdx,discIdx}=modalCtx;
   if(type==='agent')   return currentTeam.agents[agentIdx]?.key;
   if(type==='wengine') return currentTeam.agents[agentIdx]?.wengine;
+  if(type==='preset-wengine') return presetDraft?.wengine;
   if(type==='disc')    return currentTeam.agents[agentIdx]?.discs[discIdx];
   if(type==='bangboo') return currentTeam.bangboo;
   if(type==='icon')    return currentTeam.agents[modalCtx.agentIdx]?.icons?.[modalCtx.discIdx];
 }
 function renderGrid(items) {
   const sel=getSelected(), {type}=modalCtx;
-  const fn=type==='agent'?agentUrl:type==='wengine'?wengineUrl:type==='disc'?discUrl:type==='icon'?iconUrl:bangbooUrl;
+  const cssType = type === 'preset-wengine' ? 'wengine' : type;
+  const fn=type==='agent'?agentUrl:(type==='wengine'||type==='preset-wengine')?wengineUrl:type==='disc'?discUrl:type==='icon'?iconUrl:bangbooUrl;
   document.getElementById('modalGrid').innerHTML=items.map(k=>
-    `<div class="mi mi-${type} ${k===sel?'sel':''}" onclick="pickItem('${k.replace(/'/g,"\\'")}')">
+    `<div class="mi mi-${cssType} ${k===sel?'sel':''}" onclick="pickItem('${k.replace(/'/g,"\\'")}')">
       <img src="${fn(k)}" style="${type==='agent' ? `object-position:${AGENT_CARD_OFFSET[k] || 'center'}` : ''}" onerror="this.style.opacity=.15;this.style.filter='grayscale(1)'">
       <span>${prettyName(k)}</span>
     </div>`
@@ -9747,6 +10291,11 @@ function pickItem(key) {
       if (entry && entry.enabled) ag.wrank = entry.refinement || 1;
     }
   }
+  else if(type==='preset-wengine') {
+    const s = presetDraft.wengine === key;
+    presetDraft.wengine = s ? null : key;
+    if (presetDraft.wengine && !presetDraft.wrank) presetDraft.wrank = 1;
+  }
   else if(type==='disc')    { const s=currentTeam.agents[agentIdx].discs[discIdx]===key; currentTeam.agents[agentIdx].discs[discIdx]=s?null:key; }
   else if(type==='bangboo') {
     const s=currentTeam.bangboo===key;
@@ -9761,7 +10310,8 @@ function pickItem(key) {
     if(!ag.icons) ag.icons=[null,null,null];
     const s=ag.icons[discIdx]===key; ag.icons[discIdx]=s?null:key;
   }
-  renderAgents(); closeModal();
+  if (type === 'preset-wengine') { renderPresetDraftEditor(); } else { renderAgents(); }
+  closeModal();
 }
 
 /* ── DRAG-TO-REORDER TEAM CARDS ──
@@ -10001,7 +10551,8 @@ const CLOUD_SYNC_KEYS = new Set([
   'zzz_teams', 'zzz_advanced_mode', 'zzz_disc_advanced_mode',
   'zzz_agent_library', 'zzz_wengine_library', 'zzz_bangboo_library',
   'zzz_drive_disc_library', 'zzz_profile_favorites', 'zzz_profile_my_uid',
-  'zzz_shiyu_filter', 'zzz_display_options', 'zzz_accent_color'
+  'zzz_shiyu_filter', 'zzz_display_options', 'zzz_accent_color',
+  'zzz_agent_presets'
 ]);
 let cloudSyncTimer = null;
 let cloudSyncSuspended = false; // true while a pulled cloud snapshot is being written back into localStorage
