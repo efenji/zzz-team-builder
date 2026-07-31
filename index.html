@@ -811,6 +811,12 @@ select {
   padding: 20px;
 }
 .lib-modal-bg.hidden { display: none; }
+/* presetFormBg opens the W-Engine picker (#modalBg) and disc picker
+   (#advDiscModalBg) ON TOP of itself — both share the same base z-index
+   (200) as this class, and same-z-index stacking falls back to DOM order,
+   which put the form on top instead of underneath. Pin it lower so the
+   nested pickers it launches always win. */
+#presetFormBg { z-index: 190; }
 .lib-modal-box {
   background: var(--bg2); border: 1px solid var(--border2);
   border-radius: var(--r); width: 100%; max-width: 1500px; height: 92vh;
