@@ -1064,7 +1064,10 @@ select {
 .profile-layout { display: flex; gap: 16px; margin-top: 16px; align-items: flex-start; }
 .profile-agent-list-col { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; }
 .profile-agent-list { display: flex; flex-direction: column; gap: 6px; }
-.profile-presets-entry { margin-top: 4px; width: 100%; display: flex; justify-content: center; }
+.profile-presets-entry {
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);
+  width: 100%; display: flex; justify-content: center;
+}
 .profile-agent-card {
   background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
   padding: 8px 10px; cursor: pointer; font-size: 13px;
