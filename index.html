@@ -9772,7 +9772,7 @@ function renderAuthUI() {
   }
 }
 
-function handleAuthSession(session) {
+function handleAuthSession(event, session) {
   if (session && session.user) {
     const u = session.user;
     const meta = u.user_metadata || {};
@@ -9783,14 +9783,23 @@ function handleAuthSession(session) {
     };
   } else {
     currentUser = null;
+    cloudSyncedOnce = false;
   }
   renderAuthUI();
   const feedPage = document.getElementById('pageFeed');
   if (feedPage && !feedPage.classList.contains('hidden')) renderFeed();
+
+  // Only pull from the cloud once per real login (not on every silent token
+  // refresh Supabase fires) — otherwise a mid-session refresh could re-trigger
+  // the conflict prompt or clobber changes made since the last pull.
+  if (currentUser && !cloudSyncedOnce && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+    cloudSyncedOnce = true;
+    pullCloudSnapshot();
+  }
 }
 
 async function initAuth() {
-  sb.auth.onAuthStateChange((_event, session) => handleAuthSession(session));
+  sb.auth.onAuthStateChange((event, session) => handleAuthSession(event, session));
 }
 
 async function loginDiscord() {
@@ -9799,6 +9808,123 @@ async function loginDiscord() {
 
 async function logoutDiscord() {
   await sb.auth.signOut();
+}
+
+/* ── CLOUD SYNC (Discord account backup) ──────────────────────────────────
+   localStorage stays the source of truth for instant reads/writes — nothing
+   about the rest of the app changes. This layer just mirrors the
+   sync-relevant keys into a single Supabase row per Discord account, so
+   clearing the browser cache (or opening the site on another device) doesn't
+   lose teams/libraries. Two moving parts:
+     1. A monkey-patched localStorage.setItem pushes a debounced snapshot up
+        whenever one of the tracked keys changes, IF someone is logged in.
+     2. Right after a real login, pullCloudSnapshot() checks what's already
+        in the cloud for that account and reconciles it with whatever is in
+        this browser right now (see the conflict rule below).
+   Deliberately NOT synced: zzz_enka_ref_cache_* (a TTL'd reference-data
+   cache, not user data — re-fetches fine on its own). */
+const CLOUD_SYNC_KEYS = new Set([
+  'zzz_teams', 'zzz_advanced_mode', 'zzz_disc_advanced_mode',
+  'zzz_agent_library', 'zzz_wengine_library', 'zzz_bangboo_library',
+  'zzz_drive_disc_library', 'zzz_profile_favorites', 'zzz_profile_my_uid',
+  'zzz_shiyu_filter', 'zzz_display_options', 'zzz_accent_color'
+]);
+let cloudSyncTimer = null;
+let cloudSyncSuspended = false; // true while a pulled cloud snapshot is being written back into localStorage
+let cloudSyncedOnce = false;    // guards against re-pulling on every silent token refresh
+
+(function installCloudSyncHook() {
+  const origSetItem = localStorage.setItem.bind(localStorage);
+  localStorage.setItem = function (key, value) {
+    origSetItem(key, value);
+    if (CLOUD_SYNC_KEYS.has(key) && !cloudSyncSuspended && currentUser) {
+      clearTimeout(cloudSyncTimer);
+      cloudSyncTimer = setTimeout(pushCloudSnapshot, 2000);
+    }
+  };
+})();
+
+// Heuristic for "is there anything in this browser worth protecting from
+// being silently overwritten by a cloud pull" — used only to decide whether
+// the conflict prompt is worth showing.
+function hasMeaningfulLocalData() {
+  try {
+    const teams = JSON.parse(localStorage.getItem('zzz_teams') || '[]');
+    if (Array.isArray(teams) && teams.length) return true;
+    const discs = JSON.parse(localStorage.getItem('zzz_drive_disc_library') || '[]');
+    if (Array.isArray(discs) && discs.length) return true;
+    const anyEnabled = (key) => {
+      const lib = JSON.parse(localStorage.getItem(key) || '{}');
+      return Object.values(lib).some(e => e && e.enabled);
+    };
+    if (anyEnabled('zzz_agent_library')) return true;
+    if (anyEnabled('zzz_wengine_library')) return true;
+    if (anyEnabled('zzz_bangboo_library')) return true;
+  } catch { /* malformed local data — treat as nothing meaningful */ }
+  return false;
+}
+
+async function pushCloudSnapshot() {
+  if (!currentUser) return;
+  const snapshot = {};
+  CLOUD_SYNC_KEYS.forEach(k => {
+    const v = localStorage.getItem(k);
+    if (v !== null) snapshot[k] = v;
+  });
+  try {
+    const { error } = await sb.from('user_data').upsert({
+      user_id: currentUser.id, data: snapshot, updated_at: new Date().toISOString()
+    });
+    if (error) console.error('[Cloud Sync] push failed:', error.message);
+  } catch (err) {
+    console.error('[Cloud Sync] push failed:', err.message || err);
+  }
+}
+
+async function pullCloudSnapshot() {
+  if (!currentUser) return;
+  let row;
+  try {
+    const res = await sb.from('user_data').select('data').eq('user_id', currentUser.id).maybeSingle();
+    if (res.error) throw res.error;
+    row = res.data;
+  } catch (err) {
+    console.error('[Cloud Sync] pull failed:', err.message || err);
+    return;
+  }
+
+  // Nothing saved for this account yet — seed the cloud with whatever is in
+  // this browser right now (first login ever, or first login after this
+  // feature shipped). No conflict possible.
+  if (!row || !row.data || !Object.keys(row.data).length) {
+    pushCloudSnapshot();
+    return;
+  }
+
+  const applyCloudSnapshot = () => {
+    cloudSyncSuspended = true;
+    Object.entries(row.data).forEach(([k, v]) => {
+      if (CLOUD_SYNC_KEYS.has(k) && typeof v === 'string') localStorage.setItem(k, v);
+    });
+    cloudSyncSuspended = false;
+    showToast('Данные загружены из облака — обновляю страницу…', 'success');
+    setTimeout(() => location.reload(), 900);
+  };
+
+  if (hasMeaningfulLocalData()) {
+    // Cloud already has data AND this browser has its own — ask before either
+    // side overwrites the other. Cloud wins if confirmed; otherwise local
+    // stays and gets pushed up, overwriting the cloud copy instead.
+    const proceed = await customConfirm(
+      'В облаке уже есть сохранённые данные для этого аккаунта Discord. Загрузить их и заменить команды/библиотеки, накопленные в этом браузере?',
+      { okLabel: 'Загрузить из облака', danger: false }
+    );
+    if (proceed) applyCloudSnapshot();
+    else pushCloudSnapshot();
+  } else {
+    // Nothing worth protecting here — just take the cloud copy.
+    applyCloudSnapshot();
+  }
 }
 
 // ===== Feed: sharing, listing, voting, comments =====
@@ -9859,9 +9985,8 @@ function feedPostHtml(p) {
   const isMine = currentUser && currentUser.id === p.user_id;
   return `<div class="feed-post" data-post-id="${p.id}">
     <div class="feed-post-vote">
-      <button class="vote-btn${myVote === 1 ? ' active' : ''}" onclick="castVote(${p.id},1)">▲</button>
+      <button class="vote-btn${myVote === 1 ? ' active' : ''}" onclick="castVote(${p.id})">▲</button>
       <div class="vote-score">${p.score}</div>
-      <button class="vote-btn${myVote === -1 ? ' active' : ''}" onclick="castVote(${p.id},-1)">▼</button>
     </div>
     <div class="feed-post-body">
       <div class="feed-post-head">
@@ -9879,13 +10004,13 @@ function feedPostHtml(p) {
   </div>`;
 }
 
-async function castVote(postId, value) {
+async function castVote(postId) {
   if (!currentUser) { showToast('Sign in with Discord to vote.', 'error'); return; }
   const current = feedUserVotes[postId] || 0;
-  if (current === value) {
+  if (current === 1) {
     await sb.from('votes').delete().eq('post_id', postId).eq('user_id', currentUser.id);
   } else {
-    await sb.from('votes').upsert({ post_id: postId, user_id: currentUser.id, value });
+    await sb.from('votes').upsert({ post_id: postId, user_id: currentUser.id, value: 1 });
   }
   renderFeed();
 }
