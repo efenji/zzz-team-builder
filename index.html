@@ -7376,9 +7376,13 @@ function exportDriveDiscLibrary() {
   URL.revokeObjectURL(url);
 }
 
-function clearDriveDiscLibrary() {
+async function clearDriveDiscLibrary() {
   if (!driveDiscLibrary.length) return;
-  if (!confirm(`Delete all ${driveDiscLibrary.length} drive discs from the library? This can't be undone.`)) return;
+  const ok = await customConfirm(
+    `Точно удалить все ${driveDiscLibrary.length} дисков из библиотеки? Восстановить их не получится.`,
+    { okLabel: 'Delete', danger: true }
+  );
+  if (!ok) return;
   driveDiscLibrary = [];
   selectedDiscId = null;
   saveDriveDiscLibrary();
@@ -7386,7 +7390,61 @@ function clearDriveDiscLibrary() {
   setDiscImportStatus('Library cleared.', 'ok');
 }
 
-function deleteDriveDisc(id) {
+// Surfaces every place a disc is actually in use, so deleteDriveDisc can
+// warn about it before an action that has no undo. Two different kinds of
+// "used": teams reference discs by id (live link — deleting really does
+// break them), while presets store a full snapshot instead of an id (see
+// the Phase 2 data-layer comment), so a preset can only be affected if its
+// snapshot's fingerprint matches this exact disc — checked here, not by id.
+function findDiscUsages(disc) {
+  const teamUsages = [];
+  (teams || []).forEach(t => {
+    (t.agents || []).forEach(ag => {
+      if ((ag.discSlots || []).includes(disc.id)) {
+        teamUsages.push(`«${t.name || 'Untitled'}» (${ag.key ? cardName(ag.key) : 'agent'})`);
+      }
+    });
+  });
+  if (currentTeam && editingId == null) {
+    // A brand-new, not-yet-saved team currently open in the editor — won't
+    // show up in `teams` yet, but deleting the disc out from under it would
+    // still silently blank that slot the moment you save.
+    (currentTeam.agents || []).forEach(ag => {
+      if ((ag.discSlots || []).includes(disc.id)) {
+        teamUsages.push(`«${currentTeam.name || 'Untitled'}» (currently editing, not yet saved) — ${ag.key ? cardName(ag.key) : 'agent'}`);
+      }
+    });
+  }
+
+  const presetUsages = [];
+  const fp = discFingerprint(disc);
+  Object.entries(agentPresets).forEach(([agentKey, presets]) => {
+    (presets || []).forEach(p => {
+      if ((p.discs || []).some(snap => discFingerprint(snap) === fp)) {
+        presetUsages.push(`${cardName(agentKey)} — preset «${p.name}»`);
+      }
+    });
+  });
+
+  return { teamUsages, presetUsages };
+}
+
+async function deleteDriveDisc(id) {
+  const disc = driveDiscLibrary.find(d => d.id === id);
+  if (!disc) return;
+
+  const { teamUsages, presetUsages } = findDiscUsages(disc);
+  const lines = [`Delete this ${disc.setName} disc (slot ${disc.slot}) from your library? This can't be undone.`];
+  if (teamUsages.length) {
+    lines.push('', `Currently equipped in:`, ...teamUsages.map(u => `• ${u}`), '(that slot will go back to empty)');
+  }
+  if (presetUsages.length) {
+    lines.push('', `Used in:`, ...presetUsages.map(u => `• ${u}`), '(that preset will show as broken until re-saved)');
+  }
+
+  const ok = await customConfirm(lines.join('\n'), { okLabel: 'Delete', danger: true });
+  if (!ok) return;
+
   driveDiscLibrary = driveDiscLibrary.filter(d => d.id !== id);
   saveDriveDiscLibrary();
   if (selectedDiscId === id) selectedDiscId = null;
