@@ -1043,7 +1043,9 @@ select {
   border-radius: 6px; padding: 8px 10px; font-family: 'Share Tech Mono', monospace; font-size: 13px;
 }
 .profile-layout { display: flex; gap: 16px; margin-top: 16px; align-items: flex-start; }
-.profile-agent-list { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; }
+.profile-agent-list-col { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; }
+.profile-agent-list { display: flex; flex-direction: column; gap: 6px; }
+.profile-presets-entry { margin-top: 4px; width: 100%; display: flex; justify-content: center; }
 .profile-agent-card {
   background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
   padding: 8px 10px; cursor: pointer; font-size: 13px;
@@ -1449,7 +1451,10 @@ select {
   <div class="disc-import-status" id="profileStatus"></div>
   <div class="profile-current-player" id="profileCurrentPlayer"></div>
   <div class="profile-layout">
-    <div class="profile-agent-list" id="profileAgentList"></div>
+    <div class="profile-agent-list-col">
+      <div class="profile-agent-list" id="profileAgentList"></div>
+      <button class="lib-pill-btn profile-presets-entry" onclick="openPresetAgentPicker()" title="Browse or create presets for any agent, regardless of who's on this showcase">+ Presets</button>
+    </div>
     <div class="profile-detail" id="profileDetail"><div class="profile-detail-empty">Enter a UID above and press Load.</div></div>
   </div>
 </div>
@@ -8413,6 +8418,34 @@ function selectProfileAgent(i) {
   renderProfileDetail(i);
 }
 
+// ── Standalone preset browsing (Profile tab) ─────────────────────────────
+// Presets aren't tied to any UID's showcase — they're a per-agent thing
+// this tool tracks locally, so gating access to them behind "this agent
+// happens to be in the loaded account's showcase" would be an artificial
+// restriction. The "+ Presets" button below the agent list opens a picker
+// over the FULL roster (reusing the same modal grid as everywhere else,
+// via modalCtx.type='preset-agent') and shows that agent's presets in the
+// detail panel — no showcase data needed or used.
+function openPresetAgentPicker() {
+  openModal('preset-agent');
+}
+async function showPresetsForAgent(agentKey) {
+  profileSelectedIndex = null; // no showcase avatar selected — this is independent of it
+  profileSelectedPresetId = null;
+  renderProfileAgentList();
+  const panel = document.getElementById('profileDetail');
+  panel.innerHTML = `
+    <div class="pd-head">
+      <div class="pd-portrait"><img src="${agentUrl(agentKey)}" onerror="this.style.opacity=.15"></div>
+      <div>
+        <div class="pd-name">${escapeHtml(cardName(agentKey))}</div>
+        <div class="pd-sub">Presets — независимо от загруженного UID</div>
+      </div>
+    </div>
+    <div id="profilePresetsSection">${await renderProfilePresetsSection(agentKey)}</div>
+  `;
+}
+
 // Same shape as enkaEquipmentToDiscEntry(), but scales the main stat with
 // this disc's REAL level/rarity (via enkaDiscMainStatValue's table lookup)
 // instead of assuming S-rank Lv.15 — the Profile tab must show a showcased
@@ -10175,16 +10208,16 @@ function sortWenginesForPresetAgent(agentKey) {
 }
 function openModal(type,agentIdx,discIdx) {
   modalCtx={type,agentIdx,discIdx};
-  const titles={agent:'Select Agent',wengine:'Select W-Engine','preset-wengine':'Select W-Engine',disc:'Select Drive Disc',bangboo:'Select Bangboo',icon:'Select Icon'};
+  const titles={agent:'Select Agent','preset-agent':'Select Agent',wengine:'Select W-Engine','preset-wengine':'Select W-Engine',disc:'Select Drive Disc',bangboo:'Select Bangboo',icon:'Select Icon'};
   document.getElementById('modalTitle').textContent=titles[type];
   document.getElementById('modalSearch').value='';
-  modalItems = type==='agent'?sortAgentsForSlot(agentIdx):type==='wengine'?sortWenginesForAgent(agentIdx):type==='preset-wengine'?sortWenginesForPresetAgent(presetDraft?.agentKey):type==='disc'?DISCS:type==='icon'?(ICONS_BY_SLOT[discIdx]||ICONS_BY_SLOT[0]):bangbooPoolForModal();
+  modalItems = type==='agent'?sortAgentsForSlot(agentIdx):type==='preset-agent'?sortAgentsByRarity(AGENTS_FULL):type==='wengine'?sortWenginesForAgent(agentIdx):type==='preset-wengine'?sortWenginesForPresetAgent(presetDraft?.agentKey):type==='disc'?DISCS:type==='icon'?(ICONS_BY_SLOT[discIdx]||ICONS_BY_SLOT[0]):bangbooPoolForModal();
   activeSpec = null;
   activeAttr = null;
   document.querySelectorAll('.spec-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('modalSpec').classList.toggle('visible', type==='agent');
+  document.getElementById('modalSpec').classList.toggle('visible', type==='agent' || type==='preset-agent');
   document.getElementById('modalSpecWE').classList.toggle('visible', type==='wengine' || type==='preset-wengine');
-  document.getElementById('modalAttr').classList.toggle('visible', type==='agent');
+  document.getElementById('modalAttr').classList.toggle('visible', type==='agent' || type==='preset-agent');
   renderGrid(modalItems);
   document.getElementById('modalBg').classList.remove('hidden');
   document.getElementById('modalSearch').focus();
@@ -10222,11 +10255,11 @@ function toggleAttr(btn) {
 function filterModal() {
   const q = document.getElementById('modalSearch').value.toLowerCase();
   let items = modalItems.filter(k=>k.includes(q)||prettyName(k).toLowerCase().includes(q));
-  if (activeSpec && modalCtx.type === 'agent') {
+  if (activeSpec && (modalCtx.type === 'agent' || modalCtx.type === 'preset-agent')) {
     const pool = AGENT_SPECIALTIES[activeSpec] || [];
     items = items.filter(k => pool.includes(k));
   }
-  if (activeAttr && modalCtx.type === 'agent') {
+  if (activeAttr && (modalCtx.type === 'agent' || modalCtx.type === 'preset-agent')) {
     items = items.filter(k => getAgentAttributes(k).includes(activeAttr));
   }
   if (modalCtx.type === 'agent') {
@@ -10237,6 +10270,9 @@ function filterModal() {
     } else {
       items = sortAgentsByRarity(items);
     }
+  }
+  if (modalCtx.type === 'preset-agent') {
+    items = sortAgentsByRarity(items);
   }
   if (activeSpec && (modalCtx.type === 'wengine' || modalCtx.type === 'preset-wengine')) {
     const pool = WENGINE_SPECIALTIES[activeSpec] || [];
@@ -10254,6 +10290,7 @@ function filterModal() {
 function getSelected() {
   const {type,agentIdx,discIdx}=modalCtx;
   if(type==='agent')   return currentTeam.agents[agentIdx]?.key;
+  if(type==='preset-agent') return null;
   if(type==='wengine') return currentTeam.agents[agentIdx]?.wengine;
   if(type==='preset-wengine') return presetDraft?.wengine;
   if(type==='disc')    return currentTeam.agents[agentIdx]?.discs[discIdx];
@@ -10262,11 +10299,11 @@ function getSelected() {
 }
 function renderGrid(items) {
   const sel=getSelected(), {type}=modalCtx;
-  const cssType = type === 'preset-wengine' ? 'wengine' : type;
-  const fn=type==='agent'?agentUrl:(type==='wengine'||type==='preset-wengine')?wengineUrl:type==='disc'?discUrl:type==='icon'?iconUrl:bangbooUrl;
+  const cssType = type === 'preset-wengine' ? 'wengine' : type === 'preset-agent' ? 'agent' : type;
+  const fn=(type==='agent'||type==='preset-agent')?agentUrl:(type==='wengine'||type==='preset-wengine')?wengineUrl:type==='disc'?discUrl:type==='icon'?iconUrl:bangbooUrl;
   document.getElementById('modalGrid').innerHTML=items.map(k=>
     `<div class="mi mi-${cssType} ${k===sel?'sel':''}" onclick="pickItem('${k.replace(/'/g,"\\'")}')">
-      <img src="${fn(k)}" style="${type==='agent' ? `object-position:${AGENT_CARD_OFFSET[k] || 'center'}` : ''}" onerror="this.style.opacity=.15;this.style.filter='grayscale(1)'">
+      <img src="${fn(k)}" style="${(type==='agent'||type==='preset-agent') ? `object-position:${AGENT_CARD_OFFSET[k] || 'center'}` : ''}" onerror="this.style.opacity=.15;this.style.filter='grayscale(1)'">
       <span>${prettyName(k)}</span>
     </div>`
   ).join('');
@@ -10296,6 +10333,7 @@ function pickItem(key) {
     presetDraft.wengine = s ? null : key;
     if (presetDraft.wengine && !presetDraft.wrank) presetDraft.wrank = 1;
   }
+  else if(type==='preset-agent') { /* nothing to toggle — just browsing to this agent's presets, handled below */ }
   else if(type==='disc')    { const s=currentTeam.agents[agentIdx].discs[discIdx]===key; currentTeam.agents[agentIdx].discs[discIdx]=s?null:key; }
   else if(type==='bangboo') {
     const s=currentTeam.bangboo===key;
@@ -10310,8 +10348,9 @@ function pickItem(key) {
     if(!ag.icons) ag.icons=[null,null,null];
     const s=ag.icons[discIdx]===key; ag.icons[discIdx]=s?null:key;
   }
-  if (type === 'preset-wengine') { renderPresetDraftEditor(); } else { renderAgents(); }
-  closeModal();
+  if (type === 'preset-wengine') { renderPresetDraftEditor(); closeModal(); }
+  else if (type === 'preset-agent') { closeModal(); showPresetsForAgent(key); }
+  else { renderAgents(); closeModal(); }
 }
 
 /* ── DRAG-TO-REORDER TEAM CARDS ──
