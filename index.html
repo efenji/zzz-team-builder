@@ -775,6 +775,8 @@ select {
 .spec-btn.active { border-color: var(--accent); background: var(--accent-d); color: var(--accent); }
 
 /* ── AGENT LIBRARY (ADVANCED MODE) ── */
+.lib-level-row { flex-direction: column; align-items: stretch; }
+.lib-level-slider { width: 100%; accent-color: var(--accent); cursor: pointer; margin-top: 2px; }
 .lib-modal-bg {
   position: fixed; inset: 0; z-index: 200;
   background: rgba(0,0,0,.82);
@@ -6704,7 +6706,8 @@ function filterLibModal() { /* to be implemented once library contents are defin
 let agentLibrary = JSON.parse(localStorage.getItem('zzz_agent_library') || '{}');
 function saveAgentLibrary() { localStorage.setItem('zzz_agent_library', JSON.stringify(agentLibrary)); }
 function getAgentLibEntry(key) {
-  if (!agentLibrary[key]) agentLibrary[key] = { enabled: false, level: 60, mindscape: 0 };
+  if (!agentLibrary[key]) agentLibrary[key] = { enabled: false, level: 60, mindscape: 0, coreSkillEnhancement: 0 };
+  if (agentLibrary[key].coreSkillEnhancement == null) agentLibrary[key].coreSkillEnhancement = 0;
   return agentLibrary[key];
 }
 let libAgentFilterRarity = null, libAgentFilterSpec = null, libAgentFilterAttr = null;
@@ -6765,12 +6768,17 @@ function toggleAgentLibEnabled(key) {
 }
 function updateAgentLibField(key, field, value) {
   const e = getAgentLibEntry(key);
-  e[field] = parseInt(value, 10) || 0;
+  e[field] = Math.max(1, Math.min(60, parseInt(value, 10) || 60));
   saveAgentLibrary();
 }
 function setLibMindscape(key, val) {
   const e = getAgentLibEntry(key);
   e.mindscape = val;
+  saveAgentLibrary();
+}
+function setLibCoreSkill(key, val) {
+  const e = getAgentLibEntry(key);
+  e.coreSkillEnhancement = val;
   saveAgentLibrary();
 }
 function renderAgentLibraryGrid() {
@@ -6784,14 +6792,26 @@ function renderAgentLibraryGrid() {
     const e = getAgentLibEntry(k);
     const safeKey = k.replace(/'/g, "\\'");
     const mindTrack = makeSegTrack(6, e.mindscape, false, `data-action="lib-mindscape" data-key="${k}"`);
+    const coreTrack = makeSegTrack(6, e.coreSkillEnhancement, true, `data-action="lib-coreskill" data-key="${k}"`);
+    const coreLabel = e.coreSkillEnhancement ? enkaCoreSkillLetter(e.coreSkillEnhancement) : '—';
     return `<div class="ag-card ag-portrait-card lib-agent-card${e.enabled ? '' : ' disabled'}" data-key="${k}" onclick="toggleAgentLibEnabled('${safeKey}')" title="${e.enabled ? 'Enabled — click to disable' : 'Disabled — click to enable'}">
       <div class="ag-portrait">
         <img src="${agentUrl(k)}" style="object-position:${AGENT_CARD_OFFSET[k] || 'center'}" onerror="this.style.opacity=.15">
       </div>
       <div class="lib-agent-name">${cardName(k)}</div>
+      <div class="ag-eidolon-slider lib-level-row" onclick="event.stopPropagation()">
+        <div class="seg-label"><span>Level</span><span class="seg-val">${e.level}</span></div>
+        <input type="range" class="lib-level-slider" min="1" max="60" value="${e.level}"
+          oninput="this.closest('.lib-level-row').querySelector('.seg-val').textContent=this.value"
+          onchange="updateAgentLibField('${safeKey}','level',this.value)">
+      </div>
       <div class="ag-eidolon-slider" onclick="event.stopPropagation()">
         <div class="seg-label"><span>Mindscape</span><span class="seg-val">${e.mindscape}</span></div>
         ${mindTrack}
+      </div>
+      <div class="ag-eidolon-slider" onclick="event.stopPropagation()" title="Affects this agent's actual stats (unlike Mindscape/skill levels, which are cosmetic-only in this tool's calc)">
+        <div class="seg-label purple"><span>Core Skill</span><span class="seg-val">${coreLabel}</span></div>
+        ${coreTrack}
       </div>
     </div>`;
   }).join('') || `<div style="grid-column:1/-1;text-align:center;color:var(--text-dim);font-size:12px;padding:32px 0">No agents match these filters.</div>`;
@@ -6809,9 +6829,10 @@ function updateLibCardSizing() {
   const width = card.getBoundingClientRect().width;
   if (!width) return;
   const nameEl = card.querySelector('.lib-agent-name');
-  const sliderEl = card.querySelector('.ag-eidolon-slider');
-  const extra = (nameEl ? nameEl.getBoundingClientRect().height : 21)
-              + (sliderEl ? sliderEl.getBoundingClientRect().height : 51) + 2;
+  const sliderEls = card.querySelectorAll('.ag-eidolon-slider');
+  let sliderH = 0;
+  sliderEls.forEach(el => { sliderH += el.getBoundingClientRect().height; });
+  const extra = (nameEl ? nameEl.getBoundingClientRect().height : 21) + (sliderH || 51 * sliderEls.length) + 2;
   const portraitH = Math.round(width * 356 / 684);
   grid.style.setProperty('--lib-portrait-h', portraitH + 'px');
   grid.style.setProperty('--lib-card-h', (portraitH + extra) + 'px');
@@ -6829,7 +6850,8 @@ window.addEventListener('resize', () => {
 let wengineLibrary = JSON.parse(localStorage.getItem('zzz_wengine_library') || '{}');
 function saveWengineLibrary() { localStorage.setItem('zzz_wengine_library', JSON.stringify(wengineLibrary)); }
 function getWengineLibEntry(key) {
-  if (!wengineLibrary[key]) wengineLibrary[key] = { enabled: false, refinement: 1 };
+  if (!wengineLibrary[key]) wengineLibrary[key] = { enabled: false, refinement: 1, level: 60 };
+  if (wengineLibrary[key].level == null) wengineLibrary[key].level = 60;
   return wengineLibrary[key];
 }
 let libWengineFilterRarity = null, libWengineFilterSpec = null;
@@ -6883,6 +6905,11 @@ function setLibRefinement(key, val) {
   e.refinement = Math.max(1, val);
   saveWengineLibrary();
 }
+function updateWengineLibField(key, field, value) {
+  const e = getWengineLibEntry(key);
+  e[field] = Math.max(1, Math.min(60, parseInt(value, 10) || 60));
+  saveWengineLibrary();
+}
 function renderWengineLibraryGrid() {
   let items = WENGINES.slice();
   if (libWengineFilterRarity) items = items.filter(k => wengineRarityLetter(k) === libWengineFilterRarity);
@@ -6898,6 +6925,12 @@ function renderWengineLibraryGrid() {
         <img src="${wengineUrl(k)}" onerror="this.style.opacity=.15">
       </div>
       <div class="lib-agent-name">${prettyName(k)}</div>
+      <div class="ag-eidolon-slider lib-level-row" onclick="event.stopPropagation()">
+        <div class="seg-label"><span>Level</span><span class="seg-val">${e.level}</span></div>
+        <input type="range" class="lib-level-slider" min="1" max="60" value="${e.level}"
+          oninput="this.closest('.lib-level-row').querySelector('.seg-val').textContent=this.value"
+          onchange="updateWengineLibField('${safeKey}','level',this.value)">
+      </div>
       <div class="ag-eidolon-slider" onclick="event.stopPropagation()">
         <div class="seg-label purple"><span>Refinement</span><span class="seg-val">${e.refinement}</span></div>
         ${refTrack}
@@ -6916,9 +6949,10 @@ function updateLibWengineCardSizing() {
   const width = card.getBoundingClientRect().width;
   if (!width) return;
   const nameEl = card.querySelector('.lib-agent-name');
-  const sliderEl = card.querySelector('.ag-eidolon-slider');
-  const extra = (nameEl ? nameEl.getBoundingClientRect().height : 21)
-              + (sliderEl ? sliderEl.getBoundingClientRect().height : 51) + 2;
+  const sliderEls = card.querySelectorAll('.ag-eidolon-slider');
+  let sliderH = 0;
+  sliderEls.forEach(el => { sliderH += el.getBoundingClientRect().height; });
+  const extra = (nameEl ? nameEl.getBoundingClientRect().height : 21) + (sliderH || 51 * sliderEls.length) + 2;
   const portraitH = Math.round(width);
   grid.style.setProperty('--libw-portrait-h', portraitH + 'px');
   grid.style.setProperty('--libw-card-h', (portraitH + extra) + 'px');
@@ -7667,6 +7701,145 @@ async function buildEnkaAgentStatSheet(avatarRaw) {
   if (avatarRaw.Id === 1121 && atkEntry && defEntry) { // Ben
     const BEN_DEF_TO_ATK = [0.4, 0.46, 0.52, 0.6, 0.66, 0.72, 0.8];
     const mult = BEN_DEF_TO_ATK[avatarRaw.CoreSkillEnhancement || 0] ?? BEN_DEF_TO_ATK[0];
+    const bonus = Math.floor(Math.floor(defEntry.total) * mult);
+    atkEntry.total += bonus;
+    atkEntry.bonus += bonus;
+    atkEntry.approximate = false;
+  }
+
+  if (avatarDef.ProfessionType === 'Rupture' && atkEntry && hpEntry) {
+    const sheerForce = Math.floor(Math.floor(atkEntry.total) * 0.3) + Math.floor(Math.floor(hpEntry.total) * 0.1);
+    sheet.push({ fam: 'sheer', label: 'Sheer Force', isPercent: false, total: sheerForce, base: 0, bonus: sheerForce, approximate: false });
+  }
+
+  return sheet;
+}
+
+// ── MANUAL / PRESET STAT ENGINE ────────────────────────────────────────
+// Same math and reference data as buildEnkaAgentStatSheet above, but for a
+// "theoretical" build that isn't tied to a real Enka account: Level + Core
+// Skill Enhancement come from the Agent Library, W-Engine Level comes from
+// the W-Engine Library (Refinement only changes kit TEXT potency, not these
+// numbers — see WENGINE_INFO's own comment), and discs are plain entries
+// from this tool's own Drive Disc Library (or a preset's snapshot of them).
+// Those are already at their final S-rank/Lv.15-scaled values, so — unlike
+// the Enka path, which has to reconstruct a real account's raw payload via
+// enhance-rate tables — no raw-value math is needed for them here at all.
+const SLUG_TO_ENKA_AGENT_ID = {};
+Object.entries(ENKA_AGENT_MAP).forEach(([id, slug]) => { SLUG_TO_ENKA_AGENT_ID[slug] = Number(id); });
+const SLUG_TO_ENKA_WENGINE_ID = {};
+Object.entries(ENKA_WENGINE_MAP).forEach(([id, slug]) => { SLUG_TO_ENKA_WENGINE_ID[slug] = Number(id); });
+const SETNAME_TO_SUITID = {};
+Object.entries(ENKA_DISCSET_MAP).forEach(([id, name]) => { SETNAME_TO_SUITID[name] = Number(id); });
+const NAME_TO_ENKA_PROP_ID = {};
+Object.entries(ENKA_PROPERTY_MAP).forEach(([id, name]) => { NAME_TO_ENKA_PROP_ID[name] = Number(id); });
+
+// A character's level cap only rises every 10 levels, and (per the game's
+// own systems) W-Engines share that exact same breakpoint scheme — so no
+// separate lookup table is needed, just this one formula. PromotionLevel is
+// 1-indexed (matches avatarDef.PromotionProps[promotionLevel-1] above);
+// BreakLevel (W-Engine) is 0-indexed (matches WENGINE_STAR_TABLE above).
+// See the "PROMOTION BREAKPOINTS" discussion this was verified against.
+function levelToPromotion(level) { return Math.max(1, Math.min(6, Math.ceil((level || 1) / 10))); }
+function levelToBreakLevel(level) { return levelToPromotion(level) - 1; }
+
+// discEntries: array of up to 6 objects in this tool's own Drive Disc
+// Library shape ({ setName, mainStat, mainStatValue, subStats:[{name,value}] }).
+// Returns the same sheet shape as buildEnkaAgentStatSheet (or null if this
+// agent has no Enka reference data mapped yet).
+async function buildManualAgentStatSheet(agentKey, wengineKey, discEntries) {
+  const enkaId = SLUG_TO_ENKA_AGENT_ID[agentKey];
+  if (enkaId == null) return null;
+  const avatarsRef = await getEnkaAvatarsRefData();
+  const avatarDef = avatarsRef[String(enkaId)];
+  if (!avatarDef) return null;
+
+  const libEntry = getAgentLibEntry(agentKey);
+  const level = libEntry.level || 60;
+  const promotionLevel = levelToPromotion(level);
+  const coreSkillEnhancement = libEntry.coreSkillEnhancement || 0;
+
+  const charBase = computeEnkaCharacterBase(avatarDef, level, promotionLevel, coreSkillEnhancement);
+
+  const families = {};
+  const noteFam = (id, bucket, val) => {
+    const fam = enkaStatFamily(id);
+    families[fam] = families[fam] || { base: 0, flat: 0, ratio: 0 };
+    families[fam][bucket] += val;
+  };
+  Object.entries(charBase).forEach(([id, v]) => noteFam(id, 'base', v));
+
+  if (wengineKey) {
+    const wEnkaId = SLUG_TO_ENKA_WENGINE_ID[wengineKey];
+    if (wEnkaId != null) {
+      const weaponsRef = await getEnkaWeaponsRefData();
+      const weaponDef = weaponsRef[String(wEnkaId)];
+      if (weaponDef) {
+        const wLevel = getWengineLibEntry(wengineKey).level || 60;
+        const wBreakLevel = levelToBreakLevel(wLevel);
+        computeEnkaWeaponContribs(weaponDef, wLevel, wBreakLevel)
+          .forEach(c => noteFam(c.id, enkaPropBucket(c.id), c.value));
+      }
+    }
+  }
+
+  const setCounts = {};
+  (discEntries || []).forEach(d => {
+    if (!d) return;
+    if (d.setName) setCounts[d.setName] = (setCounts[d.setName] || 0) + 1;
+    const mainId = NAME_TO_ENKA_PROP_ID[d.mainStat];
+    if (mainId != null && d.mainStatValue != null) {
+      noteFam(mainId, enkaPropBucket(mainId), parseFloat(d.mainStatValue) || 0);
+    }
+    (d.subStats || []).forEach(s => {
+      const subId = NAME_TO_ENKA_PROP_ID[s.name];
+      if (subId != null) noteFam(subId, enkaPropBucket(subId), parseFloat(s.value) || 0);
+    });
+  });
+
+  // 2-Pc set stat bonuses — same table the Enka path uses above, just keyed
+  // off our own setName strings instead of Enka's numeric suitId.
+  Object.entries(setCounts).forEach(([setName, count]) => {
+    if (count < 2) return;
+    const suitId = SETNAME_TO_SUITID[setName];
+    if (suitId == null) return;
+    const props = DISC_SET_BONUS_PROPS[String(suitId)] || {};
+    Object.entries(props).forEach(([id, val]) => noteFam(id, enkaPropBucket(id), val));
+  });
+
+  const assemble = (fam) => {
+    const d = families[fam];
+    if (!d) return 0;
+    return d.base * (1 + d.ratio / 10000) + d.flat;
+  };
+
+  const highlightFams = new Set((avatarDef.HighlightProps || []).map(enkaStatFamily));
+
+  const sheet = ENKA_STAT_FAMILY_ORDER
+    .filter(fam => families[fam])
+    .map(fam => {
+      const meta = ENKA_STAT_FAMILY_META[fam];
+      const rawTotal = assemble(fam);
+      const total = rawTotal / meta.postDivide;
+      const baseDisplay = families[fam].base / meta.postDivide;
+      return {
+        fam, label: meta.label, isPercent: meta.isPercent,
+        total, base: baseDisplay, bonus: total - baseDisplay,
+        approximate: highlightFams.has(fam),
+      };
+    });
+
+  // Same universal, documented corrections as the Enka path above (Ben's
+  // DEF→ATK conversion, Rupture's Sheer Force) — both are kit-agnostic
+  // rules tied to Core Skill Enhancement / specialty, not per-account
+  // guesses, so they apply identically to a theoretical build.
+  const atkEntry = sheet.find(s => s.fam === '121');
+  const defEntry = sheet.find(s => s.fam === '131');
+  const hpEntry = sheet.find(s => s.fam === '111');
+
+  if (enkaId === 1121 && atkEntry && defEntry) { // Ben
+    const BEN_DEF_TO_ATK = [0.4, 0.46, 0.52, 0.6, 0.66, 0.72, 0.8];
+    const mult = BEN_DEF_TO_ATK[coreSkillEnhancement] ?? BEN_DEF_TO_ATK[0];
     const bonus = Math.floor(Math.floor(defEntry.total) * mult);
     atkEntry.total += bonus;
     atkEntry.bonus += bonus;
@@ -9294,6 +9467,7 @@ function setBooMindscape(n){ currentTeam.booMindscape=n; renderBangboo(); }
     else if (action === 'wrank') setWrank(agentIdx, val);
     else if (action === 'boomindscape') setBooMindscape(val);
     else if (action === 'lib-mindscape') setLibMindscape(track.dataset.key, val);
+    else if (action === 'lib-coreskill') setLibCoreSkill(track.dataset.key, val);
     else if (action === 'lib-refinement') setLibRefinement(track.dataset.key, val);
     else if (action === 'lib-boomindscape') setLibBangbooMindscape(track.dataset.key, val);
     else if (action === 'sub-proc') onManualSubProcsChange(+track.dataset.row, val);
