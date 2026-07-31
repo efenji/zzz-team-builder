@@ -1127,6 +1127,7 @@ select {
 .preset-chip-lg:hover { border-color: var(--border2); color: var(--text); }
 .preset-chip-lg.selected { border-color: var(--accent); background: var(--accent-d); color: var(--accent); }
 .pd-preset-detail { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border2); }
+.preset-view-tabs { margin-bottom: 14px; }
 .pd-preset-actions { display: flex; gap: 8px; margin-top: 14px; }
 .lib-pill-btn.danger { color: var(--red); }
 .lib-pill-btn.danger:hover { border-color: var(--red); background: rgba(239,68,68,.12); color: var(--red); }
@@ -8254,7 +8255,8 @@ async function loadProfileShowcase() {
   renderProfileFavorites();
 
   profileLastAvatars = avatars;
-  profilePresetBrowseAgentKey = null;
+  profilePresetViewAgentKey = null;
+  profilePresetViewPresetId = null;
   setProfileStatus(`Found ${avatars.length} agent${avatars.length === 1 ? '' : 's'} on the showcase.`, 'ok');
   renderProfileAgentList();
   renderProfileLeftExtra();
@@ -8275,7 +8277,10 @@ function renderProfileAgentList() {
 
 function selectProfileAgent(i) {
   profileSelectedIndex = i;
+  profilePresetViewAgentKey = null;
+  profilePresetViewPresetId = null;
   renderProfileAgentList();
+  renderProfileLeftExtra();
   renderProfileDetail(i);
 }
 
@@ -8288,67 +8293,95 @@ function selectProfileAgent(i) {
 // index of agents who already have at least one preset — only agents that
 // pass that bar show up there at all — and clicking one drills into that
 // agent's own preset list, right in the same spot.
-let profilePresetBrowseAgentKey = null; // null = showing the "has presets" index; else = that agent's own list
+// Which agent's saved presets are currently shown in the right-hand detail
+// panel (independent of the live showcase selection above it), and which of
+// that agent's presets is the active tab. Clicking an agent in the "has
+// presets" index below opens this straight away — no left-column drill-down,
+// no back action: picking a different agent (showcase or index) just
+// replaces whatever's showing.
+let profilePresetViewAgentKey = null;
+let profilePresetViewPresetId = null;
 
 function openPresetAgentPicker() {
   openModal('preset-agent');
 }
-function exitPresetBrowse() {
-  profilePresetBrowseAgentKey = null;
+
+function openAgentPresetView(agentKey) {
+  const presets = getAgentPresets(agentKey);
+  if (!presets.length) return;
+  profilePresetViewAgentKey = agentKey;
+  profilePresetViewPresetId = presets[0].id;
+  profileSelectedIndex = null; // don't leave a showcase agent looking selected too
+  renderProfileAgentList();
   renderProfileLeftExtra();
+  renderAgentPresetView();
 }
-function browsePresetsForAgent(agentKey) {
-  profilePresetBrowseAgentKey = agentKey;
-  renderProfileLeftExtra();
-  document.getElementById('profileDetail').innerHTML = `<div class="profile-detail-empty">Select a preset to view it.</div>`;
+
+function selectAgentPresetTab(presetId) {
+  profilePresetViewPresetId = presetId;
+  renderAgentPresetView();
+}
+
+// Renders the tab row (one chip per saved preset, always at least one) plus
+// the full presetDetailHtml() card below it — same pd-head/Stats/W-Engine/
+// Discs layout used for a live showcase agent, just fed from the preset
+// snapshot instead of a real Enka avatar.
+async function renderAgentPresetView() {
+  const agentKey = profilePresetViewAgentKey;
+  const presets = getAgentPresets(agentKey);
+  if (!presets.length) {
+    profilePresetViewAgentKey = null;
+    profilePresetViewPresetId = null;
+    document.getElementById('profileDetail').innerHTML = `<div class="profile-detail-empty">Enter a UID above and press Load.</div>`;
+    renderProfileLeftExtra();
+    return;
+  }
+  const preset = presets.find(p => p.id === profilePresetViewPresetId) || presets[0];
+  profilePresetViewPresetId = preset.id;
+
+  const tabsHtml = presets.map(p => {
+    const { missing } = evaluatePresetApplicability(p, null);
+    const broken = missing.length > 0;
+    const title = broken
+      ? `${escapeHtml(p.name)} — ${missing.length} disc(s) no longer match anything in your Drive Disc Library`
+      : escapeHtml(p.name);
+    return `
+    <div class="preset-chip-lg${p.id === preset.id ? ' selected' : ''}${broken ? ' broken' : ''}" onclick="selectAgentPresetTab('${p.id}')" title="${title}">
+      <img src="${wengineUrl(p.wengine)}" onerror="this.style.opacity=.2">
+      <span>${escapeHtml(p.name)}</span>
+      ${broken ? '<span class="preset-chip-warn">!</span>' : ''}
+    </div>`;
+  }).join('');
+
+  const detailHtml = await presetDetailHtml(agentKey, preset);
+  document.getElementById('profileDetail').innerHTML = `
+    <div class="pd-presets-row preset-view-tabs">${tabsHtml}</div>
+    ${detailHtml}
+  `;
 }
 
 function renderProfileLeftExtra() {
   const el = document.getElementById('profilePresetBrowseList');
   if (!el) return;
-
-  if (!profilePresetBrowseAgentKey) {
-    const agentsWithPresets = Object.keys(agentPresets).filter(k => (agentPresets[k] || []).length > 0);
-    if (!agentsWithPresets.length) { el.innerHTML = ''; el.classList.add('hidden'); return; }
-    el.classList.remove('hidden');
-    el.innerHTML = sortAgentsByRarity(agentsWithPresets).map(k => `<div class="profile-agent-card" onclick="browsePresetsForAgent('${k}')">
-      <div class="pac-name">${escapeHtml(cardName(k))}</div>
-      <div class="pac-sub">${getAgentPresets(k).length}/${PRESET_LIMIT} presets</div>
-    </div>`).join('');
-    return;
-  }
-
+  const agentsWithPresets = Object.keys(agentPresets).filter(k => (agentPresets[k] || []).length > 0);
+  if (!agentsWithPresets.length) { el.innerHTML = ''; el.classList.add('hidden'); return; }
   el.classList.remove('hidden');
-  const agentKey = profilePresetBrowseAgentKey;
-  const presets = getAgentPresets(agentKey);
-  const backRow = `<div class="profile-agent-card preset-list-back" onclick="exitPresetBrowse()"><div class="pac-name">← Presets</div></div>`;
-  const rows = presets.map(p => {
-    const { missing } = evaluatePresetApplicability(p, null);
-    const broken = missing.length > 0;
-    return `<div class="profile-agent-card${broken ? ' broken' : ''}" onclick="viewPresetDetail('${agentKey}','${p.id}')">
-      <div class="pac-name">${escapeHtml(p.name)}${broken ? ' <span class="preset-chip-warn" style="position:static;display:inline-flex;vertical-align:middle;margin-left:4px">!</span>' : ''}</div>
-    </div>`;
-  }).join('');
-  el.innerHTML = backRow + rows;
-  // The agent could have just lost its last preset (deleted down to zero) —
-  // bounce back to the index instead of showing an empty drill-down.
-  if (!presets.length) exitPresetBrowse();
-}
-
-async function viewPresetDetail(agentKey, presetId) {
-  const preset = getPresetById(agentKey, presetId);
-  if (!preset) return;
-  document.getElementById('profileDetail').innerHTML = await presetDetailHtml(agentKey, preset);
+  el.innerHTML = sortAgentsByRarity(agentsWithPresets).map(k => `<div class="profile-agent-card${k === profilePresetViewAgentKey ? ' selected' : ''}" onclick="openAgentPresetView('${k}')">
+    <div class="pac-name">${escapeHtml(cardName(k))}</div>
+    <div class="pac-sub">${getAgentPresets(k).length}/${PRESET_LIMIT} presets</div>
+  </div>`).join('');
 }
 
 // Refreshes whichever preset UI is currently on screen for a given agent —
 // the showcase character's own read-only Presets section (if that's what's
-// showing) and/or the standalone left-column index/list (always, since a
+// showing), the standalone right-panel preset view (if that agent is the
+// one currently open there), and the left-column index (always, since a
 // save/rename/delete anywhere can change whether an agent belongs in the
 // "has presets" index at all).
 function refreshPresetViews(agentKey) {
   const oldSection = document.getElementById('profilePresetsSection');
   if (oldSection) refreshProfilePresetsSection(agentKey);
+  if (profilePresetViewAgentKey === agentKey) renderAgentPresetView();
   renderProfileLeftExtra();
 }
 
@@ -8660,9 +8693,7 @@ async function deletePresetPrompt(agentKey, presetId) {
   }
   deleteAgentPreset(agentKey, presetId);
   if (profileSelectedPresetId === presetId) profileSelectedPresetId = null;
-  if (profilePresetBrowseAgentKey === agentKey) {
-    document.getElementById('profileDetail').innerHTML = `<div class="profile-detail-empty">Select a preset to view it.</div>`;
-  }
+  if (profilePresetViewAgentKey === agentKey && profilePresetViewPresetId === presetId) profilePresetViewPresetId = null;
   refreshPresetViews(agentKey);
 }
 
