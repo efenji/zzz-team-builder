@@ -632,6 +632,13 @@ select {
   display: flex; align-items: center; justify-content: center; line-height: 1;
   box-shadow: 0 0 0 2px var(--bg3);
 }
+.preset-chip-verified {
+  position: absolute; top: -3px; right: -3px;
+  width: 13px; height: 13px; border-radius: 50%;
+  background: var(--bg4); font-size: 8px;
+  display: flex; align-items: center; justify-content: center; line-height: 1;
+  box-shadow: 0 0 0 2px var(--bg3);
+}
 .pd-preset-warn {
   font-size: 12px; color: #f0b429; background: rgba(180,83,9,.12);
   border: 1px solid #b45309; border-radius: var(--r-sm);
@@ -993,6 +1000,70 @@ select {
 .feed-post-actions .lib-pill-btn.danger:hover { border-color: var(--red); background: rgba(239,68,68,.12); color: var(--red); }
 .feed-comments { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
 .feed-comments.hidden { display: none; }
+
+/* Feed subnav (Лента / Мои публикации) */
+.feed-subnav { display: flex; gap: 8px; max-width: 640px; margin: 0 auto 14px; }
+.feed-subnav .lib-pill-btn.active { border-color: var(--accent); background: var(--accent-d); color: var(--accent); }
+
+.feed-controls { display: flex; flex-wrap: wrap; gap: 8px; max-width: 640px; margin: 0 auto 14px; }
+.feed-controls select { flex: 1; min-width: 120px; }
+
+.feed-load-more-wrap { display: flex; justify-content: center; max-width: 640px; margin: 4px auto 20px; }
+.feed-load-more-wrap.hidden { display: none; }
+
+.feed-note { margin-top: 8px; font-size: 12px; color: var(--text-mid); background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 8px 10px; white-space: pre-wrap; }
+
+.feed-post.post-highlight { animation: post-flash 1.6s ease-out; }
+@keyframes post-flash {
+  0%   { box-shadow: 0 0 0 2px var(--accent); }
+  100% { box-shadow: 0 0 0 0 rgba(255,204,0,0); }
+}
+
+/* Post moderation status badge */
+.post-status-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 20px; margin-left: auto; }
+.post-status-badge.pending  { color: var(--accent); background: var(--accent-d); border: 1px solid var(--accent-30); }
+.post-status-badge.approved { color: #22c55e; background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.35); }
+.post-status-badge.rejected { color: var(--red); background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.35); }
+.post-reject-reason { margin-top: 8px; font-size: 12px; color: var(--text-mid); background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 8px 10px; }
+.feed-post-youtube { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-mid); margin-top: 6px; text-decoration: none; }
+.feed-post-youtube:hover { color: var(--accent); }
+
+/* Publish / edit post form modal */
+.post-form-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.post-form-field label { display: block; font-size: 11px; color: var(--text-mid); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .03em; }
+.post-form-field input { width: 100%; box-sizing: border-box; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r-sm); color: var(--text); padding: 9px 10px; font-size: 13px; }
+.post-form-field input:focus { outline: none; border-color: var(--accent); }
+.post-form-hint { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+
+/* UID ownership verification (Profile tab) */
+.uid-verify-panel.hidden { display: none; }
+.uid-verify-box { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 14px; margin-bottom: 14px; }
+.uid-verify-badge { background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.35); color: #22c55e; border-radius: var(--r-sm); padding: 8px 12px; margin-bottom: 14px; font-size: 12px; font-weight: 700; }
+.uid-verify-title { font-weight: 700; font-size: 13px; margin-bottom: 8px; }
+.uid-verify-steps { font-size: 12px; color: var(--text-mid); line-height: 1.6; margin-bottom: 10px; }
+.uid-verify-code { color: var(--accent); font-family: monospace; font-size: 16px; letter-spacing: 2px; }
+.uid-verify-timer { font-size: 11px; color: var(--text-dim); margin-bottom: 10px; }
+.uid-verify-actions, .uid-verify-form-row { display: flex; gap: 8px; }
+.uid-verify-form-row input { flex: 1; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r-sm); color: var(--text); padding: 9px 10px; font-size: 13px; }
+.uid-verify-form-row input:focus { outline: none; border-color: var(--accent); }
+
+.profile-cache-status { font-size: 11px; color: var(--text-dim); margin-bottom: 10px; min-height: 14px; }
+#profileReloadMyBtn.hidden { display: none; }
+#profileReloadMyBtn:disabled { opacity: .4; cursor: default; }
+
+/* Player search (nickname/UID autocomplete) */
+.profile-search-row { position: relative; max-width: 460px; margin-bottom: 12px; }
+.profile-search-row input { width: 100%; box-sizing: border-box; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r-sm); color: var(--text); padding: 9px 10px; font-size: 13px; }
+.profile-search-row input:focus { outline: none; border-color: var(--accent); }
+.profile-search-results { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 40; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r-sm); max-height: 320px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+.profile-search-results.hidden { display: none; }
+.profile-search-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; cursor: pointer; font-size: 12px; }
+.profile-search-item:hover { background: var(--bg4); }
+.profile-search-item img { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; }
+.profile-search-item .psi-names { display: flex; flex-direction: column; min-width: 0; }
+.profile-search-item .psi-game { font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-search-item .psi-meta { color: var(--text-mid); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-search-empty { padding: 10px; font-size: 12px; color: var(--text-dim); }
 .comment-row { display: flex; align-items: center; gap: 7px; padding: 4px 0; font-size: 12.5px; }
 .comment-avatar { width: 17px; height: 17px; border-radius: 50%; flex-shrink: 0; }
 .comment-author { color: var(--text-mid); font-weight: 700; flex-shrink: 0; }
@@ -1460,10 +1531,17 @@ select {
 
 <div class="page hidden" id="pageProfile">
   <div class="section-title">Profile · Character Showcase (by UID)</div>
+  <div class="profile-search-row">
+    <input type="text" id="profileSearchInput" placeholder="🔎 Поиск по нику (игра/Discord) или UID…" autocomplete="off" oninput="onProfileSearchInput()" onkeydown="if(event.key==='Escape')closeProfileSearchResults()">
+    <div class="profile-search-results hidden" id="profileSearchResults"></div>
+  </div>
+  <div class="uid-verify-panel hidden" id="uidVerifyPanel"></div>
   <div class="profile-uid-row">
     <input type="text" id="profileUidInput" placeholder="Enter ZZZ UID, e.g. 1503301061" onkeydown="if(event.key==='Enter')loadProfileShowcase()">
     <button class="lib-pill-btn" onclick="loadProfileShowcase()">Load</button>
+    <button class="lib-pill-btn hidden" id="profileReloadMyBtn" onclick="reloadMyShowcase()" title="Обновить свой стенд с Enka и сохранить на сайте">🔄 Reload</button>
   </div>
+  <div class="profile-cache-status" id="profileCacheStatus"></div>
   <div class="profile-actions-row">
     <button class="lib-pill-btn" id="profileSetMyBtn" onclick="setCurrentAsMyUid()" disabled title="Remember this UID and auto-load it on this tab">My account</button>
     <button class="lib-pill-btn" id="profileFavBtn" onclick="toggleCurrentFavorite()" disabled title="Add to favorites">☆ Favorite</button>
@@ -1483,7 +1561,54 @@ select {
 
 <div class="page hidden" id="pageFeed">
   <div class="section-title">Community Feed</div>
-  <div id="feedList" class="feed-list"></div>
+  <div class="feed-subnav">
+    <button class="lib-pill-btn active" id="feedTabAll" onclick="showFeedTab('all')">Лента</button>
+    <button class="lib-pill-btn" id="feedTabMine" onclick="showFeedTab('mine')">Мои публикации</button>
+  </div>
+  <div id="feedAllWrap">
+    <div class="feed-controls">
+      <select id="feedSortSelect" onchange="onFeedControlsChange()" title="Сортировка">
+        <option value="score">По популярности</option>
+        <option value="created_at">По новизне</option>
+      </select>
+      <select id="feedFilterSeason" onchange="onFeedControlsChange()" title="Фильтр по сезону Шию">
+        <option value="">Все сезоны</option>
+      </select>
+      <select id="feedFilterFloor" onchange="onFeedControlsChange()" title="Фильтр по этажу">
+        <option value="">Любой этаж</option>
+      </select>
+      <select id="feedFilterRoom" onchange="onFeedControlsChange()" title="Фильтр по комнате">
+        <option value="">Любая комната</option>
+      </select>
+    </div>
+    <div id="feedList" class="feed-list"></div>
+    <div class="feed-load-more-wrap hidden" id="feedLoadMoreWrap">
+      <button class="lib-pill-btn" id="feedLoadMoreBtn" onclick="loadMoreFeedPosts()">Показать ещё</button>
+    </div>
+  </div>
+  <div id="myPostsList" class="feed-list hidden"></div>
+</div>
+
+<!-- Publish / edit-and-resubmit post form -->
+<div class="lib-modal-bg hidden" id="postFormBg" onclick="postFormBgClick(event)">
+  <div class="lib-modal-box preset-form-box">
+    <div class="lib-modal-hd">
+      <button class="modal-x" onclick="closePostForm()">✕</button>
+      <div class="lib-modal-ttl" id="postFormTitle">Publish to Feed</div>
+      <button class="btn-save" id="postFormSaveBtn" onclick="submitPostForm()">Publish</button>
+    </div>
+    <div class="post-form-body">
+      <div class="post-form-field">
+        <label>Название поста</label>
+        <input type="text" id="postFormTitleInput" placeholder="Название поста" maxlength="80">
+      </div>
+      <div class="post-form-field">
+        <label>Ссылка на YouTube (необязательно)</label>
+        <input type="text" id="postFormYoutubeInput" placeholder="https://youtube.com/watch?v=...">
+        <div class="post-form-hint">Просто кликабельная ссылка, без встроенного плеера.</div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div id="toastContainer"></div>
@@ -7450,11 +7575,21 @@ function selectDriveDisc(id) {
    Trade-off (accepted): editing a disc in the library later does NOT
    retroactively update presets that already snapshotted it — the preset
    has to be re-saved to pick up the correction. */
-const PRESET_LIMIT = 6;
+const PRESET_LIMIT = 6; // применяется РАЗДЕЛЬНО: 6 verified + 6 (manual/imported вместе)
 let agentPresets = JSON.parse(localStorage.getItem('zzz_agent_presets') || '{}');
 function saveAgentPresets() { localStorage.setItem('zzz_agent_presets', JSON.stringify(agentPresets)); }
 function getAgentPresets(agentKey) { return agentPresets[agentKey] || []; }
 function getPresetById(agentKey, presetId) { return getAgentPresets(agentKey).find(p => p.id === presetId) || null; }
+
+// Пресеты без category (созданы до введения категорий) считаются 'manual' —
+// именно так они и создавались раньше (единственный тогдашний способ).
+function presetCategory(p) { return p.category || 'manual'; }
+
+function presetCategoryCounts(agentKey) {
+  const list = getAgentPresets(agentKey);
+  const verified = list.filter(p => presetCategory(p) === 'verified').length;
+  return { verified, other: list.length - verified };
+}
 
 // Strips a driveDiscLibrary entry (or an Enka-derived disc display entry)
 // down to just the fields a preset needs to redraw itself anywhere — no
@@ -7489,13 +7624,19 @@ function nextPresetName(agentKey) {
 // skips the "missing from your library" check for these entirely, since
 // that check was never meaningful for them in the first place. Returns the
 // new preset, or null (with a toast) if a precondition fails.
-function createAgentPreset(agentKey, wengineKey, wrank, discEntries, name, source = null) {
+function createAgentPreset(agentKey, wengineKey, wrank, discEntries, name, source = null, category = 'manual') {
   if (!agentKey) return null;
   if (!wengineKey) { showToast('Выберите W-Engine перед сохранением пресета.', 'error'); return null; }
   const discs = (discEntries || []).filter(Boolean);
   if (discs.length !== 6) { showToast('Нужно выбрать все 6 дисков перед сохранением пресета.', 'error'); return null; }
   const list = getAgentPresets(agentKey);
-  if (list.length >= PRESET_LIMIT) { showToast(`У этого агента уже максимум пресетов (${PRESET_LIMIT}).`, 'error'); return null; }
+  const counts = presetCategoryCounts(agentKey);
+  const sameGroupCount = category === 'verified' ? counts.verified : counts.other;
+  if (sameGroupCount >= PRESET_LIMIT) {
+    const label = category === 'verified' ? 'Verified' : 'обычных (не verified)';
+    showToast(`У этого агента уже максимум ${label} пресетов (${PRESET_LIMIT}).`, 'error');
+    return null;
+  }
 
   const preset = {
     id: uid(),
@@ -7504,6 +7645,7 @@ function createAgentPreset(agentKey, wengineKey, wrank, discEntries, name, sourc
     wrank: wrank || 1,
     discs: discs.slice().sort((a, b) => a.slot - b.slot).map(discToSnapshot),
     source: source ? { uid: source.uid || null, nickname: source.nickname || null } : null,
+    category,
   };
   agentPresets[agentKey] = [...list, preset];
   saveAgentPresets();
@@ -8152,13 +8294,146 @@ function showPage(which) {
     renderProfileFavorites();
     updateProfileActionButtons();
     renderProfileLeftExtra();
+    loadMyVerificationStatus();
     if (!profileCurrentUid && profileMyUid) {
       document.getElementById('profileUidInput').value = profileMyUid;
       loadProfileShowcase();
     }
   }
   if (which === 'feed') {
-    renderFeed();
+    showFeedTab(feedActiveTab);
+  }
+}
+
+// ── UID ownership verification (Discord account ↔ in-game UID) ──
+// Same pattern Enka.Network itself uses: a one-time code is placed in the
+// in-game profile description/signature, and we confirm ownership by seeing
+// that code reflected back through Enka's own showcase data.
+let myGameUid = null;
+let myGameNickname = null;
+let uidVerifyPending = null; // { uid, code, expiresAt }
+let uidVerifyTimerInterval = null;
+
+async function loadMyVerificationStatus() {
+  if (!currentUser) { myGameUid = null; myGameNickname = null; renderVerificationPanel(); return; }
+  const { data, error } = await sb.from('profiles').select('game_uid, game_nickname, uid_verified_at').eq('id', currentUser.id).maybeSingle();
+  if (!error && data) { myGameUid = data.game_uid; myGameNickname = data.game_nickname; }
+  renderVerificationPanel();
+}
+
+function formatMMSS(totalSeconds) {
+  const m = Math.floor(totalSeconds / 60), s = Math.max(0, totalSeconds % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function stopUidVerifyCountdown() {
+  if (uidVerifyTimerInterval) { clearInterval(uidVerifyTimerInterval); uidVerifyTimerInterval = null; }
+}
+
+function startUidVerifyCountdown() {
+  stopUidVerifyCountdown();
+  uidVerifyTimerInterval = setInterval(() => {
+    if (!uidVerifyPending) { stopUidVerifyCountdown(); return; }
+    const secsLeft = Math.round((new Date(uidVerifyPending.expiresAt) - Date.now()) / 1000);
+    if (secsLeft <= 0) {
+      showToast('Код истёк — запросите новый.', 'error');
+      uidVerifyPending = null;
+      stopUidVerifyCountdown();
+      renderVerificationPanel();
+      return;
+    }
+    const timerEl = document.getElementById('uidVerifyTimer');
+    if (timerEl) timerEl.textContent = `Код действует ещё ${formatMMSS(secsLeft)}`;
+  }, 1000);
+}
+
+function renderVerificationPanel() {
+  const el = document.getElementById('uidVerifyPanel');
+  if (!el) return;
+  if (!currentUser) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+  el.classList.remove('hidden');
+
+  if (myGameUid) {
+    el.innerHTML = `<div class="uid-verify-badge">✅ Аккаунт подтверждён — UID ${escapeHtml(myGameUid)}${myGameNickname ? ' · ' + escapeHtml(myGameNickname) : ''}</div>`;
+    return;
+  }
+
+  if (uidVerifyPending) {
+    const secsLeft = Math.max(0, Math.round((new Date(uidVerifyPending.expiresAt) - Date.now()) / 1000));
+    el.innerHTML = `<div class="uid-verify-box">
+      <div class="uid-verify-title">Подтвердите владение UID ${escapeHtml(uidVerifyPending.uid)}</div>
+      <div class="uid-verify-steps">
+        1. Впишите код <span class="uid-verify-code">${escapeHtml(uidVerifyPending.code)}</span> в описание своего профиля в игре (можно просто дописать в конец существующего текста).<br>
+        2. Откройте в игре экран своего профиля, чтобы Enka увидела изменение.<br>
+        3. Подождите немного и нажмите «Проверить».
+      </div>
+      <div class="uid-verify-timer" id="uidVerifyTimer">Код действует ещё ${formatMMSS(secsLeft)}</div>
+      <div class="uid-verify-actions">
+        <button class="lib-pill-btn" onclick="checkUidVerification()">Проверить</button>
+        <button class="lib-pill-btn" onclick="requestUidVerificationCode()">Новый код</button>
+      </div>
+    </div>`;
+    startUidVerifyCountdown();
+    return;
+  }
+
+  el.innerHTML = `<div class="uid-verify-box">
+    <div class="uid-verify-title">Привяжите свой игровой аккаунт</div>
+    <div class="uid-verify-steps">Чтобы сохранять и публиковать свои сборки и быть доступным для поиска по нику, подтвердите владение своим UID. Поиск и просмотр чужих стендов доступны и без этого.</div>
+    <div class="uid-verify-form-row">
+      <input type="text" id="uidVerifyInput" placeholder="Ваш UID, например 1503301061">
+      <button class="lib-pill-btn" onclick="requestUidVerificationCode()">Получить код</button>
+    </div>
+  </div>`;
+}
+
+async function requestUidVerificationCode() {
+  const input = document.getElementById('uidVerifyInput');
+  const uid = (uidVerifyPending ? uidVerifyPending.uid : (input ? input.value.trim() : ''));
+  if (!/^\d+$/.test(uid)) { showToast('Введите числовой UID.', 'error'); return; }
+  try {
+    const { data, error } = await sb.rpc('request_uid_verification', { p_uid: uid });
+    if (error) throw error;
+    const row = Array.isArray(data) ? data[0] : data;
+    uidVerifyPending = { uid, code: row.code, expiresAt: row.expires_at };
+    renderVerificationPanel();
+    showToast('Код сгенерирован — впишите его в описание профиля в игре.', 'success');
+  } catch (err) {
+    showToast('Не удалось получить код: ' + (err.message || err), 'error');
+  }
+}
+
+async function checkUidVerification() {
+  if (!uidVerifyPending) return;
+  let data;
+  try {
+    data = await fetchZzzShowcaseData(uidVerifyPending.uid);
+  } catch (err) {
+    showToast('Не удалось связаться с Enka: ' + err, 'error');
+    return;
+  }
+  if (data.error) { showToast(`Enka вернула ошибку: ${data.error}`, 'error'); return; }
+  const desc = data?.PlayerInfo?.SocialDetail?.Desc || '';
+  if (!desc.includes(uidVerifyPending.code)) {
+    showToast('Код пока не найден в описании профиля. Убедитесь, что вписали его в игре и открывали там экран профиля, подождите и попробуйте снова.', 'error');
+    return;
+  }
+  const nickname = data?.PlayerInfo?.SocialDetail?.ProfileDetail?.Nickname || null;
+  try {
+    const { error } = await sb.rpc('confirm_uid_verification', { p_uid: uidVerifyPending.uid, p_code: uidVerifyPending.code, p_nickname: nickname });
+    if (error) throw error;
+    myGameUid = uidVerifyPending.uid;
+    myGameNickname = nickname;
+    uidVerifyPending = null;
+    stopUidVerifyCountdown();
+    renderVerificationPanel();
+    showToast('UID успешно подтверждён!', 'success');
+    // Уже сходили в Enka секундой ранее (для проверки кода) — используем этот
+    // же снимок как первый кэш стенда, не заставляя жать Reload второй раз.
+    // last_reload_at ещё не проставлен, так что кулдаун не мешает первому сохранению.
+    try { await sb.rpc('save_showcase_snapshot', { p_snapshot: data, p_nickname: nickname }); } catch (e) { /* не критично — можно нажать Reload вручную */ }
+  } catch (err) {
+    showToast('Не удалось подтвердить: ' + (err.message || err), 'error');
   }
 }
 
@@ -8264,6 +8539,61 @@ function setProfileStatus(msg, kind) {
   el.className = 'disc-import-status' + (kind === 'err' ? ' err' : kind === 'ok' ? ' ok' : '');
 }
 
+// ── Player search: by game nickname, Discord nickname, or UID (autocomplete) ──
+// Только среди верифицированных пользователей (game_uid not null) — до
+// верификации UID никак не привязан к личности, искать по нему нечего.
+let profileSearchDebounce = null;
+
+function sanitizeSearchTerm(q) {
+  return q.replace(/[,()%]/g, '').trim();
+}
+
+function onProfileSearchInput() {
+  const q = sanitizeSearchTerm(document.getElementById('profileSearchInput').value);
+  clearTimeout(profileSearchDebounce);
+  if (!q) { closeProfileSearchResults(); return; }
+  profileSearchDebounce = setTimeout(() => runProfileSearch(q), 250);
+}
+
+async function runProfileSearch(q) {
+  const el = document.getElementById('profileSearchResults');
+  const { data, error } = await sb.from('profiles')
+    .select('game_uid, game_nickname, discord_username, discord_avatar_url')
+    .not('game_uid', 'is', null)
+    .or(`game_nickname.ilike.%${q}%,discord_username.ilike.%${q}%,game_uid.ilike.%${q}%`)
+    .limit(10);
+
+  if (error) { el.innerHTML = `<div class="profile-search-empty">Ошибка поиска: ${escapeHtml(error.message)}</div>`; el.classList.remove('hidden'); return; }
+  if (!data || !data.length) { el.innerHTML = '<div class="profile-search-empty">Ничего не найдено</div>'; el.classList.remove('hidden'); return; }
+
+  el.innerHTML = data.map(p => `
+    <div class="profile-search-item" onclick="selectProfileSearchResult('${escapeHtml(p.game_uid)}')">
+      ${p.discord_avatar_url ? `<img src="${escapeHtml(p.discord_avatar_url)}" onerror="this.style.display='none'">` : ''}
+      <div class="psi-names">
+        <span class="psi-game">${escapeHtml(p.game_nickname || 'UID ' + p.game_uid)}</span>
+        <span class="psi-meta">${escapeHtml(p.discord_username || '')}${p.discord_username ? ' · ' : ''}UID ${escapeHtml(p.game_uid)}</span>
+      </div>
+    </div>`).join('');
+  el.classList.remove('hidden');
+}
+
+function selectProfileSearchResult(uid) {
+  closeProfileSearchResults();
+  document.getElementById('profileSearchInput').value = '';
+  document.getElementById('profileUidInput').value = uid;
+  loadProfileShowcase();
+}
+
+function closeProfileSearchResults() {
+  const el = document.getElementById('profileSearchResults');
+  if (el) { el.classList.add('hidden'); el.innerHTML = ''; }
+}
+
+document.addEventListener('click', (e) => {
+  const row = document.querySelector('.profile-search-row');
+  if (row && !row.contains(e.target)) closeProfileSearchResults();
+});
+
 async function loadProfileShowcase() {
   const uidVal = document.getElementById('profileUidInput').value.trim();
   if (!/^\d+$/.test(uidVal)) { setProfileStatus('Enter a numeric UID.', 'err'); return; }
@@ -8271,39 +8601,66 @@ async function loadProfileShowcase() {
   setProfileStatus('Loading…');
   document.getElementById('profileAgentList').innerHTML = '';
   document.getElementById('profileDetail').innerHTML = '<div class="profile-detail-empty">Loading…</div>';
+  document.getElementById('profileCacheStatus').textContent = '';
   profileSelectedIndex = null;
 
-  let data;
+  // Если этот UID подтверждён каким-то пользователем сайта и у него есть
+  // сохранённый снимок стенда — показываем его мгновенно, без похода в Enka
+  // и без её лимита ~30 сек между запросами. Обновляется такой снимок только
+  // самим владельцем, кнопкой "🔄 Reload".
+  let data = null;
+  let cacheInfo = null;
   try {
-    data = await fetchZzzShowcaseData(uidVal);
-  } catch (err) {
-    setProfileStatus(`Could not reach Enka: ${err}.`, 'err');
-    return;
+    const { data: ownerRow } = await sb
+      .from('profiles')
+      .select('showcase_snapshot, showcase_updated_at')
+      .eq('game_uid', uidVal)
+      .maybeSingle();
+    if (ownerRow && ownerRow.showcase_snapshot) {
+      data = ownerRow.showcase_snapshot;
+      cacheInfo = { updatedAt: ownerRow.showcase_updated_at };
+    }
+  } catch (e) { /* профиль не найден в базе — просто идём в Enka напрямую */ }
+
+  if (!data) {
+    try {
+      data = await fetchZzzShowcaseData(uidVal);
+    } catch (err) {
+      setProfileStatus(`Could not reach Enka: ${err}.`, 'err');
+      return;
+    }
+    if (data.error) { setProfileStatus(`Error: ${data.error}`, 'err'); return; }
   }
-  if (data.error) { setProfileStatus(`Error: ${data.error}`, 'err'); return; }
+
+  applyShowcaseData(data, uidVal, cacheInfo);
+}
+
+// Общая часть применения данных стенда (Enka-ответ) к UI — используется и
+// для живой загрузки, и для показа серверного кэша, и после Reload.
+function applyShowcaseData(data, uidVal, cacheInfo) {
   const avatars = data?.PlayerInfo?.ShowcaseDetail?.AvatarList || [];
   if (!avatars.length) { setProfileStatus('Showcase is empty (or private) for that UID.', 'err'); return; }
 
-  // Don't block showing the agent list on this — it's only needed for disc
-  // set names/rarities inside a character's detail view, and renderProfileDetail()
-  // already awaits it (with its own fallback) when a character is selected.
-  // Kicking it off here (not awaited) just lets it start warming the in-memory
-  // cache in parallel instead of after the list is already visible.
   getEnkaEquipmentItems().catch(() => {});
 
-  // Nickname/Level live under PlayerInfo.SocialDetail.ProfileDetail per Enka's
-  // documented ZZZ structure (NOT flat on PlayerInfo like some other games).
   const profileDetail = data?.PlayerInfo?.SocialDetail?.ProfileDetail || {};
   profileCurrentUid = uidVal;
   profileCurrentNickname = profileDetail.Nickname || '';
   profileCurrentLevel = profileDetail.Level ?? null;
-  // TEMP DEBUG: once we see this in the console for a real UID, we can map
-  // ProfileId (avatar picture) / CallingCardId (profile background) to actual
-  // image URLs and remove this log. Remove once avatar/namecard are wired up.
-  console.log('[ZZZ Profile] ProfileDetail:', profileDetail);
   renderProfileCurrentPlayer();
   updateProfileActionButtons();
   renderProfileFavorites();
+  renderReloadMyButton();
+
+  const cacheEl = document.getElementById('profileCacheStatus');
+  if (cacheEl) {
+    cacheEl.textContent = cacheInfo
+      ? (cacheInfo.justNow
+          ? 'Стенд обновлён только что'
+          : `Сохранённый стенд · обновлён ${new Date(cacheInfo.updatedAt).toLocaleString()}`)
+      : '';
+  }
+
 
   profileLastAvatars = avatars;
   profilePresetViewAgentKey = null;
@@ -8312,6 +8669,42 @@ async function loadProfileShowcase() {
   renderProfileAgentList();
   renderProfileLeftExtra();
   selectProfileAgent(0);
+}
+
+function renderReloadMyButton() {
+  const btn = document.getElementById('profileReloadMyBtn');
+  if (!btn) return;
+  const isMine = currentUser && myGameUid && profileCurrentUid === myGameUid;
+  btn.classList.toggle('hidden', !isMine);
+}
+
+async function reloadMyShowcase() {
+  if (!currentUser || !myGameUid) { showToast('Сначала подтвердите владение своим UID.', 'error'); return; }
+  const btn = document.getElementById('profileReloadMyBtn');
+  if (btn) btn.disabled = true;
+  setProfileStatus('Обновляю стенд с Enka…');
+  let data;
+  try {
+    data = await fetchZzzShowcaseData(myGameUid);
+  } catch (err) {
+    setProfileStatus(`Could not reach Enka: ${err}.`, 'err');
+    if (btn) btn.disabled = false;
+    return;
+  }
+  if (data.error) { setProfileStatus(`Error: ${data.error}`, 'err'); if (btn) btn.disabled = false; return; }
+
+  const nickname = data?.PlayerInfo?.SocialDetail?.ProfileDetail?.Nickname || null;
+  try {
+    const { error } = await sb.rpc('save_showcase_snapshot', { p_snapshot: data, p_nickname: nickname });
+    if (error) throw error;
+    myGameNickname = nickname || myGameNickname;
+    showToast('Стенд обновлён и сохранён на сайте.', 'success');
+    applyShowcaseData(data, myGameUid, { updatedAt: new Date().toISOString(), justNow: true });
+  } catch (err) {
+    showToast('Не удалось сохранить: ' + (err.message || err), 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 function renderProfileAgentList() {
@@ -8393,14 +8786,17 @@ async function renderAgentPresetView() {
   const tabsHtml = presets.map(p => {
     const missing = p.source ? [] : evaluatePresetApplicability(p, null).missing;
     const broken = missing.length > 0;
+    const cat = presetCategory(p);
+    const catLabel = cat === 'verified' ? 'Verified — снято с вашего стенда' : cat === 'imported' ? `Imported${p.source && p.source.nickname ? ' — from ' + p.source.nickname + "'s showcase" : ' — from another showcase'}` : '';
     const title = broken
       ? `${escapeHtml(p.name)} — ${missing.length} disc(s) no longer match anything in your Drive Disc Library`
-      : p.source ? `${escapeHtml(p.name)} — imported from ${p.source.nickname ? escapeHtml(p.source.nickname) + "'s" : 'a'} showcase` : escapeHtml(p.name);
+      : catLabel ? `${escapeHtml(p.name)} — ${catLabel}` : escapeHtml(p.name);
+    const catIcon = cat === 'verified' ? '<span class="preset-chip-verified" title="Verified">✅</span>' : cat === 'imported' ? '<span class="preset-chip-imported" title="Imported build — reference only">📥</span>' : '';
     return `
     <div class="preset-chip-lg${p.id === preset.id ? ' selected' : ''}${broken ? ' broken' : ''}" onclick="selectAgentPresetTab('${p.id}')" title="${title}">
       <img src="${wengineUrl(p.wengine)}" onerror="this.style.opacity=.2">
       <span>${escapeHtml(p.name)}</span>
-      ${broken ? '<span class="preset-chip-warn">!</span>' : p.source ? '<span class="preset-chip-imported" title="Imported build — reference only">📥</span>' : ''}
+      ${broken ? '<span class="preset-chip-warn">!</span>' : catIcon}
     </div>`;
   }).join('');
 
@@ -8421,10 +8817,13 @@ function renderProfileLeftExtra() {
   const agentsWithPresets = Object.keys(agentPresets).filter(k => (agentPresets[k] || []).length > 0);
   if (!agentsWithPresets.length) { el.innerHTML = ''; el.classList.add('hidden'); return; }
   el.classList.remove('hidden');
-  el.innerHTML = sortAgentsByRarity(agentsWithPresets).map(k => `<div class="profile-agent-card${k === profilePresetViewAgentKey ? ' selected' : ''}" onclick="openAgentPresetView('${k}')">
+  el.innerHTML = sortAgentsByRarity(agentsWithPresets).map(k => {
+    const counts = presetCategoryCounts(k);
+    return `<div class="profile-agent-card${k === profilePresetViewAgentKey ? ' selected' : ''}" onclick="openAgentPresetView('${k}')">
     <div class="pac-name">${escapeHtml(cardName(k))}</div>
-    <div class="pac-sub">${getAgentPresets(k).length}/${PRESET_LIMIT} presets</div>
-  </div>`).join('');
+    <div class="pac-sub">✅${counts.verified}/${PRESET_LIMIT} · 🛠${counts.other}/${PRESET_LIMIT}</div>
+  </div>`;
+  }).join('');
 }
 
 // Refreshes whichever preset UI is currently on screen for a given agent —
@@ -8514,6 +8913,10 @@ function openPresetCreateForm(agentKey) {
 function editAgentPreset(agentKey, presetId) {
   const preset = getPresetById(agentKey, presetId);
   if (!preset) return;
+  if (presetCategory(preset) !== 'manual') {
+    showToast('Verified/импортированные сборки нельзя редактировать — удалите и сохраните заново со стенда.', 'error');
+    return;
+  }
   const discSlots = [null, null, null, null, null, null];
   (preset.discs || []).forEach(snap => {
     const id = findLibraryDiscIdForSnapshot(snap);
@@ -8590,11 +8993,11 @@ function savePresetDraft() {
 
   if (!wengine) { showToast('Выберите W-Engine.', 'error'); return; }
   if (discEntries.length !== 6) { showToast('Нужно выбрать диски во все 6 слотов.', 'error'); return; }
-  if (!editingPresetId && getAgentPresets(agentKey).length >= PRESET_LIMIT) { showToast(`У этого агента уже максимум пресетов (${PRESET_LIMIT}).`, 'error'); return; }
+  if (!editingPresetId && presetCategoryCounts(agentKey).other >= PRESET_LIMIT) { showToast(`У этого агента уже максимум обычных (не verified) пресетов (${PRESET_LIMIT}).`, 'error'); return; }
 
   const preset = editingPresetId
     ? updateAgentPreset(agentKey, editingPresetId, wengine, wrank || 1, discEntries, name)
-    : createAgentPreset(agentKey, wengine, wrank || 1, discEntries, name);
+    : createAgentPreset(agentKey, wengine, wrank || 1, discEntries, name, null, 'manual');
   if (preset) {
     showToast(`Пресет «${preset.name}» сохранён.`, 'success');
     closePresetForm();
@@ -8633,8 +9036,13 @@ async function toggleProfilePreset(agentKey, presetId) {
    which cloud row belongs to this preset, if any. */
 async function publishPreset(agentKey, presetId) {
   if (!currentUser) { showToast('Войдите через Discord, чтобы публиковать пресеты.', 'error'); return; }
+  if (!myGameUid) { showToast('Сначала подтвердите владение своим UID во вкладке Профиль.', 'error'); return; }
   const preset = getPresetById(agentKey, presetId);
   if (!preset) return;
+  if (presetCategory(preset) === 'imported') {
+    showToast('Сборки, сохранённые с чужого стенда, публиковать нельзя.', 'error');
+    return;
+  }
   try {
     const { data, error } = await sb.from('presets').insert({
       user_id: currentUser.id,
@@ -8643,6 +9051,7 @@ async function publishPreset(agentKey, presetId) {
       wengine: preset.wengine,
       wrank: preset.wrank || 1,
       discs: preset.discs,
+      category: presetCategory(preset),
     }).select('id').single();
     if (error) throw error;
     preset.publishedId = data.id;
@@ -8824,18 +9233,33 @@ async function renderProfilePresetsSection(agentKey) {
 // the agent, not the showcase owner. discEntries here are Enka-derived
 // (enkaBuildDiscDisplayEntry shape), which discToSnapshot() already handles.
 async function saveCurrentShowcaseBuildAsPreset(agentKey) {
+  if (!currentUser || !myGameUid) {
+    showToast('Подтвердите владение своим UID во вкладке Профиль, чтобы сохранять сборки со стенда.', 'error');
+    return;
+  }
   const liveBuild = (profileCurrentLiveBuild && profileCurrentLiveBuild.agentKey === agentKey) ? profileCurrentLiveBuild : null;
   if (!liveBuild || !liveBuild.wengine) { showToast('Этому агенту нужен W-Engine на стенде.', 'error'); return; }
   const discEntries = liveBuild.discEntries.filter(Boolean);
   if (discEntries.length !== 6) { showToast('Нужны все 6 дисков на стенде, чтобы сохранить пресет.', 'error'); return; }
-  if (getAgentPresets(agentKey).length >= PRESET_LIMIT) { showToast(`У этого агента уже максимум пресетов (${PRESET_LIMIT}).`, 'error'); return; }
+
+  // Со своего подтверждённого стенда — Verified (нельзя редактировать, можно
+  // публиковать). С чужого — Imported (нельзя ни редактировать, ни публиковать,
+  // видно только у себя, с пометкой "от кого").
+  const category = (profileCurrentUid === myGameUid) ? 'verified' : 'imported';
+  const counts = presetCategoryCounts(agentKey);
+  const sameGroupCount = category === 'verified' ? counts.verified : counts.other;
+  if (sameGroupCount >= PRESET_LIMIT) {
+    const label = category === 'verified' ? 'Verified' : 'обычных (не verified)';
+    showToast(`У этого агента уже максимум ${label} пресетов (${PRESET_LIMIT}).`, 'error');
+    return;
+  }
 
   const name = await customPrompt('Название пресета:', nextPresetName(agentKey));
   if (name === null) return;
   const preset = createAgentPreset(agentKey, liveBuild.wengine, liveBuild.wrank || 1, discEntries, name,
-    { uid: profileCurrentUid, nickname: profileCurrentNickname || null });
+    { uid: profileCurrentUid, nickname: profileCurrentNickname || null }, category);
   if (preset) {
-    showToast(`Пресет «${preset.name}» сохранён.`, 'success');
+    showToast(`Пресет «${preset.name}» сохранён${category === 'verified' ? ' (Verified)' : ' (Imported)'}.`, 'success');
     refreshPresetViews(agentKey);
   }
 }
@@ -8854,11 +9278,18 @@ async function saveCurrentShowcaseBuildAsPreset(agentKey) {
 function presetActionsHtml(agentKey, preset, opts = {}) {
   const { readOnly = false } = opts;
   if (readOnly) return `<button class="lib-pill-btn" onclick="copyPublicPresetToMine()">📋 Copy to my presets</button>`;
-  return `<button class="lib-pill-btn" onclick="editAgentPreset('${agentKey}','${preset.id}')">Edit</button>
+  const cat = presetCategory(preset);
+  const editBtn = cat === 'manual'
+    ? `<button class="lib-pill-btn" onclick="editAgentPreset('${agentKey}','${preset.id}')">Edit</button>`
+    : `<span class="lib-pill-btn" style="opacity:.4;cursor:default" title="${cat === 'verified' ? 'Verified — снято со стенда, нельзя редактировать' : 'Imported — сборка другого игрока, нельзя редактировать'}">🔒 Locked</span>`;
+  const publishBtn = cat === 'imported'
+    ? '' // импортированные чужие сборки нельзя публиковать вообще
+    : (preset.publishedId
+        ? `<button class="lib-pill-btn" onclick="unpublishPreset('${agentKey}','${preset.id}')" title="Others can currently see this preset on your public profile">🌐 Published — click to unpublish</button>`
+        : `<button class="lib-pill-btn" onclick="publishPreset('${agentKey}','${preset.id}')" title="Makes this build visible to others via your Discord profile">Publish</button>`);
+  return `${editBtn}
     <button class="lib-pill-btn" onclick="renamePresetPrompt('${agentKey}','${preset.id}')">Rename</button>
-    ${preset.publishedId
-      ? `<button class="lib-pill-btn" onclick="unpublishPreset('${agentKey}','${preset.id}')" title="Others can currently see this preset on your public profile">🌐 Published — click to unpublish</button>`
-      : `<button class="lib-pill-btn" onclick="publishPreset('${agentKey}','${preset.id}')" title="Makes this build visible to others via your Discord profile">Publish</button>`}
+    ${publishBtn}
     <button class="lib-pill-btn danger" onclick="deletePresetPrompt('${agentKey}','${preset.id}')">Delete</button>`;
 }
 
@@ -10819,8 +11250,9 @@ function handleAuthSession(event, session) {
     cloudSyncedOnce = false;
   }
   renderAuthUI();
+  loadMyVerificationStatus();
   const feedPage = document.getElementById('pageFeed');
-  if (feedPage && !feedPage.classList.contains('hidden')) renderFeed();
+  if (feedPage && !feedPage.classList.contains('hidden')) showFeedTab(feedActiveTab);
 
   // Only pull from the cloud once per real login (not on every silent token
   // refresh Supabase fires) — otherwise a mid-session refresh could re-trigger
@@ -10984,52 +11416,325 @@ async function pullCloudSnapshot() {
 let feedPosts = [];
 let feedUserVotes = {};
 
+// ===== Feed subnav (Лента / Мои публикации) =====
+let feedActiveTab = 'all';
+
+function showFeedTab(which) {
+  feedActiveTab = which;
+  document.getElementById('feedTabAll').classList.toggle('active', which === 'all');
+  document.getElementById('feedTabMine').classList.toggle('active', which === 'mine');
+  document.getElementById('feedAllWrap').classList.toggle('hidden', which !== 'all');
+  document.getElementById('myPostsList').classList.toggle('hidden', which !== 'mine');
+  if (which === 'all') renderFeed(true);
+  else renderMyPosts();
+}
+
+// ===== Publish / edit-and-resubmit form =====
+// mode: 'publish' (new post from a selected team) or 'resubmit' (fixing a rejected post)
+let postFormMode = null;
+let postFormTeam = null;      // team object used when mode === 'publish'
+let postFormEditingPost = null; // post row used when mode === 'resubmit'
+
+function extractShiyuFields(team) {
+  return {
+    shiyu_season: team.shiyu ? (parseInt(team.shiyu, 10) || null) : null,
+    shiyu_floor: team.floor ? (parseInt(team.floor, 10) || null) : null,
+    shiyu_room: team.side || null,
+  };
+}
+
+function openPostForm() {
+  document.getElementById('postFormTitleInput').value = postFormMode === 'resubmit'
+    ? postFormEditingPost.title || ''
+    : (postFormTeam.name || 'My Team');
+  document.getElementById('postFormYoutubeInput').value = postFormMode === 'resubmit'
+    ? (postFormEditingPost.youtube_url || '')
+    : '';
+  document.getElementById('postFormTitle').textContent = postFormMode === 'resubmit' ? 'Исправить и отправить снова' : 'Publish to Feed';
+  document.getElementById('postFormSaveBtn').textContent = postFormMode === 'resubmit' ? 'Отправить снова' : 'Publish';
+  document.getElementById('postFormBg').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('postFormTitleInput').focus(), 0);
+}
+
+function closePostForm() {
+  document.getElementById('postFormBg').classList.add('hidden');
+  document.body.style.overflow = '';
+  postFormMode = null; postFormTeam = null; postFormEditingPost = null;
+}
+function postFormBgClick(e) { if (e.target === document.getElementById('postFormBg')) closePostForm(); }
+
+function isValidYoutubeUrl(url) {
+  if (!url) return true; // необязательное поле
+  return /^https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)[\w-]+/i.test(url.trim());
+}
+
+// Диски в команде хранятся как ID из ЛИЧНОЙ библиотеки автора (driveDiscLibrary),
+// поэтому перед публикацией их нужно "развернуть" в самодостаточный снимок
+// (setName/mainStat), иначе у других пользователей эти ID будут ничего не значить.
+function buildPublishableTeamSnapshot(team) {
+  const clone = JSON.parse(JSON.stringify(team));
+  clone.agents = (clone.agents || []).map(a => {
+    if (a.discSlots && a.discSlots.some(Boolean)) {
+      a.discSnapshots = a.discSlots.map(id => {
+        if (!id) return null;
+        const entry = driveDiscLibrary.find(d => d.id === id);
+        return entry ? { setName: entry.setName, mainStat: entry.mainStat } : null;
+      });
+    }
+    return a;
+  });
+  return clone;
+}
+
 async function shareSelectedTeam() {
   if (!currentUser) { showToast('Sign in with Discord to share teams.', 'error'); return; }
   const ids = [...selectedTeamIds];
   if (ids.length !== 1) return;
   const team = teams.find(t => t.id === ids[0]);
   if (!team) return;
-  const title = await customPrompt('Post title for the feed:', team.name || 'My Team');
-  if (title === null) return;
-  const { error } = await sb.from('posts').insert({ user_id: currentUser.id, title: title.trim() || 'Untitled', team_json: team });
-  if (error) { showToast('Failed to publish: ' + error.message, 'error'); return; }
-  showToast('Team published to the feed!', 'success');
+  postFormMode = 'publish';
+  postFormTeam = team;
+  postFormEditingPost = null;
+  openPostForm();
 }
 
-async function renderFeed() {
-  const el = document.getElementById('feedList');
+let myPostsCache = [];
+
+function openResubmitForm(postId) {
+  const post = myPostsCache.find(p => p.id === postId);
+  if (!post) return;
+  postFormMode = 'resubmit';
+  postFormEditingPost = post;
+  postFormTeam = null;
+  openPostForm();
+}
+
+async function submitPostForm() {
+  const title = document.getElementById('postFormTitleInput').value.trim();
+  const youtubeUrl = document.getElementById('postFormYoutubeInput').value.trim();
+  if (!title) { showToast('Введите название поста.', 'error'); return; }
+  if (!isValidYoutubeUrl(youtubeUrl)) { showToast('Похоже, это не ссылка на YouTube.', 'error'); return; }
+
+  if (postFormMode === 'publish') {
+    const team = postFormTeam;
+    const { shiyu_season, shiyu_floor, shiyu_room } = extractShiyuFields(team);
+    const { error } = await sb.from('posts').insert({
+      user_id: currentUser.id,
+      title: title || 'Untitled',
+      team_json: buildPublishableTeamSnapshot(team),
+      youtube_url: youtubeUrl || null,
+      shiyu_season, shiyu_floor, shiyu_room,
+      source_team_id: team.id || null,
+    });
+    if (error) { showToast('Не удалось опубликовать: ' + error.message, 'error'); return; }
+    showToast('Пост отправлен на модерацию!', 'success');
+    closePostForm();
+    if (feedActiveTab === 'mine') renderMyPosts();
+  } else if (postFormMode === 'resubmit') {
+    const post = postFormEditingPost;
+    // Если исходная команда всё ещё существует локально — берём её актуальный
+    // снимок (диски/оружие могли обновиться), иначе оставляем старые данные поста.
+    const liveTeam = post.source_team_id ? teams.find(t => t.id === post.source_team_id) : null;
+    const teamJson = liveTeam ? buildPublishableTeamSnapshot(liveTeam) : post.team_json;
+    const shiyu = extractShiyuFields(teamJson);
+    try {
+      const { error } = await sb.rpc('resubmit_post', {
+        p_post_id: post.id,
+        p_title: title || 'Untitled',
+        p_youtube_url: youtubeUrl || null,
+        p_team_json: teamJson,
+        p_shiyu_season: shiyu.shiyu_season,
+        p_shiyu_floor: shiyu.shiyu_floor,
+        p_shiyu_room: shiyu.shiyu_room,
+      });
+      if (error) throw error;
+      showToast('Пост отправлен на повторную модерацию.', 'success');
+      closePostForm();
+      renderMyPosts();
+    } catch (err) {
+      showToast('Не удалось переотправить: ' + (err.message || err), 'error');
+    }
+  }
+}
+
+function postStatusBadgeHtml(status) {
+  const labels = { pending: 'На модерации', approved: 'Одобрено', rejected: 'Отклонено' };
+  return `<span class="post-status-badge ${status}">${labels[status] || status}</span>`;
+}
+
+async function renderMyPosts() {
+  const el = document.getElementById('myPostsList');
+  if (!currentUser) { el.innerHTML = '<div class="empty-state">Войдите через Discord, чтобы видеть свои публикации.</div>'; return; }
   el.innerHTML = '<div class="empty-state">Loading…</div>';
-  const { data: posts, error } = await sb.from('posts_with_score').select('*').order('score', { ascending: false }).order('created_at', { ascending: false });
+  const { data: posts, error } = await sb.from('posts').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+  if (error) { el.innerHTML = `<div class="empty-state">Failed to load: ${escapeHtml(error.message)}</div>`; return; }
+  if (!posts || !posts.length) { el.innerHTML = '<div class="empty-state">Вы ещё ничего не публиковали.</div>'; return; }
+  myPostsCache = posts;
+  el.innerHTML = posts.map(myPostHtml).join('');
+}
+
+function myPostHtml(p) {
+  const canResubmit = p.status === 'rejected' && (p.resubmit_count || 0) < 1;
+  return `<div class="feed-post" data-post-id="${p.id}">
+    <div class="feed-post-body" style="width:100%">
+      <div class="feed-post-head">
+        <span class="feed-post-title">${escapeHtml(p.title)}</span>
+        ${postStatusBadgeHtml(p.status)}
+      </div>
+      <div class="feed-team-preview">${feedTeamPreviewHtml(p.team_json)}</div>
+      ${p.youtube_url ? `<a class="feed-post-youtube" href="${escapeHtml(p.youtube_url)}" target="_blank" rel="noopener">▶ YouTube</a>` : ''}
+      ${p.status === 'rejected' ? `<div class="post-reject-reason">${p.reject_reason ? escapeHtml(p.reject_reason) : 'Пост отклонён модератором без указания причины.'}</div>` : ''}
+      <div class="feed-post-actions">
+        ${canResubmit ? `<button class="lib-pill-btn" onclick="openResubmitForm(${p.id})">Исправить и отправить снова</button>` : ''}
+        ${p.status === 'approved' ? `<button class="lib-pill-btn" onclick="copyPostLink(${p.id})">🔗 Copy link</button>` : ''}
+        <button class="lib-pill-btn danger" onclick="deletePost(${p.id})">Delete</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ===== Лента: сортировка, фильтры, пагинация =====
+const FEED_PAGE_SIZE = 20;
+let feedSortBy = 'score';
+let feedFilterSeason = '';
+let feedFilterFloor = '';
+let feedFilterRoom = '';
+let feedOffset = 0;
+let feedHasMore = true;
+let feedLoading = false;
+
+function populateFeedFilterOptions() {
+  const seasonSel = document.getElementById('feedFilterSeason');
+  const floorSel = document.getElementById('feedFilterFloor');
+  const roomSel = document.getElementById('feedFilterRoom');
+  if (!seasonSel || seasonSel.dataset.populated) return;
+  seasonSel.innerHTML = '<option value="">Все сезоны</option>' + SHIYU_SEASONS.map(s => `<option value="${s}">S${s}</option>`).join('');
+  floorSel.innerHTML = '<option value="">Любой этаж</option>' + [1,2,3,4,5,6].map(f => `<option value="${f}">${f}F</option>`).join('');
+  roomSel.innerHTML = '<option value="">Любая комната</option><option value="A">Комната 1</option><option value="B">Комната 2</option><option value="C">Комната 3</option>';
+  seasonSel.dataset.populated = '1';
+}
+
+function onFeedControlsChange() {
+  feedSortBy = document.getElementById('feedSortSelect').value;
+  feedFilterSeason = document.getElementById('feedFilterSeason').value;
+  feedFilterFloor = document.getElementById('feedFilterFloor').value;
+  feedFilterRoom = document.getElementById('feedFilterRoom').value;
+  renderFeed(true);
+}
+
+function buildFeedQuery() {
+  let q = sb.from('posts_with_score').select('*');
+  if (feedFilterSeason) q = q.eq('shiyu_season', parseInt(feedFilterSeason, 10));
+  if (feedFilterFloor) q = q.eq('shiyu_floor', parseInt(feedFilterFloor, 10));
+  if (feedFilterRoom) q = q.eq('shiyu_room', feedFilterRoom);
+  q = feedSortBy === 'created_at'
+    ? q.order('created_at', { ascending: false })
+    : q.order('score', { ascending: false }).order('created_at', { ascending: false });
+  return q;
+}
+
+async function renderFeed(reset = false) {
+  const el = document.getElementById('feedList');
+  const loadMoreWrap = document.getElementById('feedLoadMoreWrap');
+  if (reset) { feedOffset = 0; feedPosts = []; feedHasMore = true; el.innerHTML = '<div class="empty-state">Loading…</div>'; }
+  if (feedLoading || !feedHasMore) return;
+  feedLoading = true;
+
+  const { data: posts, error } = await buildFeedQuery().range(feedOffset, feedOffset + FEED_PAGE_SIZE - 1);
+  feedLoading = false;
   if (error) { el.innerHTML = `<div class="empty-state">Failed to load feed: ${escapeHtml(error.message)}</div>`; return; }
-  feedPosts = posts || [];
+
+  feedPosts = reset ? (posts || []) : feedPosts.concat(posts || []);
+  feedHasMore = (posts || []).length === FEED_PAGE_SIZE;
+  feedOffset += (posts || []).length;
+
   feedUserVotes = {};
   if (currentUser) {
     const { data: votes } = await sb.from('votes').select('post_id,value').eq('user_id', currentUser.id);
     (votes || []).forEach(v => feedUserVotes[v.post_id] = v.value);
   }
-  if (!feedPosts.length) { el.innerHTML = '<div class="empty-state"><span class="ico">📰</span>No posts yet.<br>Select a team in Saved Teams and press ⇪ to be the first to share.</div>'; return; }
+
+  if (!feedPosts.length) {
+    el.innerHTML = '<div class="empty-state"><span class="ico">📰</span>No posts yet.<br>Select a team in Saved Teams and press ⇪ to be the first to share.</div>';
+    loadMoreWrap.classList.add('hidden');
+    return;
+  }
   el.innerHTML = feedPosts.map(feedPostHtml).join('');
+  loadMoreWrap.classList.toggle('hidden', !feedHasMore);
 }
 
+function loadMoreFeedPosts() { renderFeed(false); }
+
+// Вариант footerDiscRowHtml, который читает диски не из ЛИЧНОЙ библиотеки автора
+// (driveDiscLibrary — бессмысленна для других пользователей), а из самодостаточного
+// снимка discSnapshots, положенного при публикации (см. buildPublishableTeamSnapshot).
+// Для старого формата (discs/icons — уже самодостаточные строки) просто переиспользуем
+// оригинальную функцию, её fallback-ветка и так не трогает библиотеку.
+function feedFooterDiscRowHtml(a) {
+  if (a.discSnapshots && a.discSnapshots.some(Boolean)) {
+    const setNames = a.discSnapshots.map(s => s ? s.setName : null);
+    const groups = aggregateDiscSetGroups(setNames).slice(0, 3);
+    const leftCells = groups.map(g =>
+      `<div class="tc-disc-mini" title="${escapeHtml(g.name)} (${g.count}pc)"><img src="${discUrl(g.name)}" onerror="this.style.opacity=.15"></div>`
+    );
+    while (leftCells.length < 3) leftCells.push(`<div class="tc-disc-mini empty"></div>`);
+    const rightCells = [3, 4, 5].map(i => {
+      const snap = a.discSnapshots[i];
+      if (!snap) return `<div class="tc-disc-mini empty"></div>`;
+      const iconKey = mainStatToIconKey(snap.mainStat);
+      return iconKey
+        ? `<div class="tc-disc-mini" title="${discStatLabel(snap.mainStat)}"><img src="${iconUrl(iconKey)}" onerror="this.style.opacity=.15"></div>`
+        : `<div class="tc-disc-mini empty"></div>`;
+    });
+    return `<div class="tc-disc-row">${leftCells.join('')}${rightCells.join('')}</div>`;
+  }
+  return footerDiscRowHtml(a);
+}
+
+// Полная карточка команды для ленты/"моих публикаций" — в отличие от team-card
+// в "Сохранённых командах", здесь ВСЕ элементы всегда показаны (не зависит от
+// личных toggle-настроек зрителя), плюс таймер/этаж/комната/сезон и заметка автора.
 function feedTeamPreviewHtml(t) {
   if (!t || !Array.isArray(t.agents)) return '<div class="empty-state">Invalid team data</div>';
-  const cells = t.agents.map(a => {
+  const timer = `${String(t.timerMin || 0).padStart(2, '0')}:${String(t.timerSec || 0).padStart(2, '0')}`;
+  const roomNum = t.side === 'A' ? '1' : t.side === 'B' ? '2' : '3';
+  const tag = `${t.floor || '?'}F · Room ${roomNum}`;
+
+  const cells = t.agents.map((a, ai) => {
     if (!a.key) return `<div class="tc-cell"><div class="tc-cell-img"><div class="tc-cell-empty">👤</div></div><div class="tc-cell-foot"></div></div>`;
     const isSignature = a.wengine && AGENT_SIGNATURE_WENGINE[a.key] === a.wengine;
     const rankTxt = (a.wrank && isSignature) ? `R${a.wrank}` : '';
     const eidTxt = a.eidolons ? `M${a.eidolons}` : 'M0';
+    const active = isAdditionalAbilityActive(t, ai);
     return `<div class="tc-cell">
       <div class="tc-cell-img"><img src="${agentUrl(a.key)}" style="object-position:${AGENT_CARD_OFFSET[a.key] || 'center'}" onerror="this.style.opacity=.15"></div>
       <div class="tc-cell-foot">
         <div class="tc-foot-text"><span class="tc-cell-name">${cardName(a.key)}</span><span class="tc-cell-rank">${eidTxt}${rankTxt ? '·' + rankTxt : ''}</span></div>
+        <div class="tc-icon-row">
+          ${footerSmileyHtml(active)}
+          <div class="tc-icon-right">${footerAttributeIconHtml(a.key)}${footerClassIconHtml(a.key)}</div>
+        </div>
+        ${feedFooterDiscRowHtml(a)}
         ${wenginePlaqueHtml(a.wengine)}
       </div>
     </div>`;
   }).join('');
+
+  const booHtml = t.bangboo
+    ? `<div class="tc-boo"><img src="${bangbooUrl(t.bangboo)}" onerror="this.style.opacity=.2"><span class="tc-boo-name">M${t.booMindscape || 0} · ${prettyName(t.bangboo)}</span></div>`
+    : `<div class="tc-boo"><span style="opacity:.2;font-size:16px">🤖</span></div>`;
+
   return `<div class="team-card">
-    <div class="tc-bar"><div class="tc-name">${escapeHtml(t.name || '')}</div></div>
+    <div class="tc-bar">
+      <div class="tc-name">${escapeHtml(t.name || '')}</div>
+      <div class="tc-tag">${tag}</div>
+      <div class="tc-time"><b>${timer}</b></div>
+      ${t.shiyu ? `<div class="tc-shiyu">S${escapeHtml(String(t.shiyu))}</div>` : ''}
+    </div>
     <div class="tc-strip">${cells}</div>
+    <div class="tc-foot">${booHtml}</div>
+    ${t.note ? `<div class="feed-note">📝 ${escapeHtml(t.note)}</div>` : ''}
   </div>`;
 }
 
@@ -11048,8 +11753,10 @@ function feedPostHtml(p) {
         <span class="feed-post-title">${escapeHtml(p.title)}</span>
       </div>
       <div class="feed-team-preview">${feedTeamPreviewHtml(p.team_json)}</div>
+      ${p.youtube_url ? `<a class="feed-post-youtube" href="${escapeHtml(p.youtube_url)}" target="_blank" rel="noopener">▶ YouTube</a>` : ''}
       <div class="feed-post-actions">
         <button class="lib-pill-btn" onclick="toggleComments(${p.id})">💬 Comments</button>
+        <button class="lib-pill-btn" onclick="copyPostLink(${p.id})">🔗 Copy link</button>
         ${isMine ? `<button class="lib-pill-btn danger" onclick="deletePost(${p.id})">Delete</button>` : ''}
       </div>
       <div class="feed-comments hidden" id="comments-${p.id}"></div>
@@ -11057,21 +11764,49 @@ function feedPostHtml(p) {
   </div>`;
 }
 
+function copyPostLink(postId) {
+  const url = `${location.origin}${location.pathname}#post=${postId}`;
+  navigator.clipboard.writeText(url)
+    .then(() => showToast('Ссылка на пост скопирована!', 'success'))
+    .catch(() => showToast('Не удалось скопировать ссылку.', 'error'));
+}
+
+async function handlePostDeepLink() {
+  const m = location.hash.match(/^#post=(\d+)$/);
+  if (!m) return;
+  const postId = parseInt(m[1], 10);
+  showPage('feed');
+  showFeedTab('all');
+  await renderFeed(true);
+  const el = document.querySelector(`#feedList .feed-post[data-post-id="${postId}"]`);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('post-highlight');
+    setTimeout(() => el.classList.remove('post-highlight'), 1800);
+  } else {
+    showToast('Пост не найден — возможно, ещё не одобрен модератором или удалён.', 'error');
+  }
+}
+
 async function castVote(postId) {
   if (!currentUser) { showToast('Sign in with Discord to vote.', 'error'); return; }
   const current = feedUserVotes[postId] || 0;
   if (current === 1) {
     await sb.from('votes').delete().eq('post_id', postId).eq('user_id', currentUser.id);
+    feedUserVotes[postId] = 0;
   } else {
     await sb.from('votes').upsert({ post_id: postId, user_id: currentUser.id, value: 1 });
+    feedUserVotes[postId] = 1;
   }
-  renderFeed();
+  const post = feedPosts.find(p => p.id === postId);
+  if (post) post.score = (post.score || 0) + (current === 1 ? -1 : 1);
+  document.getElementById('feedList').innerHTML = feedPosts.map(feedPostHtml).join('');
 }
 
 async function deletePost(postId) {
   if (!(await customConfirm('Delete this post from the feed?'))) return;
   await sb.from('posts').delete().eq('id', postId);
-  renderFeed();
+  showFeedTab(feedActiveTab);
 }
 
 async function toggleComments(postId) {
@@ -11120,8 +11855,10 @@ initAuth();
 initAccentColor();
 initToolbarToggles();
 populateShiyuFilterSelect();
+populateFeedFilterOptions();
 updateUndoRedoButtons();
 renderTeams();
+handlePostDeepLink();
 
 function updateHeaderHeightVar() {
   const h = document.querySelector('header');
