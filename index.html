@@ -8442,6 +8442,7 @@ async function checkUidVerification() {
 let profileMyUid = localStorage.getItem('zzz_profile_my_uid') || null;
 let profileFavorites = JSON.parse(localStorage.getItem('zzz_profile_favorites') || '[]');
 let profileCurrentUid = null;
+let profileCurrentOwnerId = null; // Supabase profiles.id of whoever's UID is on screen, if any
 let profileCurrentNickname = '';
 let profileCurrentLevel = null;
 
@@ -8611,15 +8612,22 @@ async function loadProfileShowcase() {
   // самим владельцем, кнопкой "🔄 Reload".
   let data = null;
   let cacheInfo = null;
+  let ownerId = null;
   try {
     const { data: ownerRow } = await sb
       .from('profiles')
-      .select('showcase_snapshot, showcase_updated_at')
+      .select('id, showcase_snapshot, showcase_updated_at')
       .eq('game_uid', uidVal)
       .maybeSingle();
-    if (ownerRow && ownerRow.showcase_snapshot) {
-      data = ownerRow.showcase_snapshot;
-      cacheInfo = { updatedAt: ownerRow.showcase_updated_at };
+    if (ownerRow) {
+      // Запоминаем владельца этого UID независимо от того, есть ли у него
+      // сохранённый снимок стенда — он нужен ниже, чтобы подтянуть его
+      // ОПУБЛИКОВАННЫЕ пресеты, а не показывать локальные пресеты этого браузера.
+      ownerId = ownerRow.id;
+      if (ownerRow.showcase_snapshot) {
+        data = ownerRow.showcase_snapshot;
+        cacheInfo = { updatedAt: ownerRow.showcase_updated_at };
+      }
     }
   } catch (e) { /* профиль не найден в базе — просто идём в Enka напрямую */ }
 
@@ -8633,12 +8641,12 @@ async function loadProfileShowcase() {
     if (data.error) { setProfileStatus(`Error: ${data.error}`, 'err'); return; }
   }
 
-  applyShowcaseData(data, uidVal, cacheInfo);
+  applyShowcaseData(data, uidVal, cacheInfo, ownerId);
 }
 
 // Общая часть применения данных стенда (Enka-ответ) к UI — используется и
 // для живой загрузки, и для показа серверного кэша, и после Reload.
-function applyShowcaseData(data, uidVal, cacheInfo) {
+function applyShowcaseData(data, uidVal, cacheInfo, ownerId = null) {
   const avatars = data?.PlayerInfo?.ShowcaseDetail?.AvatarList || [];
   if (!avatars.length) { setProfileStatus('Showcase is empty (or private) for that UID.', 'err'); return; }
 
@@ -8646,6 +8654,7 @@ function applyShowcaseData(data, uidVal, cacheInfo) {
 
   const profileDetail = data?.PlayerInfo?.SocialDetail?.ProfileDetail || {};
   profileCurrentUid = uidVal;
+  profileCurrentOwnerId = ownerId;
   profileCurrentNickname = profileDetail.Nickname || '';
   profileCurrentLevel = profileDetail.Level ?? null;
   renderProfileCurrentPlayer();
@@ -8666,6 +8675,7 @@ function applyShowcaseData(data, uidVal, cacheInfo) {
   profileLastAvatars = avatars;
   profilePresetViewAgentKey = null;
   profilePresetViewPresetId = null;
+  profileSelectedPresetId = null;
   setProfileStatus(`Found ${avatars.length} agent${avatars.length === 1 ? '' : 's'} on the showcase.`, 'ok');
   renderProfileAgentList();
   renderProfileLeftExtra();
@@ -8700,7 +8710,7 @@ async function reloadMyShowcase() {
     if (error) throw error;
     myGameNickname = nickname || myGameNickname;
     showToast('Стенд обновлён и сохранён на сайте.', 'success');
-    applyShowcaseData(data, myGameUid, { updatedAt: new Date().toISOString(), justNow: true });
+    applyShowcaseData(data, myGameUid, { updatedAt: new Date().toISOString(), justNow: true }, currentUser.id);
   } catch (err) {
     showToast('Не удалось сохранить: ' + (err.message || err), 'error');
   } finally {
@@ -9192,7 +9202,33 @@ async function deletePresetPrompt(agentKey, presetId) {
   refreshPresetViews(agentKey);
 }
 
+// Пресеты ДРУГОГО игрока (не текущего пользователя сайта), опубликованные им
+// через кнопку Publish — читаются из Supabase, а не из localStorage этого
+// браузера. Кэшируется одним запросом на всего владельца стенда, а не по
+// агенту — при переключении агентов в списке слева новый запрос не нужен.
+let profileOwnerPresetsCache = [];
+let profileOwnerPresetsCacheOwnerId = null;
+async function getProfileOwnerPresets(ownerId, agentKey) {
+  if (profileOwnerPresetsCacheOwnerId !== ownerId) {
+    profileOwnerPresetsCacheOwnerId = ownerId;
+    try {
+      const { data, error } = await sb.from('presets').select('*').eq('user_id', ownerId);
+      if (error) throw error;
+      profileOwnerPresetsCache = data || [];
+    } catch (err) {
+      console.error('[Presets] failed to load owner presets:', err.message || err);
+      profileOwnerPresetsCache = [];
+    }
+  }
+  return profileOwnerPresetsCache.filter(r => r.agent_key === agentKey);
+}
+
 async function renderProfilePresetsSection(agentKey) {
+  // Это МОЙ подтверждённый стенд — показываем и позволяем управлять
+  // локальными пресетами этого браузера, как и раньше.
+  const isMyOwnStand = currentUser && myGameUid && profileCurrentUid === myGameUid;
+  if (!isMyOwnStand) return renderOtherPlayerPresetsSection(agentKey);
+
   const presets = getAgentPresets(agentKey);
   const chips = presets.map(p => {
     const missing = p.source ? [] : evaluatePresetApplicability(p, null).missing;
@@ -9224,6 +9260,47 @@ async function renderProfilePresetsSection(agentKey) {
       <div class="pd-preset-actions-inline">${expandedActionsHtml}</div>
     </div>
     <div class="pd-presets-row">${chips || '<span class="pd-sub">No presets yet.</span>'}</div>
+    ${expandedHtml}
+  `;
+}
+
+// Показ пресетов, когда на экране НЕ мой подтверждённый стенд — либо чужой
+// зарегистрированный на сайте игрок (тогда подтягиваем его ОПУБЛИКОВАННЫЕ
+// пресеты из Supabase, read-only, с кнопкой "Copy to my presets"), либо UID
+// без привязанного аккаунта сайта (тогда публиковать нечему — просто пусто).
+async function renderOtherPlayerPresetsSection(agentKey) {
+  if (!profileCurrentOwnerId) {
+    return `
+      <div class="pd-presets-header-row"><div class="pd-section-title">Presets</div></div>
+      <div class="pd-presets-row"><span class="pd-sub">No presets yet.</span></div>
+    `;
+  }
+
+  const rows = await getProfileOwnerPresets(profileCurrentOwnerId, agentKey);
+  const chips = rows.map(r => `
+    <div class="preset-chip-lg${String(r.id) === String(profileSelectedPresetId) ? ' selected' : ''}" onclick="toggleProfilePreset('${agentKey}','${r.id}')" title="${escapeHtml(r.name)}">
+      <img src="${wengineUrl(r.wengine)}" onerror="this.style.opacity=.2">
+      <span>${escapeHtml(r.name)}</span>
+    </div>`).join('');
+
+  let expandedHtml = '';
+  let expandedActionsHtml = '';
+  if (profileSelectedPresetId) {
+    const row = rows.find(r => String(r.id) === String(profileSelectedPresetId));
+    if (row) {
+      const preset = { id: row.id, name: row.name, wengine: row.wengine, wrank: row.wrank, discs: row.discs || [] };
+      currentPublicPresetView = { agentKey, preset };
+      expandedActionsHtml = presetActionsHtml(agentKey, preset, { readOnly: true });
+      expandedHtml = await presetDetailHtml(agentKey, preset, { hideActions: true, readOnly: true, ownerLabel: profileCurrentNickname });
+    }
+  }
+
+  return `
+    <div class="pd-presets-header-row">
+      <div class="pd-section-title">Presets</div>
+      <div class="pd-preset-actions-inline">${expandedActionsHtml}</div>
+    </div>
+    <div class="pd-presets-row">${chips || '<span class="pd-sub">No published presets yet.</span>'}</div>
     ${expandedHtml}
   `;
 }
