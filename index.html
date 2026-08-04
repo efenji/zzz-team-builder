@@ -38,18 +38,73 @@ header {
   display: flex; align-items: center; gap: 12px;
   position: sticky; top: 0; z-index: 100;
 }
+.header-brand { display: flex; flex-direction: column; }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 .logo { font-family: 'Barlow Condensed', 'Oswald', sans-serif; font-size: 18px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
 .logo em { color: var(--accent); font-style: normal; }
 .logo-sub { font-size: 10px; color: var(--text-dim); font-family: 'Share Tech Mono', monospace; letter-spacing: .15em; margin-top: 1px; }
 
-/* ── TOOLBAR ── */
+/* ── HEADER DROPDOWNS (settings / account) ── */
+.hd-dropdown { position: relative; }
+.hd-menu {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 10;
+  background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r-sm);
+  box-shadow: 0 8px 24px rgba(0,0,0,.4); padding: 12px; min-width: 210px;
+}
+.hd-menu.hidden { display: none; }
+.hd-menu-label { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--text-dim); letter-spacing: .15em; text-transform: uppercase; margin-bottom: 8px; }
+.hd-menu-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.hd-menu-sep { height: 1px; background: var(--border); margin: 12px 0; }
+
+.account-menu { position: relative; }
+.account-caret { font-size: 9px; color: var(--text-mid); margin-left: 1px; transition: transform .15s; }
+.account-menu.open .account-caret { transform: rotate(180deg); }
+.account-dropdown {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 10;
+  background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r-sm);
+  box-shadow: 0 8px 24px rgba(0,0,0,.4); min-width: 210px; overflow: hidden;
+}
+.account-dropdown.hidden { display: none; }
+.account-dropdown-user { display: flex; align-items: center; gap: 9px; padding: 12px; border-bottom: 1px solid var(--border); }
+.account-dropdown-user img { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; }
+.account-dropdown-name { font-size: 12px; font-weight: 700; font-family: 'Barlow Condensed', 'Oswald', sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-dropdown-admin-badge { font-size: 9px; font-family: 'Share Tech Mono', monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); background: var(--accent-d); border: 1px solid var(--accent-30); border-radius: 20px; padding: 1px 7px; margin-top: 4px; display: inline-block; width: fit-content; }
+.account-dropdown-item { display: block; width: 100%; text-align: left; background: none; border: none; color: var(--text); font: inherit; font-size: 12px; padding: 10px 12px; cursor: pointer; }
+.account-dropdown-item:hover { background: var(--bg4); }
+.account-dropdown-item.danger { color: var(--red); }
+.account-dropdown-item.danger:hover { background: rgba(239,68,68,.1); }
+
+/* ── PRIMARY NAV (Saved Teams / Profile / Feed) ── */
+.page-nav {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  position: sticky; top: var(--header-h, 57px); z-index: 99;
+}
+.page-nav-btn {
+  background: transparent; border: none; color: var(--text-mid);
+  font-family: 'Barlow Condensed', 'Oswald', sans-serif; font-size: 13px; font-weight: 700;
+  letter-spacing: .04em; text-transform: uppercase; padding: 13px 14px; cursor: pointer;
+  border-bottom: 2px solid transparent; transition: color .15s, border-color .15s;
+}
+.page-nav-btn:hover { color: var(--text); }
+.page-nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.auth-widget { display: flex; align-items: center; }
+.auth-user { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px 10px 5px 6px; border-radius: 100px; background: var(--bg3); border: 1px solid var(--border); transition: border-color .15s; }
+.auth-user:hover { border-color: var(--border2); }
+.auth-avatar { width: 22px; height: 22px; border-radius: 50%; display: block; }
+.auth-name { font-size: 12px; font-weight: 700; color: var(--text); font-family: 'Barlow Condensed', 'Oswald', sans-serif; letter-spacing: .03em; }
+
+/* ── TOOLBAR (Saved Teams page only) ── */
 .toolbar {
   background: var(--bg2);
   border-bottom: 1px solid var(--border);
   padding: 9px 20px;
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-  position: sticky; top: var(--header-h, 57px); z-index: 99;
+  position: sticky; top: calc(var(--header-h, 57px) + var(--nav-h, 46px)); z-index: 98;
 }
+.toolbar.hidden { display: none; }
 .tb-group { display: flex; align-items: center; gap: 5px; }
 .tb-sep { width: 1px; height: 24px; background: var(--border2); margin: 0 5px; flex-shrink: 0; }
 .tb-btn {
@@ -966,21 +1021,6 @@ select {
 
 /* ── PROFILE TAB (character showcase by UID) — functional layout for now,
    visual pass comes later. Reuses .disc-detail-row / lib-pill-btn etc. ── */
-.page-nav { display: flex; gap: 4px; max-width: 1600px; margin: 0 auto; padding: 14px 16px 0; }
-.page-nav-btn {
-  background: transparent; border: none; color: var(--text-mid);
-  font-family: 'Barlow Condensed', 'Oswald', sans-serif; font-size: 13px; font-weight: 700;
-  letter-spacing: .04em; text-transform: uppercase; padding: 8px 14px; cursor: pointer;
-  border-bottom: 2px solid transparent;
-}
-.page-nav-btn:hover { color: var(--text); }
-.page-nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
-
-.auth-widget { margin-left: auto; display: flex; align-items: center; }
-.auth-user { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px 12px 5px 6px; border-radius: 100px; background: var(--bg3); border: 1px solid var(--border); transition: border-color .15s; }
-.auth-user:hover { border-color: var(--red); }
-.auth-avatar { width: 22px; height: 22px; border-radius: 50%; display: block; }
-.auth-name { font-size: 12px; font-weight: 700; color: var(--text); font-family: 'Barlow Condensed', 'Oswald', sans-serif; letter-spacing: .03em; }
 
 .feed-list { display: flex; flex-direction: column; gap: 14px; max-width: 640px; margin: 0 auto; padding-bottom: 30px; }
 .feed-post { display: flex; gap: 10px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 12px; }
@@ -1470,14 +1510,41 @@ select {
 <body>
 
 <header>
-  <div>
+  <div class="header-brand">
     <div class="logo"><em>ZZZ</em> · Team Builder</div>
     <div class="logo-sub">Shiyu Defense · Tracker</div>
   </div>
-  <div class="auth-widget" id="authWidget"></div>
+  <div class="header-right">
+    <div class="hd-dropdown" id="settingsDropdown">
+      <button class="tb-btn" onclick="toggleSettingsMenu(event)" title="Libraries &amp; appearance">⚙</button>
+      <div class="hd-menu hidden" id="settingsMenu">
+        <div class="hd-menu-label">My Libraries</div>
+        <div class="hd-menu-row">
+          <button class="tb-btn" onclick="openLibraryModal('agent'); closeSettingsMenu();" title="Agent Library"><img src="https://efenji.github.io/zzz-team-builder/zzz/icons/character.webp" style="width:18px;height:18px;object-fit:contain" onerror="this.style.opacity=.2"></button>
+          <button class="tb-btn" onclick="openLibraryModal('wengine'); closeSettingsMenu();" title="W-Engine Library"><img src="https://efenji.github.io/zzz-team-builder/zzz/icons/weapon.webp" style="width:18px;height:18px;object-fit:contain" onerror="this.style.opacity=.2"></button>
+          <button class="tb-btn" onclick="openLibraryModal('bangboo'); closeSettingsMenu();" title="Bangboo Library"><img src="https://efenji.github.io/zzz-team-builder/zzz/icons/bangboo.webp" style="width:18px;height:18px;object-fit:contain" onerror="this.style.opacity=.2"></button>
+          <button class="tb-btn" onclick="openLibraryModal('disc'); closeSettingsMenu();" title="Drive Disc Library"><img src="https://efenji.github.io/zzz-team-builder/zzz/icons/drivediscs.webp" style="width:18px;height:18px;object-fit:contain" onerror="this.style.opacity=.2"></button>
+        </div>
+        <div class="hd-menu-sep"></div>
+        <div class="hd-menu-label">Accent Color</div>
+        <div class="hd-menu-row">
+          <label class="tb-color-swatch" id="accentSwatch" title="Accent Color">
+            <input type="color" id="accentColorInput" oninput="setAccentColor(this.value)">
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="auth-widget" id="authWidget"></div>
+  </div>
 </header>
 
-<div class="toolbar">
+<div class="page-nav">
+  <button class="page-nav-btn active" id="navTeamsBtn" onclick="showPage('teams')">Saved Teams</button>
+  <button class="page-nav-btn" id="navProfileBtn" onclick="showPage('profile')">Profile</button>
+  <button class="page-nav-btn" id="navFeedBtn" onclick="showPage('feed')">Feed</button>
+</div>
+
+<div class="toolbar" id="teamsToolbar">
   <div class="tb-group">
     <button class="tb-btn" id="tbUndo" onclick="undo()" title="Undo (Ctrl+Z)" disabled>↺</button>
     <button class="tb-btn" id="tbRedo" onclick="redo()" title="Redo (Ctrl+Shift+Z)" disabled>↻</button>
@@ -1496,12 +1563,6 @@ select {
   </div>
   <div class="tb-sep"></div>
   <div class="tb-group">
-    <label class="tb-color-swatch" id="accentSwatch" title="Accent Color">
-      <input type="color" id="accentColorInput" oninput="setAccentColor(this.value)">
-    </label>
-  </div>
-  <div class="tb-sep"></div>
-  <div class="tb-group">
     <button class="tb-toggle" data-key="name" onclick="toggleVisOption('name', this)">Name</button>
     <button class="tb-toggle" data-key="shiyu" onclick="toggleVisOption('shiyu', this)">Shiyu</button>
     <button class="tb-toggle" data-key="wengine" onclick="toggleVisOption('wengine', this)">W-Engine</button>
@@ -1511,27 +1572,13 @@ select {
     <button class="tb-toggle" data-key="discs" onclick="toggleVisOption('discs', this)">Discs</button>
     <button class="tb-toggle" data-key="boo" onclick="toggleVisOption('boo', this)">Bangboo</button>
   </div>
-  <div class="tb-sep"></div>
-  <div class="tb-group" style="margin-left:auto; align-items:center;">
-    <div class="tb-group" id="advLibGroup">
-      <button class="tb-btn" onclick="openLibraryModal('agent')" title="Agent Library"><img src="https://efenji.github.io/zzz-team-builder/zzz/icons/character.webp" style="width:18px;height:18px;object-fit:contain" onerror="this.style.opacity=.2"></button>
-      <button class="tb-btn" onclick="openLibraryModal('wengine')" title="W-Engine Library"><img src="https://efenji.github.io/zzz-team-builder/zzz/icons/weapon.webp" style="width:18px;height:18px;object-fit:contain" onerror="this.style.opacity=.2"></button>
-      <button class="tb-btn" onclick="openLibraryModal('bangboo')" title="Bangboo Library"><img src="https://efenji.github.io/zzz-team-builder/zzz/icons/bangboo.webp" style="width:18px;height:18px;object-fit:contain" onerror="this.style.opacity=.2"></button>
-      <button class="tb-btn" onclick="openLibraryModal('disc')" title="Drive Disc Library"><img src="https://efenji.github.io/zzz-team-builder/zzz/icons/drivediscs.webp" style="width:18px;height:18px;object-fit:contain" onerror="this.style.opacity=.2"></button>
-    </div>
-  </div>
-</div>
-
-<div class="page-nav">
-  <button class="page-nav-btn active" id="navTeamsBtn" onclick="showPage('teams')">Saved Teams</button>
-  <button class="page-nav-btn" id="navProfileBtn" onclick="showPage('profile')">Profile</button>
-  <button class="page-nav-btn" id="navFeedBtn" onclick="showPage('feed')">Feed</button>
 </div>
 
 <div class="page" id="pageTeams">
   <div class="section-title">Saved Teams</div>
   <div id="teamsGrid" class="teams-grid"></div>
 </div>
+
 
 <div class="page hidden" id="pageProfile">
   <div class="section-title">Profile · Character Showcase (by UID)</div>
@@ -8336,9 +8383,11 @@ function showPage(which) {
   document.getElementById('pageTeams').classList.toggle('hidden', which !== 'teams');
   document.getElementById('pageProfile').classList.toggle('hidden', which !== 'profile');
   document.getElementById('pageFeed').classList.toggle('hidden', which !== 'feed');
+  document.getElementById('teamsToolbar').classList.toggle('hidden', which !== 'teams');
   document.getElementById('navTeamsBtn').classList.toggle('active', which === 'teams');
   document.getElementById('navProfileBtn').classList.toggle('active', which === 'profile');
   document.getElementById('navFeedBtn').classList.toggle('active', which === 'feed');
+  updateHeaderHeightVar();
   if (which === 'profile') {
     renderProfileFavorites();
     updateProfileActionButtons();
@@ -11392,12 +11441,62 @@ function renderAuthUI() {
   const el = document.getElementById('authWidget');
   if (!el) return;
   if (currentUser) {
-    el.innerHTML = `<div class="auth-user" onclick="logoutDiscord()" title="Click to sign out">
-      ${currentUser.avatar ? `<img class="auth-avatar" src="${currentUser.avatar}" onerror="this.style.display='none'">` : ''}
-      <span class="auth-name">${escapeHtml(currentUser.username)}</span>
+    el.innerHTML = `<div class="account-menu" id="accountMenu">
+      <div class="auth-user" onclick="toggleAccountMenu(event)" title="Account menu">
+        ${currentUser.avatar ? `<img class="auth-avatar" src="${currentUser.avatar}" onerror="this.style.display='none'">` : ''}
+        <span class="auth-name">${escapeHtml(currentUser.username)}</span>
+        <span class="account-caret">▾</span>
+      </div>
+      <div class="account-dropdown hidden" id="accountDropdown">
+        <div class="account-dropdown-user">
+          ${currentUser.avatar ? `<img src="${currentUser.avatar}" onerror="this.style.display='none'">` : ''}
+          <div>
+            <div class="account-dropdown-name">${escapeHtml(currentUser.username)}</div>
+            ${isAdmin ? '<span class="account-dropdown-admin-badge">Admin</span>' : ''}
+          </div>
+        </div>
+        <button class="account-dropdown-item" onclick="closeAccountMenu(); showPage('profile');">My Profile</button>
+        <button class="account-dropdown-item danger" onclick="confirmLogout()">Sign out</button>
+      </div>
     </div>`;
   } else {
     el.innerHTML = `<button class="lib-pill-btn" onclick="loginDiscord()">Sign in with Discord</button>`;
+  }
+}
+
+// ── Header dropdowns (account menu + settings/libraries menu) ──────────────
+// Both close on outside click or Escape; opening one closes the other.
+function toggleAccountMenu(e) {
+  e.stopPropagation();
+  closeSettingsMenu();
+  const dd = document.getElementById('accountDropdown');
+  const menu = document.getElementById('accountMenu');
+  const opening = dd.classList.contains('hidden');
+  dd.classList.toggle('hidden', !opening);
+  menu.classList.toggle('open', opening);
+}
+function closeAccountMenu() {
+  const dd = document.getElementById('accountDropdown');
+  const menu = document.getElementById('accountMenu');
+  if (dd) dd.classList.add('hidden');
+  if (menu) menu.classList.remove('open');
+}
+function toggleSettingsMenu(e) {
+  e.stopPropagation();
+  closeAccountMenu();
+  document.getElementById('settingsMenu').classList.toggle('hidden');
+}
+function closeSettingsMenu() {
+  const m = document.getElementById('settingsMenu');
+  if (m) m.classList.add('hidden');
+}
+document.addEventListener('click', () => { closeAccountMenu(); closeSettingsMenu(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeAccountMenu(); closeSettingsMenu(); } });
+
+async function confirmLogout() {
+  closeAccountMenu();
+  if (await customConfirm('Sign out of your Discord account on this site?', { okLabel: 'Sign out' })) {
+    logoutDiscord();
   }
 }
 
@@ -11414,9 +11513,9 @@ async function handleAuthSession(event, session) {
     currentUser = null;
     cloudSyncedOnce = false;
   }
+  await checkIsAdmin();
   renderAuthUI();
   loadMyVerificationStatus();
-  await checkIsAdmin();
   const feedPage = document.getElementById('pageFeed');
   if (feedPage && !feedPage.classList.contains('hidden')) showFeedTab(feedActiveTab);
 
@@ -12148,6 +12247,10 @@ handlePostDeepLink();
 function updateHeaderHeightVar() {
   const h = document.querySelector('header');
   if (h) document.documentElement.style.setProperty('--header-h', h.offsetHeight + 'px');
+  const nav = document.querySelector('.page-nav');
+  if (nav) document.documentElement.style.setProperty('--nav-h', nav.offsetHeight + 'px');
+  const tb = document.getElementById('teamsToolbar');
+  if (tb) document.documentElement.style.setProperty('--toolbar-h', tb.classList.contains('hidden') ? '0px' : tb.offsetHeight + 'px');
 }
 updateHeaderHeightVar();
 window.addEventListener('resize', updateHeaderHeightVar);
