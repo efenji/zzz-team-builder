@@ -1122,9 +1122,10 @@ select {
 .profile-agent-list-col { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; }
 .profile-agent-list { display: flex; flex-direction: column; gap: 6px; }
 .profile-presets-entry {
-  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);
-  width: 100%; display: flex; justify-content: center;
+  margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);
+  width: 100%; display: flex; align-items: center; justify-content: center; text-align: center;
 }
+.profile-agent-list.with-divider { margin-top: 14px; padding-top: 16px; border-top: 1px solid var(--border); }
 .profile-agent-card {
   background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
   padding: 8px 10px; cursor: pointer; font-size: 13px;
@@ -7607,6 +7608,52 @@ function discToSnapshot(d) {
   };
 }
 
+// Compares two already-normalized disc snapshots (discToSnapshot shape) for
+// an EXACT match — same set, slot, main stat + value, and same sub-stats
+// (name/proc-count/value), sub-stats compared order-independently since
+// their on-screen order isn't a meaningful part of "the same disc".
+function discSnapshotsEqual(a, b) {
+  if (!a || !b) return false;
+  if (a.setName !== b.setName || a.slot !== b.slot || a.mainStat !== b.mainStat || a.mainStatValue !== b.mainStatValue) return false;
+  const as = (a.subStats || []).slice().sort((x, y) => x.name.localeCompare(y.name));
+  const bs = (b.subStats || []).slice().sort((x, y) => x.name.localeCompare(y.name));
+  if (as.length !== bs.length) return false;
+  return as.every((s, i) => s.name === bs[i].name && s.procs === bs[i].procs && s.value === bs[i].value);
+}
+
+// Same, but for a full 6-disc set.
+function discSnapshotSetsEqual(discsA, discsB) {
+  if (!discsA || !discsB || discsA.length !== 6 || discsB.length !== 6) return false;
+  const a = discsA.slice().sort((x, y) => x.slot - y.slot);
+  const b = discsB.slice().sort((x, y) => x.slot - y.slot);
+  return a.every((d, i) => discSnapshotsEqual(d, b[i]));
+}
+
+// Returns the existing LOCAL preset (any category — verified/manual/
+// imported, doesn't matter) for this agent that exactly matches the given
+// W-Engine + refinement + 6 disc snapshots, or null if none does. Used to
+// grey out "Save current build" / "Copy to my presets" when there's nothing
+// new to add — takes already-normalized snapshots (e.g. straight off a
+// published preset row).
+function findMatchingPresetBySnapshots(agentKey, wengineKey, wrank, discSnapshots) {
+  if (!wengineKey || !discSnapshots || discSnapshots.length !== 6) return null;
+  return getAgentPresets(agentKey).find(p =>
+    p.wengine === wengineKey &&
+    (p.wrank || 1) === (wrank || 1) &&
+    discSnapshotSetsEqual(p.discs, discSnapshots)
+  ) || null;
+}
+
+// Same, but takes live "display entry" discs (the Enka showcase shape used
+// on the stand) instead of already-normalized snapshots — runs them through
+// discToSnapshot first so the comparison lines up with what's actually saved.
+function findMatchingLocalPreset(agentKey, wengineKey, wrank, discEntries) {
+  const filled = (discEntries || []).filter(Boolean);
+  if (filled.length !== 6) return null;
+  const snaps = filled.slice().sort((a, b) => a.slot - b.slot).map(discToSnapshot);
+  return findMatchingPresetBySnapshots(agentKey, wengineKey, wrank, snaps);
+}
+
 function nextPresetName(agentKey) {
   const existing = new Set(getAgentPresets(agentKey).map(p => p.name));
   for (let i = 1; i <= PRESET_LIMIT; i++) {
@@ -8676,7 +8723,8 @@ function applyShowcaseData(data, uidVal, cacheInfo, ownerId = null) {
   profileLastAvatars = avatars;
   profilePresetViewAgentKey = null;
   profilePresetViewPresetId = null;
-  profileSelectedPresetId = null;
+  ownerPresetViewAgentKey = null;
+  ownerPresetViewPresetId = null;
   setProfileStatus(`Found ${avatars.length} agent${avatars.length === 1 ? '' : 's'} on the showcase.`, 'ok');
   renderProfileAgentList();
   renderProfileLeftExtra();
@@ -8823,30 +8871,57 @@ async function renderAgentPresetView() {
   `;
 }
 
-function renderProfileLeftExtra() {
+async function renderProfileLeftExtra() {
+  const btn = document.querySelector('.profile-presets-entry');
   const el = document.getElementById('profilePresetBrowseList');
   if (!el) return;
-  const agentsWithPresets = Object.keys(agentPresets).filter(k => (agentPresets[k] || []).length > 0);
-  if (!agentsWithPresets.length) { el.innerHTML = ''; el.classList.add('hidden'); return; }
+  const isMyOwnStand = currentUser && myGameUid && profileCurrentUid === myGameUid;
+
+  if (isMyOwnStand) {
+    // Мой стенд — "+Presets" (создать пресет для любого агента) виден, а
+    // список ниже браузит МОИ локальные пресеты, как и раньше.
+    if (btn) btn.classList.remove('hidden');
+    el.classList.remove('with-divider');
+    const agentsWithPresets = Object.keys(agentPresets).filter(k => (agentPresets[k] || []).length > 0);
+    if (!agentsWithPresets.length) { el.innerHTML = ''; el.classList.add('hidden'); return; }
+    el.classList.remove('hidden');
+    el.innerHTML = sortAgentsByRarity(agentsWithPresets).map(k => {
+      const counts = presetCategoryCounts(k);
+      return `<div class="profile-agent-card${k === profilePresetViewAgentKey ? ' selected' : ''}" onclick="openAgentPresetView('${k}')">
+      <div class="pac-name">${escapeHtml(cardName(k))}</div>
+      <div class="pac-sub">✅${counts.verified}/${PRESET_LIMIT} · 🛠${counts.other}/${PRESET_LIMIT}</div>
+    </div>`;
+    }).join('');
+    return;
+  }
+
+  // Чужой стенд — кнопки "+Presets" тут нет вообще (незачем создавать
+  // локальный пресет "для любого агента" стоя на чужом профиле); вместо неё
+  // сразу список агентов, для которых ЭТОТ человек опубликовал пресеты —
+  // если он вообще зарегистрирован на сайте и есть публикации.
+  if (btn) btn.classList.add('hidden');
+  if (!profileCurrentOwnerId) { el.innerHTML = ''; el.classList.add('hidden'); return; }
+
+  const rows = await loadAllProfileOwnerPresets(profileCurrentOwnerId);
+  if (!rows.length) { el.innerHTML = ''; el.classList.add('hidden'); return; }
   el.classList.remove('hidden');
-  el.innerHTML = sortAgentsByRarity(agentsWithPresets).map(k => {
-    const counts = presetCategoryCounts(k);
-    return `<div class="profile-agent-card${k === profilePresetViewAgentKey ? ' selected' : ''}" onclick="openAgentPresetView('${k}')">
+  el.classList.add('with-divider');
+  const agentKeys = [...new Set(rows.map(r => r.agent_key))];
+  el.innerHTML = sortAgentsByRarity(agentKeys).map(k => {
+    const count = rows.filter(r => r.agent_key === k).length;
+    return `<div class="profile-agent-card${k === ownerPresetViewAgentKey ? ' selected' : ''}" onclick="openOwnerPresetView('${k}')">
     <div class="pac-name">${escapeHtml(cardName(k))}</div>
-    <div class="pac-sub">✅${counts.verified}/${PRESET_LIMIT} · 🛠${counts.other}/${PRESET_LIMIT}</div>
+    <div class="pac-sub">🌐 ${count} published</div>
   </div>`;
   }).join('');
 }
 
 // Refreshes whichever preset UI is currently on screen for a given agent —
-// the showcase character's own read-only Presets section (if that's what's
-// showing), the standalone right-panel preset view (if that agent is the
-// one currently open there), and the left-column index (always, since a
+// the standalone right-panel preset view (if that agent is the one
+// currently open there) and the left-column index (always, since a
 // save/rename/delete anywhere can change whether an agent belongs in the
 // "has presets" index at all).
 function refreshPresetViews(agentKey) {
-  const oldSection = document.getElementById('profilePresetsSection');
-  if (oldSection) refreshProfilePresetsSection(agentKey);
   if (profilePresetViewAgentKey === agentKey) renderAgentPresetView();
   renderProfileLeftExtra();
 }
@@ -9023,22 +9098,11 @@ function savePresetDraft() {
    preset's expanded card reuses the exact same pd-head/Stats/W-Engine/Discs
    layout as renderProfileDetail above, just fed from buildManualAgentStatSheet
    (Phase 1) instead of a real Enka avatar. */
-let profileSelectedPresetId = null;
 // Whichever live showcase agent renderProfileDetail() last drew, and its
-// current W-Engine/discs — lets the embedded Presets section below offer a
-// "save this build as a preset" action without recomputing Enka data itself.
+// current W-Engine/discs — lets the Save-current-build button check for an
+// exact match against already-saved presets without recomputing Enka data.
 // null whenever the currently shown agent isn't in ENKA_AGENT_MAP (unknown ID).
 let profileCurrentLiveBuild = null;
-
-async function refreshProfilePresetsSection(agentKey) {
-  const container = document.getElementById('profilePresetsSection');
-  if (container) container.innerHTML = await renderProfilePresetsSection(agentKey);
-}
-
-async function toggleProfilePreset(agentKey, presetId) {
-  profileSelectedPresetId = (profileSelectedPresetId === presetId) ? null : presetId;
-  await refreshProfilePresetsSection(agentKey);
-}
 
 /* ── PUBLISHING PRESETS (Phase 6) ─────────────────────────────────────────
    A row in Supabase's `presets` table = a published preset, full stop —
@@ -9155,8 +9219,9 @@ async function viewPublicPresetDetail(rowId) {
   if (!row) return;
   const preset = { id: row.id, name: row.name, wengine: row.wengine, wrank: row.wrank, discs: row.discs || [] };
   currentPublicPresetView = { agentKey: row.agent_key, preset };
+  const matching = findMatchingPresetBySnapshots(row.agent_key, preset.wengine, preset.wrank || 1, preset.discs);
   document.getElementById('publicPresetsDetail').innerHTML =
-    await presetDetailHtml(row.agent_key, preset, { readOnly: true, ownerLabel: publicPresetsOwnerLabel });
+    await presetDetailHtml(row.agent_key, preset, { readOnly: true, ownerLabel: publicPresetsOwnerLabel, matchingName: matching ? matching.name : null });
 }
 
 function copyPublicPresetToMine() {
@@ -9170,6 +9235,9 @@ function copyPublicPresetToMine() {
   if (created) {
     showToast(`Пресет «${created.name}» добавлен в ваши пресеты.`, 'success');
     refreshPresetViews(agentKey);
+    if (ownerPresetViewAgentKey === agentKey) renderOwnerPresetView();
+    const feedModalOpen = !document.getElementById('publicPresetsBg')?.classList.contains('hidden');
+    if (feedModalOpen && preset.id != null) viewPublicPresetDetail(preset.id);
   }
 }
 
@@ -9198,18 +9266,18 @@ async function deletePresetPrompt(agentKey, presetId) {
     catch (err) { console.error('[Presets] failed to remove public copy:', err.message || err); }
   }
   deleteAgentPreset(agentKey, presetId);
-  if (profileSelectedPresetId === presetId) profileSelectedPresetId = null;
   if (profilePresetViewAgentKey === agentKey && profilePresetViewPresetId === presetId) profilePresetViewPresetId = null;
   refreshPresetViews(agentKey);
 }
 
 // Пресеты ДРУГОГО игрока (не текущего пользователя сайта), опубликованные им
 // через кнопку Publish — читаются из Supabase, а не из localStorage этого
-// браузера. Кэшируется одним запросом на всего владельца стенда, а не по
-// агенту — при переключении агентов в списке слева новый запрос не нужен.
+// браузера. Кэшируется одним запросом на всего владельца стенда (все агенты
+// разом), а не по агенту — при переключении агентов в списке слева новый
+// запрос не нужен.
 let profileOwnerPresetsCache = [];
 let profileOwnerPresetsCacheOwnerId = null;
-async function getProfileOwnerPresets(ownerId, agentKey) {
+async function loadAllProfileOwnerPresets(ownerId) {
   if (profileOwnerPresetsCacheOwnerId !== ownerId) {
     profileOwnerPresetsCacheOwnerId = ownerId;
     try {
@@ -9221,88 +9289,69 @@ async function getProfileOwnerPresets(ownerId, agentKey) {
       profileOwnerPresetsCache = [];
     }
   }
-  return profileOwnerPresetsCache.filter(r => r.agent_key === agentKey);
+  return profileOwnerPresetsCache;
+}
+async function getProfileOwnerPresets(ownerId, agentKey) {
+  const all = await loadAllProfileOwnerPresets(ownerId);
+  return all.filter(r => r.agent_key === agentKey);
 }
 
-async function renderProfilePresetsSection(agentKey) {
-  // Это МОЙ подтверждённый стенд — показываем и позволяем управлять
-  // локальными пресетами этого браузера, как и раньше.
-  const isMyOwnStand = currentUser && myGameUid && profileCurrentUid === myGameUid;
-  if (!isMyOwnStand) return renderOtherPlayerPresetsSection(agentKey);
+/* ── BROWSING SOMEONE ELSE'S PUBLISHED PRESETS (Profile tab) ─────────────
+   Mirrors openAgentPresetView/renderAgentPresetView (the "+Presets" browse
+   flow for MY OWN local presets) but sourced from Supabase and read-only —
+   shown in the left column instead of the "+Presets" button whenever the
+   showcase on screen belongs to someone else who's registered on the site.
+   Separate state from profilePresetViewAgentKey/Id on purpose: those two
+   browse modes (mine vs. theirs) must never clobber each other. */
+let ownerPresetViewAgentKey = null;
+let ownerPresetViewPresetId = null;
 
-  const presets = getAgentPresets(agentKey);
-  const chips = presets.map(p => {
-    const missing = p.source ? [] : evaluatePresetApplicability(p, null).missing;
-    const broken = missing.length > 0;
-    const title = broken
-      ? `${escapeHtml(p.name)} — ${missing.length} disc(s) no longer match anything in your Drive Disc Library`
-      : p.source ? `${escapeHtml(p.name)} — imported from ${p.source.nickname ? escapeHtml(p.source.nickname) + "'s" : 'a'} showcase` : escapeHtml(p.name);
-    return `
-    <div class="preset-chip-lg${p.id === profileSelectedPresetId ? ' selected' : ''}${broken ? ' broken' : ''}" onclick="toggleProfilePreset('${agentKey}','${p.id}')" title="${title}">
-      <img src="${wengineUrl(p.wengine)}" onerror="this.style.opacity=.2">
-      <span>${escapeHtml(p.name)}</span>
-      ${broken ? '<span class="preset-chip-warn">!</span>' : p.source ? '<span class="preset-chip-imported" title="Imported build — reference only">📥</span>' : ''}
-    </div>`;
-  }).join('');
-
-  let expandedHtml = '';
-  let expandedActionsHtml = '';
-  if (profileSelectedPresetId) {
-    const preset = getPresetById(agentKey, profileSelectedPresetId);
-    if (preset) {
-      expandedActionsHtml = presetActionsHtml(agentKey, preset);
-      expandedHtml = await presetDetailHtml(agentKey, preset, { hideActions: true });
-    }
-  }
-
-  return `
-    <div class="pd-presets-header-row">
-      <div class="pd-section-title">Presets</div>
-      <div class="pd-preset-actions-inline">${expandedActionsHtml}</div>
-    </div>
-    <div class="pd-presets-row">${chips || '<span class="pd-sub">No presets yet.</span>'}</div>
-    ${expandedHtml}
-  `;
-}
-
-// Показ пресетов, когда на экране НЕ мой подтверждённый стенд — либо чужой
-// зарегистрированный на сайте игрок (тогда подтягиваем его ОПУБЛИКОВАННЫЕ
-// пресеты из Supabase, read-only, с кнопкой "Copy to my presets"), либо UID
-// без привязанного аккаунта сайта (тогда публиковать нечему — просто пусто).
-async function renderOtherPlayerPresetsSection(agentKey) {
-  if (!profileCurrentOwnerId) {
-    return `
-      <div class="pd-presets-header-row"><div class="pd-section-title">Presets</div></div>
-      <div class="pd-presets-row"><span class="pd-sub">No presets yet.</span></div>
-    `;
-  }
-
+async function openOwnerPresetView(agentKey) {
   const rows = await getProfileOwnerPresets(profileCurrentOwnerId, agentKey);
-  const chips = rows.map(r => `
-    <div class="preset-chip-lg${String(r.id) === String(profileSelectedPresetId) ? ' selected' : ''}" onclick="toggleProfilePreset('${agentKey}','${r.id}')" title="${escapeHtml(r.name)}">
+  if (!rows.length) return;
+  ownerPresetViewAgentKey = agentKey;
+  ownerPresetViewPresetId = String(rows[0].id);
+  profileSelectedIndex = null; // don't leave a showcase agent looking selected too
+  renderProfileAgentList();
+  renderProfileLeftExtra();
+  renderOwnerPresetView();
+}
+
+function selectOwnerPresetTab(presetId) {
+  ownerPresetViewPresetId = String(presetId);
+  renderOwnerPresetView();
+}
+
+async function renderOwnerPresetView() {
+  const agentKey = ownerPresetViewAgentKey;
+  const rows = await getProfileOwnerPresets(profileCurrentOwnerId, agentKey);
+  if (!rows.length) {
+    ownerPresetViewAgentKey = null;
+    ownerPresetViewPresetId = null;
+    document.getElementById('profileDetail').innerHTML = `<div class="profile-detail-empty">Enter a UID above and press Load.</div>`;
+    renderProfileLeftExtra();
+    return;
+  }
+  const row = rows.find(r => String(r.id) === ownerPresetViewPresetId) || rows[0];
+  ownerPresetViewPresetId = String(row.id);
+  const preset = { id: row.id, name: row.name, wengine: row.wengine, wrank: row.wrank, discs: row.discs || [] };
+  currentPublicPresetView = { agentKey, preset }; // lets the shared copyPublicPresetToMine() handler work
+
+  const tabsHtml = rows.map(r => `
+    <div class="preset-chip-lg${String(r.id) === ownerPresetViewPresetId ? ' selected' : ''}" onclick="selectOwnerPresetTab('${r.id}')" title="${escapeHtml(r.name)}">
       <img src="${wengineUrl(r.wengine)}" onerror="this.style.opacity=.2">
       <span>${escapeHtml(r.name)}</span>
     </div>`).join('');
 
-  let expandedHtml = '';
-  let expandedActionsHtml = '';
-  if (profileSelectedPresetId) {
-    const row = rows.find(r => String(r.id) === String(profileSelectedPresetId));
-    if (row) {
-      const preset = { id: row.id, name: row.name, wengine: row.wengine, wrank: row.wrank, discs: row.discs || [] };
-      currentPublicPresetView = { agentKey, preset };
-      expandedActionsHtml = presetActionsHtml(agentKey, preset, { readOnly: true });
-      expandedHtml = await presetDetailHtml(agentKey, preset, { hideActions: true, readOnly: true, ownerLabel: profileCurrentNickname });
-    }
-  }
-
-  return `
-    <div class="pd-presets-header-row">
-      <div class="pd-section-title">Presets</div>
-      <div class="pd-preset-actions-inline">${expandedActionsHtml}</div>
+  const matching = findMatchingPresetBySnapshots(agentKey, preset.wengine, preset.wrank || 1, preset.discs);
+  const actionsHtml = presetActionsHtml(agentKey, preset, { readOnly: true, matchingName: matching ? matching.name : null });
+  const detailHtml = await presetDetailHtml(agentKey, preset, { hideActions: true, readOnly: true, ownerLabel: profileCurrentNickname });
+  document.getElementById('profileDetail').innerHTML = `
+    <div class="preset-view-tabs-row">
+      <div class="pd-presets-row preset-view-tabs">${tabsHtml}</div>
+      <div class="pd-preset-actions-inline">${actionsHtml}</div>
     </div>
-    <div class="pd-presets-row">${chips || '<span class="pd-sub">No published presets yet.</span>'}</div>
-    ${expandedHtml}
+    ${detailHtml}
   `;
 }
 
@@ -9355,8 +9404,12 @@ async function saveCurrentShowcaseBuildAsPreset(agentKey) {
 // pulled out so callers can place these in a top action row next to the
 // preset tabs instead of leaving them pinned to presetDetailHtml's footer.
 function presetActionsHtml(agentKey, preset, opts = {}) {
-  const { readOnly = false } = opts;
-  if (readOnly) return `<button class="lib-pill-btn" onclick="copyPublicPresetToMine()">📋 Copy to my presets</button>`;
+  const { readOnly = false, matchingName = null } = opts;
+  if (readOnly) {
+    return matchingName
+      ? `<span class="lib-pill-btn" style="opacity:.4;cursor:default" title="У вас уже есть такая же сборка: «${escapeHtml(matchingName)}»">📋 Already saved</span>`
+      : `<button class="lib-pill-btn" onclick="copyPublicPresetToMine()">📋 Copy to my presets</button>`;
+  }
   const cat = presetCategory(preset);
   const editBtn = cat === 'manual'
     ? `<button class="lib-pill-btn" onclick="editAgentPreset('${agentKey}','${preset.id}')">Edit</button>`
@@ -9493,10 +9546,14 @@ async function renderProfileDetail(i) {
   // section, so it's reachable without scrolling while browsing anyone's
   // stand — yours or someone else's.
   const filledDiscs = discEntries.filter(Boolean).length;
+  const matchingPreset = (slug && wengineSlug && filledDiscs === 6)
+    ? findMatchingLocalPreset(slug, wengineSlug, profileCurrentLiveBuild.wrank, discEntries)
+    : null;
   const atPresetLimit = slug ? getAgentPresets(slug).length >= PRESET_LIMIT : false;
   const saveDisabledReason = !slug ? ''
     : !wengineSlug ? 'No W-Engine equipped on the showcase.'
     : filledDiscs !== 6 ? `Needs all 6 Drive Discs equipped (currently ${filledDiscs}/6).`
+    : matchingPreset ? `Already saved as "${matchingPreset.name}".`
     : atPresetLimit ? `Max ${PRESET_LIMIT} presets reached for this agent.`
     : '';
   const saveBuildBtnHtml = slug
@@ -9572,8 +9629,6 @@ async function renderProfileDetail(i) {
 
     <div class="pd-section-title">Drive Discs</div>
     ${discsHtml}
-
-    <div id="profilePresetsSection">${slug ? await renderProfilePresetsSection(slug) : ''}</div>
   `;
 }
 // Sub-stats that are inherently percent-valued get a "%" suffix in the
