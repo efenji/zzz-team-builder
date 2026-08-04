@@ -8358,7 +8358,22 @@ async function loadMyVerificationStatus() {
   if (!currentUser) { myGameUid = null; myGameNickname = null; renderVerificationPanel(); return; }
   const { data, error } = await sb.from('profiles').select('game_uid, game_nickname, uid_verified_at').eq('id', currentUser.id).maybeSingle();
   if (!error && data) { myGameUid = data.game_uid; myGameNickname = data.game_nickname; }
+  syncMyUidWithVerified();
   renderVerificationPanel();
+}
+
+// Once a Discord account is verified for a game UID, that UID IS "my
+// account" — full stop. It stops being a freely-reassignable local bookmark
+// (the legacy profileMyUid/localStorage mechanism, which predates account
+// verification and still serves users who haven't verified). This keeps
+// that bookmark permanently in sync with the real, verified account instead
+// of letting the two drift apart and show conflicting "my account" chips.
+function syncMyUidWithVerified() {
+  if (!myGameUid || profileMyUid === myGameUid) return;
+  profileMyUid = myGameUid;
+  localStorage.setItem('zzz_profile_my_uid', profileMyUid);
+  renderProfileFavorites();
+  updateProfileActionButtons();
 }
 
 function formatMMSS(totalSeconds) {
@@ -8466,6 +8481,7 @@ async function checkUidVerification() {
     myGameNickname = nickname;
     uidVerifyPending = null;
     stopUidVerifyCountdown();
+    syncMyUidWithVerified();
     renderVerificationPanel();
     showToast('UID успешно подтверждён!', 'success');
     // Уже сходили в Enka секундой ранее (для проверки кода) — используем этот
@@ -8494,6 +8510,7 @@ function loadProfileByUid(uid) {
 
 function setCurrentAsMyUid() {
   if (!profileCurrentUid) return;
+  if (currentUser && myGameUid) return; // verified — locked, not a reassignable bookmark
   profileMyUid = profileCurrentUid;
   localStorage.setItem('zzz_profile_my_uid', profileMyUid);
   renderProfileFavorites();
@@ -8501,6 +8518,7 @@ function setCurrentAsMyUid() {
 }
 
 function clearMyUid() {
+  if (currentUser && myGameUid) return; // verified — nothing to forget, it's your real account
   profileMyUid = null;
   localStorage.removeItem('zzz_profile_my_uid');
   renderProfileFavorites();
@@ -8531,9 +8549,12 @@ function renderProfileFavorites() {
   let html = '';
   if (profileMyUid) {
     const active = profileCurrentUid === profileMyUid ? ' active' : '';
+    const forgetBtn = (currentUser && myGameUid === profileMyUid)
+      ? ''
+      : `<span class="fav-x" onclick="event.stopPropagation(); clearMyUid()" title="Forget">✕</span>`;
     html += `<div class="profile-fav-chip my-uid${active}" onclick="loadProfileByUid('${profileMyUid}')">
       <span class="fav-star">★</span>My account (${escapeHtml(profileMyUid)})
-      <span class="fav-x" onclick="event.stopPropagation(); clearMyUid()" title="Forget">✕</span>
+      ${forgetBtn}
     </div>`;
   }
   html += profileFavorites.map(f => {
@@ -8557,10 +8578,14 @@ function updateProfileActionButtons() {
     favBtn.classList.toggle('active-fav', isFav);
   }
   if (myBtn) {
-    myBtn.disabled = !profileCurrentUid;
+    const verifiedLocked = currentUser && myGameUid;
+    myBtn.disabled = verifiedLocked ? true : !profileCurrentUid;
     const isMe = !!(profileCurrentUid && profileCurrentUid === profileMyUid);
     myBtn.textContent = isMe ? 'My account ✓' : 'My account';
     myBtn.classList.toggle('active-fav', isMe);
+    myBtn.title = verifiedLocked
+      ? `Уже подтверждено — UID ${myGameUid}`
+      : 'Remember this UID and auto-load it on this tab';
   }
 }
 
