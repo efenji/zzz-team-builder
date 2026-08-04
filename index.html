@@ -8614,11 +8614,12 @@ async function loadProfileShowcase() {
   let cacheInfo = null;
   let ownerId = null;
   try {
-    const { data: ownerRow } = await sb
+    const { data: ownerRow, error: ownerErr } = await sb
       .from('profiles')
       .select('id, showcase_snapshot, showcase_updated_at')
       .eq('game_uid', uidVal)
       .maybeSingle();
+    if (ownerErr) console.error('[Profile] failed to look up profiles row for UID', uidVal, ':', ownerErr.message || ownerErr);
     if (ownerRow) {
       // Запоминаем владельца этого UID независимо от того, есть ли у него
       // сохранённый снимок стенда — он нужен ниже, чтобы подтянуть его
@@ -8629,7 +8630,7 @@ async function loadProfileShowcase() {
         cacheInfo = { updatedAt: ownerRow.showcase_updated_at };
       }
     }
-  } catch (e) { /* профиль не найден в базе — просто идём в Enka напрямую */ }
+  } catch (e) { console.error('[Profile] profiles lookup threw:', e.message || e); }
 
   if (!data) {
     try {
