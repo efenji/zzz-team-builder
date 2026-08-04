@@ -1116,10 +1116,13 @@ select {
 .profile-layout { display: flex; gap: 16px; margin-top: 16px; align-items: flex-start; }
 .profile-agent-list-col { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; }
 .profile-agent-list { display: flex; flex-direction: column; gap: 6px; }
-.profile-presets-entry {
-  margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);
-  width: 100%; display: flex; align-items: center; justify-content: center; text-align: center;
+.profile-agent-card.profile-presets-entry {
+  margin-top: 14px;
+  padding: 6px 10px;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  font-family: 'Barlow Condensed', 'Oswald', sans-serif; font-weight: 700; letter-spacing: .04em; font-size: 12px;
 }
+.profile-agent-card.profile-presets-entry.hidden { display: none; }
 .profile-agent-list.with-divider { margin-top: 14px; padding-top: 16px; border-top: 1px solid var(--border); }
 .profile-agent-card {
   background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
@@ -1546,7 +1549,7 @@ select {
   <div class="profile-layout">
     <div class="profile-agent-list-col">
       <div class="profile-agent-list" id="profileAgentList"></div>
-      <button class="lib-pill-btn profile-presets-entry" onclick="openPresetAgentPicker()" title="Create a preset for any agent, regardless of who's on this showcase">+ Presets</button>
+      <button class="profile-agent-card profile-presets-entry" onclick="openPresetAgentPicker()" title="Create a preset for any agent, regardless of who's on this showcase">+ Presets</button>
       <div class="profile-agent-list hidden" id="profilePresetBrowseList"></div>
     </div>
     <div class="profile-detail" id="profileDetail"><div class="profile-detail-empty">Enter a UID above and press Load.</div></div>
