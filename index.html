@@ -1026,6 +1026,10 @@ select {
 .post-status-badge.approved { color: #22c55e; background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.35); }
 .post-status-badge.rejected { color: var(--red); background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.35); }
 .post-reject-reason { margin-top: 8px; font-size: 12px; color: var(--text-mid); background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 8px 10px; }
+.admin-queue-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; margin-left: 6px; border-radius: 20px; font-size: 10px; font-weight: 700; background: var(--red); color: #fff; }
+.admin-reject-box { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.admin-reject-box textarea { width: 100%; min-height: 60px; resize: vertical; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text); font: inherit; padding: 8px 10px; box-sizing: border-box; }
+.admin-reject-box-actions { display: flex; gap: 8px; justify-content: flex-end; }
 .feed-post-youtube { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-mid); margin-top: 6px; text-decoration: none; }
 .feed-post-youtube:hover { color: var(--accent); }
 
@@ -1561,6 +1565,7 @@ select {
   <div class="feed-subnav">
     <button class="lib-pill-btn active" id="feedTabAll" onclick="showFeedTab('all')">Feed</button>
     <button class="lib-pill-btn" id="feedTabMine" onclick="showFeedTab('mine')">My posts</button>
+    <button class="lib-pill-btn hidden" id="feedTabAdmin" onclick="showFeedTab('admin')">Moderation<span class="admin-queue-badge hidden" id="adminQueueBadge">0</span></button>
   </div>
   <div id="feedAllWrap">
     <div class="feed-controls">
@@ -1584,6 +1589,7 @@ select {
     </div>
   </div>
   <div id="myPostsList" class="feed-list hidden"></div>
+  <div id="adminQueueList" class="feed-list hidden"></div>
 </div>
 
 <!-- Publish / edit-and-resubmit post form -->
@@ -8560,8 +8566,8 @@ function renderProfileFavorites() {
     const forgetBtn = (currentUser && myGameUid === profileMyUid)
       ? ''
       : `<span class="fav-x" onclick="event.stopPropagation(); clearMyUid()" title="Forget">✕</span>`;
-    html += `<div class="profile-fav-chip my-uid${active}" onclick="loadProfileByUid('${profileMyUid}')">
-      <span class="fav-star">★</span>My account (${escapeHtml(profileMyUid)})
+    html += `<div class="profile-fav-chip my-uid${active}" onclick="loadProfileByUid('${profileMyUid}')" title="UID ${escapeHtml(profileMyUid)}">
+      <span class="fav-star">★</span>My account
       ${forgetBtn}
     </div>`;
   }
@@ -11380,6 +11386,7 @@ function customPrompt(message, defaultValue = '') {
 
 // ===== Auth (Discord via Supabase) =====
 let currentUser = null; // { id, username, avatar }
+let isAdmin = false;
 
 function renderAuthUI() {
   const el = document.getElementById('authWidget');
@@ -11394,7 +11401,7 @@ function renderAuthUI() {
   }
 }
 
-function handleAuthSession(event, session) {
+async function handleAuthSession(event, session) {
   if (session && session.user) {
     const u = session.user;
     const meta = u.user_metadata || {};
@@ -11409,6 +11416,7 @@ function handleAuthSession(event, session) {
   }
   renderAuthUI();
   loadMyVerificationStatus();
+  await checkIsAdmin();
   const feedPage = document.getElementById('pageFeed');
   if (feedPage && !feedPage.classList.contains('hidden')) showFeedTab(feedActiveTab);
 
@@ -11419,6 +11427,29 @@ function handleAuthSession(event, session) {
     cloudSyncedOnce = true;
     pullCloudSnapshot();
   }
+}
+
+// ── Admin (moderation) check ───────────────────────────────────────────────
+// RLS on app_admins only lets a user read THEIR OWN row (see "admins_select_self"
+// policy: auth.uid() = user_id), so this query can never reveal whether anyone
+// else is an admin — a non-admin simply gets an empty result back.
+async function checkIsAdmin() {
+  if (!currentUser) { isAdmin = false; updateAdminTabVisibility(); return; }
+  try {
+    const { data, error } = await sb.from('app_admins').select('user_id').eq('user_id', currentUser.id).maybeSingle();
+    isAdmin = !error && !!data;
+  } catch { isAdmin = false; }
+  updateAdminTabVisibility();
+}
+
+function updateAdminTabVisibility() {
+  const tab = document.getElementById('feedTabAdmin');
+  if (!tab) return;
+  tab.classList.toggle('hidden', !isAdmin);
+  if (isAdmin) refreshAdminQueueBadge();
+  else document.getElementById('adminQueueBadge').classList.add('hidden');
+  // If moderation was open and we lost admin rights (e.g. signed out), bounce back to the main feed.
+  if (!isAdmin && feedActiveTab === 'admin') showFeedTab('all');
 }
 
 async function initAuth() {
@@ -11578,13 +11609,17 @@ let feedUserVotes = {};
 let feedActiveTab = 'all';
 
 function showFeedTab(which) {
+  if (which === 'admin' && !isAdmin) which = 'all'; // guard against a stale link/state
   feedActiveTab = which;
   document.getElementById('feedTabAll').classList.toggle('active', which === 'all');
   document.getElementById('feedTabMine').classList.toggle('active', which === 'mine');
+  document.getElementById('feedTabAdmin').classList.toggle('active', which === 'admin');
   document.getElementById('feedAllWrap').classList.toggle('hidden', which !== 'all');
   document.getElementById('myPostsList').classList.toggle('hidden', which !== 'mine');
+  document.getElementById('adminQueueList').classList.toggle('hidden', which !== 'admin');
   if (which === 'all') renderFeed(true);
-  else renderMyPosts();
+  else if (which === 'mine') renderMyPosts();
+  else renderAdminQueue();
 }
 
 // ===== Publish / edit-and-resubmit form =====
@@ -11750,6 +11785,98 @@ function myPostHtml(p) {
       </div>
     </div>
   </div>`;
+}
+
+// ===== Moderation queue (admin only) =====
+// Security note: this is UI convenience only. The real gate is server-side —
+// RLS on `posts` grants SELECT of non-approved rows and UPDATE of any row
+// only when is_app_admin() is true for the querying auth.uid(). A non-admin
+// calling these same supabase-js calls from the console would just get an
+// empty result / a blocked write, regardless of what isAdmin is set to here.
+let adminQueueCache = [];
+
+async function refreshAdminQueueBadge() {
+  const badge = document.getElementById('adminQueueBadge');
+  if (!isAdmin || !badge) return;
+  const { count, error } = await sb.from('posts').select('id', { count: 'exact', head: true }).eq('status', 'pending');
+  if (error) return;
+  badge.textContent = count || 0;
+  badge.classList.toggle('hidden', !count);
+}
+
+async function renderAdminQueue() {
+  const el = document.getElementById('adminQueueList');
+  if (!isAdmin) { el.innerHTML = ''; return; }
+  el.innerHTML = '<div class="empty-state">Loading…</div>';
+  const { data: posts, error } = await sb
+    .from('posts')
+    .select('*, profiles(discord_username,discord_avatar_url)')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true });
+  if (error) { el.innerHTML = `<div class="empty-state">Failed to load queue: ${escapeHtml(error.message)}</div>`; return; }
+  adminQueueCache = posts || [];
+  refreshAdminQueueBadge();
+  if (!adminQueueCache.length) { el.innerHTML = '<div class="empty-state"><span class="ico">✅</span>Nothing pending review.</div>'; return; }
+  el.innerHTML = adminQueueCache.map(adminQueuePostHtml).join('');
+}
+
+function adminQueuePostHtml(p) {
+  const author = p.profiles || {};
+  const resubmitTag = (p.resubmit_count || 0) > 0 ? '<span class="post-status-badge pending">Resubmitted</span>' : '';
+  return `<div class="feed-post" data-post-id="${p.id}">
+    <div class="feed-post-body" style="width:100%">
+      <div class="feed-post-head">
+        ${author.discord_avatar_url ? `<img class="feed-author-avatar" src="${author.discord_avatar_url}" onerror="this.style.display='none'">` : ''}
+        <span class="feed-author-name">${escapeHtml(author.discord_username || '???')}</span>
+        <span class="feed-post-title">${escapeHtml(p.title)}</span>
+        ${resubmitTag}
+      </div>
+      <div class="feed-team-preview">${feedTeamPreviewHtml(p.team_json)}</div>
+      ${p.youtube_url ? `<a class="feed-post-youtube" href="${escapeHtml(p.youtube_url)}" target="_blank" rel="noopener">▶ YouTube</a>` : ''}
+      <div class="feed-post-actions">
+        <button class="lib-pill-btn" onclick="approvePost(${p.id})">✓ Approve</button>
+        <button class="lib-pill-btn danger" onclick="toggleAdminRejectBox(${p.id})">✕ Reject</button>
+      </div>
+      <div class="admin-reject-box hidden" id="rejectBox-${p.id}">
+        <textarea id="rejectReason-${p.id}" placeholder="Reason (optional) — shown to the author"></textarea>
+        <div class="admin-reject-box-actions">
+          <button class="lib-pill-btn" onclick="toggleAdminRejectBox(${p.id})">Cancel</button>
+          <button class="lib-pill-btn danger" onclick="rejectPost(${p.id})">Confirm reject</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleAdminRejectBox(postId) {
+  const box = document.getElementById('rejectBox-' + postId);
+  if (!box) return;
+  box.classList.toggle('hidden');
+  if (!box.classList.contains('hidden')) document.getElementById('rejectReason-' + postId).focus();
+}
+
+async function approvePost(postId) {
+  const { error } = await sb.from('posts').update({ status: 'approved', reject_reason: null }).eq('id', postId);
+  if (error) { showToast('Failed to approve: ' + error.message, 'error'); return; }
+  showToast('Post approved.', 'success');
+  adminQueueCache = adminQueueCache.filter(p => p.id !== postId);
+  document.getElementById('adminQueueList').innerHTML = adminQueueCache.length
+    ? adminQueueCache.map(adminQueuePostHtml).join('')
+    : '<div class="empty-state"><span class="ico">✅</span>Nothing pending review.</div>';
+  refreshAdminQueueBadge();
+}
+
+async function rejectPost(postId) {
+  const reasonEl = document.getElementById('rejectReason-' + postId);
+  const reason = reasonEl ? reasonEl.value.trim() : '';
+  const { error } = await sb.from('posts').update({ status: 'rejected', reject_reason: reason || null }).eq('id', postId);
+  if (error) { showToast('Failed to reject: ' + error.message, 'error'); return; }
+  showToast('Post rejected.', 'success');
+  adminQueueCache = adminQueueCache.filter(p => p.id !== postId);
+  document.getElementById('adminQueueList').innerHTML = adminQueueCache.length
+    ? adminQueueCache.map(adminQueuePostHtml).join('')
+    : '<div class="empty-state"><span class="ico">✅</span>Nothing pending review.</div>';
+  refreshAdminQueueBadge();
 }
 
 // ===== Лента: сортировка, фильтры, пагинация =====
