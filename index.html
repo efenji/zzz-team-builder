@@ -852,7 +852,7 @@ select {
 .lib-pill-btn {
   background: var(--bg3); border: 1px solid var(--border); color: var(--text);
   font-family: 'Barlow Condensed', 'Oswald', sans-serif; font-size: 12px; font-weight: 700;
-  letter-spacing: .04em; padding: 6px 16px; border-radius: 100px; cursor: pointer;
+  letter-spacing: .04em; padding: 6px 16px; border-radius: 8px; cursor: pointer;
   transition: border-color .15s, background .15s;
 }
 .lib-pill-btn:hover { border-color: var(--accent); background: var(--accent-d); color: var(--accent); }
@@ -1147,7 +1147,7 @@ select {
 .profile-favorites { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .profile-fav-chip {
   display: flex; align-items: center; gap: 6px;
-  background: var(--bg3); border: 1px solid var(--border); border-radius: 20px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
   padding: 5px 6px 5px 13px; font-size: 12px; cursor: pointer;
 }
 .profile-fav-chip:hover { border-color: var(--border2); }
@@ -1198,7 +1198,7 @@ select {
 .pd-presets-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .preset-chip-lg {
   display: flex; align-items: center; gap: 6px; position: relative;
-  background: var(--bg3); border: 1px solid var(--border); border-radius: 999px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
   padding: 4px 12px 4px 4px; cursor: pointer; font-size: 12px; color: var(--text-mid);
   transition: border-color .15s, color .15s, background .15s;
 }
@@ -1532,9 +1532,9 @@ select {
 <div class="page hidden" id="pageProfile">
   <div class="section-title">Profile · Character Showcase (by UID)</div>
   <div class="profile-search-row">
-    <input type="text" id="profileUidInput" placeholder="🔎 UID, ник (игра/Discord)…" autocomplete="off" oninput="onProfileSearchInput()" onkeydown="if(event.key==='Enter'){closeProfileSearchResults();loadProfileShowcase();}else if(event.key==='Escape')closeProfileSearchResults()">
+    <input type="text" id="profileUidInput" placeholder="🔎 UID, nickname (game/Discord)…" autocomplete="off" oninput="onProfileSearchInput()" onkeydown="if(event.key==='Enter'){closeProfileSearchResults();loadProfileShowcase();}else if(event.key==='Escape')closeProfileSearchResults()">
     <button class="lib-pill-btn" onclick="closeProfileSearchResults();loadProfileShowcase()">Load</button>
-    <button class="lib-pill-btn hidden" id="profileReloadMyBtn" onclick="reloadMyShowcase()" title="Обновить свой стенд с Enka и сохранить на сайте">🔄 Reload</button>
+    <button class="lib-pill-btn hidden" id="profileReloadMyBtn" onclick="reloadMyShowcase()" title="Refresh your stand from Enka and save it to the site">🔄 Reload</button>
     <div class="profile-search-results hidden" id="profileSearchResults"></div>
   </div>
   <div class="uid-verify-panel hidden" id="uidVerifyPanel"></div>
@@ -1559,28 +1559,28 @@ select {
 <div class="page hidden" id="pageFeed">
   <div class="section-title">Community Feed</div>
   <div class="feed-subnav">
-    <button class="lib-pill-btn active" id="feedTabAll" onclick="showFeedTab('all')">Лента</button>
-    <button class="lib-pill-btn" id="feedTabMine" onclick="showFeedTab('mine')">Мои публикации</button>
+    <button class="lib-pill-btn active" id="feedTabAll" onclick="showFeedTab('all')">Feed</button>
+    <button class="lib-pill-btn" id="feedTabMine" onclick="showFeedTab('mine')">My posts</button>
   </div>
   <div id="feedAllWrap">
     <div class="feed-controls">
-      <select id="feedSortSelect" onchange="onFeedControlsChange()" title="Сортировка">
-        <option value="score">По популярности</option>
-        <option value="created_at">По новизне</option>
+      <select id="feedSortSelect" onchange="onFeedControlsChange()" title="Sort">
+        <option value="score">Most popular</option>
+        <option value="created_at">Newest</option>
       </select>
-      <select id="feedFilterSeason" onchange="onFeedControlsChange()" title="Фильтр по сезону Шию">
-        <option value="">Все сезоны</option>
+      <select id="feedFilterSeason" onchange="onFeedControlsChange()" title="Filter by Shiyu season">
+        <option value="">All seasons</option>
       </select>
-      <select id="feedFilterFloor" onchange="onFeedControlsChange()" title="Фильтр по этажу">
-        <option value="">Любой этаж</option>
+      <select id="feedFilterFloor" onchange="onFeedControlsChange()" title="Filter by floor">
+        <option value="">Any floor</option>
       </select>
-      <select id="feedFilterRoom" onchange="onFeedControlsChange()" title="Фильтр по комнате">
-        <option value="">Любая комната</option>
+      <select id="feedFilterRoom" onchange="onFeedControlsChange()" title="Filter by room">
+        <option value="">Any room</option>
       </select>
     </div>
     <div id="feedList" class="feed-list"></div>
     <div class="feed-load-more-wrap hidden" id="feedLoadMoreWrap">
-      <button class="lib-pill-btn" id="feedLoadMoreBtn" onclick="loadMoreFeedPosts()">Показать ещё</button>
+      <button class="lib-pill-btn" id="feedLoadMoreBtn" onclick="loadMoreFeedPosts()">Show more</button>
     </div>
   </div>
   <div id="myPostsList" class="feed-list hidden"></div>
@@ -1596,13 +1596,13 @@ select {
     </div>
     <div class="post-form-body">
       <div class="post-form-field">
-        <label>Название поста</label>
-        <input type="text" id="postFormTitleInput" placeholder="Название поста" maxlength="80">
+        <label>Post title</label>
+        <input type="text" id="postFormTitleInput" placeholder="Post title" maxlength="80">
       </div>
       <div class="post-form-field">
-        <label>Ссылка на YouTube (необязательно)</label>
+        <label>YouTube link (optional)</label>
         <input type="text" id="postFormYoutubeInput" placeholder="https://youtube.com/watch?v=...">
-        <div class="post-form-hint">Просто кликабельная ссылка, без встроенного плеера.</div>
+        <div class="post-form-hint">Just a clickable link, no embedded player.</div>
       </div>
     </div>
   </div>
@@ -7479,7 +7479,7 @@ function exportDriveDiscLibrary() {
 async function clearDriveDiscLibrary() {
   if (!driveDiscLibrary.length) return;
   const ok = await customConfirm(
-    `Точно удалить все ${driveDiscLibrary.length} дисков из библиотеки? Восстановить их не получится.`,
+    `Delete all ${driveDiscLibrary.length} discs from the library? This can't be undone.`,
     { okLabel: 'Delete', danger: true }
   );
   if (!ok) return;
@@ -7669,15 +7669,15 @@ function nextPresetName(agentKey) {
 // new preset, or null (with a toast) if a precondition fails.
 function createAgentPreset(agentKey, wengineKey, wrank, discEntries, name, source = null, category = 'manual') {
   if (!agentKey) return null;
-  if (!wengineKey) { showToast('Выберите W-Engine перед сохранением пресета.', 'error'); return null; }
+  if (!wengineKey) { showToast('Pick a W-Engine before saving the preset.', 'error'); return null; }
   const discs = (discEntries || []).filter(Boolean);
-  if (discs.length !== 6) { showToast('Нужно выбрать все 6 дисков перед сохранением пресета.', 'error'); return null; }
+  if (discs.length !== 6) { showToast('All 6 discs need to be picked before saving the preset.', 'error'); return null; }
   const list = getAgentPresets(agentKey);
   const counts = presetCategoryCounts(agentKey);
   const sameGroupCount = category === 'verified' ? counts.verified : counts.other;
   if (sameGroupCount >= PRESET_LIMIT) {
-    const label = category === 'verified' ? 'Verified' : 'обычных (не verified)';
-    showToast(`У этого агента уже максимум ${label} пресетов (${PRESET_LIMIT}).`, 'error');
+    const label = category === 'verified' ? 'Verified' : 'regular (non-verified)';
+    showToast(`This agent already has the max ${label} presets (${PRESET_LIMIT}).`, 'error');
     return null;
   }
 
@@ -7716,9 +7716,9 @@ function deleteAgentPreset(agentKey, presetId) {
 function updateAgentPreset(agentKey, presetId, wengineKey, wrank, discEntries, name) {
   const p = getPresetById(agentKey, presetId);
   if (!p) return null;
-  if (!wengineKey) { showToast('Выберите W-Engine перед сохранением пресета.', 'error'); return null; }
+  if (!wengineKey) { showToast('Pick a W-Engine before saving the preset.', 'error'); return null; }
   const discs = (discEntries || []).filter(Boolean);
-  if (discs.length !== 6) { showToast('Нужно выбрать все 6 дисков перед сохранением пресета.', 'error'); return null; }
+  if (discs.length !== 6) { showToast('All 6 discs need to be picked before saving the preset.', 'error'); return null; }
 
   p.name = (name && name.trim()) || p.name;
   p.wengine = wengineKey;
@@ -8394,14 +8394,14 @@ function startUidVerifyCountdown() {
     if (!uidVerifyPending) { stopUidVerifyCountdown(); return; }
     const secsLeft = Math.round((new Date(uidVerifyPending.expiresAt) - Date.now()) / 1000);
     if (secsLeft <= 0) {
-      showToast('Код истёк — запросите новый.', 'error');
+      showToast('Code expired — request a new one.', 'error');
       uidVerifyPending = null;
       stopUidVerifyCountdown();
       renderVerificationPanel();
       return;
     }
     const timerEl = document.getElementById('uidVerifyTimer');
-    if (timerEl) timerEl.textContent = `Код действует ещё ${formatMMSS(secsLeft)}`;
+    if (timerEl) timerEl.textContent = `Code valid for ${formatMMSS(secsLeft)} more`;
   }, 1000);
 }
 
@@ -8409,38 +8409,43 @@ function renderVerificationPanel() {
   const el = document.getElementById('uidVerifyPanel');
   if (!el) return;
   if (!currentUser) { el.classList.add('hidden'); el.innerHTML = ''; return; }
-  el.classList.remove('hidden');
 
   if (myGameUid) {
-    el.innerHTML = `<div class="uid-verify-badge">✅ Аккаунт подтверждён — UID ${escapeHtml(myGameUid)}${myGameNickname ? ' · ' + escapeHtml(myGameNickname) : ''}</div>`;
+    // Verified — the toast at the moment of confirmation already said so,
+    // and the status stays visible via the "★ My account" chip and the
+    // locked button. No separate banner needed here at all.
+    el.classList.add('hidden');
+    el.innerHTML = '';
     return;
   }
 
   if (uidVerifyPending) {
+    el.classList.remove('hidden');
     const secsLeft = Math.max(0, Math.round((new Date(uidVerifyPending.expiresAt) - Date.now()) / 1000));
     el.innerHTML = `<div class="uid-verify-box">
-      <div class="uid-verify-title">Подтвердите владение UID ${escapeHtml(uidVerifyPending.uid)}</div>
+      <div class="uid-verify-title">Confirm ownership of UID ${escapeHtml(uidVerifyPending.uid)}</div>
       <div class="uid-verify-steps">
-        1. Впишите код <span class="uid-verify-code">${escapeHtml(uidVerifyPending.code)}</span> в описание своего профиля в игре (можно просто дописать в конец существующего текста).<br>
-        2. Откройте в игре экран своего профиля, чтобы Enka увидела изменение.<br>
-        3. Подождите немного и нажмите «Проверить».
+        1. Enter the code <span class="uid-verify-code">${escapeHtml(uidVerifyPending.code)}</span> into your in-game profile bio (you can just append it to the existing text).<br>
+        2. Open your profile screen in-game so Enka picks up the change.<br>
+        3. Wait a moment, then press "Verify".
       </div>
-      <div class="uid-verify-timer" id="uidVerifyTimer">Код действует ещё ${formatMMSS(secsLeft)}</div>
+      <div class="uid-verify-timer" id="uidVerifyTimer">Code valid for ${formatMMSS(secsLeft)} more</div>
       <div class="uid-verify-actions">
-        <button class="lib-pill-btn" onclick="checkUidVerification()">Проверить</button>
-        <button class="lib-pill-btn" onclick="requestUidVerificationCode()">Новый код</button>
+        <button class="lib-pill-btn" onclick="checkUidVerification()">Verify</button>
+        <button class="lib-pill-btn" onclick="requestUidVerificationCode()">New code</button>
       </div>
     </div>`;
     startUidVerifyCountdown();
     return;
   }
 
+  el.classList.remove('hidden');
   el.innerHTML = `<div class="uid-verify-box">
-    <div class="uid-verify-title">Привяжите свой игровой аккаунт</div>
-    <div class="uid-verify-steps">Чтобы сохранять и публиковать свои сборки и быть доступным для поиска по нику, подтвердите владение своим UID. Поиск и просмотр чужих стендов доступны и без этого.</div>
+    <div class="uid-verify-title">Link your game account</div>
+    <div class="uid-verify-steps">To save and publish your builds, and be findable by nickname, verify ownership of your UID. Searching and viewing other players' stands works without this.</div>
     <div class="uid-verify-form-row">
-      <input type="text" id="uidVerifyInput" placeholder="Ваш UID, например 1503301061">
-      <button class="lib-pill-btn" onclick="requestUidVerificationCode()">Получить код</button>
+      <input type="text" id="uidVerifyInput" placeholder="Your UID, e.g. 1503301061">
+      <button class="lib-pill-btn" onclick="requestUidVerificationCode()">Get code</button>
     </div>
   </div>`;
 }
@@ -8448,16 +8453,16 @@ function renderVerificationPanel() {
 async function requestUidVerificationCode() {
   const input = document.getElementById('uidVerifyInput');
   const uid = (uidVerifyPending ? uidVerifyPending.uid : (input ? input.value.trim() : ''));
-  if (!/^\d+$/.test(uid)) { showToast('Введите числовой UID.', 'error'); return; }
+  if (!/^\d+$/.test(uid)) { showToast('Enter a numeric UID.', 'error'); return; }
   try {
     const { data, error } = await sb.rpc('request_uid_verification', { p_uid: uid });
     if (error) throw error;
     const row = Array.isArray(data) ? data[0] : data;
     uidVerifyPending = { uid, code: row.code, expiresAt: row.expires_at };
     renderVerificationPanel();
-    showToast('Код сгенерирован — впишите его в описание профиля в игре.', 'success');
+    showToast('Code generated — enter it into your in-game profile bio.', 'success');
   } catch (err) {
-    showToast('Не удалось получить код: ' + (err.message || err), 'error');
+    showToast('Failed to get code: ' + (err.message || err), 'error');
   }
 }
 
@@ -8467,13 +8472,13 @@ async function checkUidVerification() {
   try {
     data = await fetchZzzShowcaseData(uidVerifyPending.uid);
   } catch (err) {
-    showToast('Не удалось связаться с Enka: ' + err, 'error');
+    showToast('Could not reach Enka: ' + err, 'error');
     return;
   }
-  if (data.error) { showToast(`Enka вернула ошибку: ${data.error}`, 'error'); return; }
+  if (data.error) { showToast(`Enka returned an error: ${data.error}`, 'error'); return; }
   const desc = data?.PlayerInfo?.SocialDetail?.Desc || '';
   if (!desc.includes(uidVerifyPending.code)) {
-    showToast('Код пока не найден в описании профиля. Убедитесь, что вписали его в игре и открывали там экран профиля, подождите и попробуйте снова.', 'error');
+    showToast('Code not found in the profile bio yet. Make sure you entered it in-game and opened the profile screen there, then wait a bit and try again.', 'error');
     return;
   }
   const nickname = data?.PlayerInfo?.SocialDetail?.ProfileDetail?.Nickname || null;
@@ -8486,13 +8491,13 @@ async function checkUidVerification() {
     stopUidVerifyCountdown();
     syncMyUidWithVerified();
     renderVerificationPanel();
-    showToast('UID успешно подтверждён!', 'success');
-    // Уже сходили в Enka секундой ранее (для проверки кода) — используем этот
-    // же снимок как первый кэш стенда, не заставляя жать Reload второй раз.
-    // last_reload_at ещё не проставлен, так что кулдаун не мешает первому сохранению.
-    try { await sb.rpc('save_showcase_snapshot', { p_snapshot: data, p_nickname: nickname }); } catch (e) { /* не критично — можно нажать Reload вручную */ }
+    showToast('UID verified successfully!', 'success');
+    // Already hit Enka a second ago (to check the code) — reuse that same
+    // snapshot as the first stand cache instead of forcing a second Reload.
+    // last_reload_at isn't set yet, so the cooldown doesn't block this first save.
+    try { await sb.rpc('save_showcase_snapshot', { p_snapshot: data, p_nickname: nickname }); } catch (e) { /* not critical — Reload can be pressed manually */ }
   } catch (err) {
-    showToast('Не удалось подтвердить: ' + (err.message || err), 'error');
+    showToast('Verification failed: ' + (err.message || err), 'error');
   }
 }
 
@@ -8587,7 +8592,7 @@ function updateProfileActionButtons() {
     myBtn.textContent = isMe ? 'My account ✓' : 'My account';
     myBtn.classList.toggle('active-fav', isMe);
     myBtn.title = verifiedLocked
-      ? `Уже подтверждено — UID ${myGameUid}`
+      ? `Already verified — UID ${myGameUid}`
       : 'Remember this UID and auto-load it on this tab';
   }
 }
@@ -8632,8 +8637,8 @@ async function runProfileSearch(q) {
     .or(`game_nickname.ilike.%${q}%,discord_username.ilike.%${q}%,game_uid.ilike.%${q}%`)
     .limit(10);
 
-  if (error) { el.innerHTML = `<div class="profile-search-empty">Ошибка поиска: ${escapeHtml(error.message)}</div>`; el.classList.remove('hidden'); return; }
-  if (!data || !data.length) { el.innerHTML = '<div class="profile-search-empty">Ничего не найдено</div>'; el.classList.remove('hidden'); return; }
+  if (error) { el.innerHTML = `<div class="profile-search-empty">Search error: ${escapeHtml(error.message)}</div>`; el.classList.remove('hidden'); return; }
+  if (!data || !data.length) { el.innerHTML = '<div class="profile-search-empty">Nothing found</div>'; el.classList.remove('hidden'); return; }
 
   el.innerHTML = data.map(p => `
     <div class="profile-search-item" onclick="selectProfileSearchResult('${escapeHtml(p.game_uid)}')">
@@ -8733,8 +8738,8 @@ function applyShowcaseData(data, uidVal, cacheInfo, ownerId = null) {
   if (cacheEl) {
     cacheEl.textContent = cacheInfo
       ? (cacheInfo.justNow
-          ? 'Стенд обновлён только что'
-          : `Сохранённый стенд · обновлён ${new Date(cacheInfo.updatedAt).toLocaleString()}`)
+          ? 'Stand refreshed just now'
+          : `Saved stand · updated ${new Date(cacheInfo.updatedAt).toLocaleString()}`)
       : '';
   }
 
@@ -8758,10 +8763,10 @@ function renderReloadMyButton() {
 }
 
 async function reloadMyShowcase() {
-  if (!currentUser || !myGameUid) { showToast('Сначала подтвердите владение своим UID.', 'error'); return; }
+  if (!currentUser || !myGameUid) { showToast('Verify your UID first.', 'error'); return; }
   const btn = document.getElementById('profileReloadMyBtn');
   if (btn) btn.disabled = true;
-  setProfileStatus('Обновляю стенд с Enka…');
+  setProfileStatus('Refreshing stand from Enka…');
   let data;
   try {
     data = await fetchZzzShowcaseData(myGameUid);
@@ -8777,10 +8782,10 @@ async function reloadMyShowcase() {
     const { error } = await sb.rpc('save_showcase_snapshot', { p_snapshot: data, p_nickname: nickname });
     if (error) throw error;
     myGameNickname = nickname || myGameNickname;
-    showToast('Стенд обновлён и сохранён на сайте.', 'success');
+    showToast('Stand refreshed and saved.', 'success');
     applyShowcaseData(data, myGameUid, { updatedAt: new Date().toISOString(), justNow: true }, currentUser.id);
   } catch (err) {
-    showToast('Не удалось сохранить: ' + (err.message || err), 'error');
+    showToast('Failed to save: ' + (err.message || err), 'error');
   } finally {
     if (btn) btn.disabled = false;
   }
@@ -8866,7 +8871,7 @@ async function renderAgentPresetView() {
     const missing = p.source ? [] : evaluatePresetApplicability(p, null).missing;
     const broken = missing.length > 0;
     const cat = presetCategory(p);
-    const catLabel = cat === 'verified' ? 'Verified — снято с вашего стенда' : cat === 'imported' ? `Imported${p.source && p.source.nickname ? ' — from ' + p.source.nickname + "'s showcase" : ' — from another showcase'}` : '';
+    const catLabel = cat === 'verified' ? 'Verified — pulled from your stand' : cat === 'imported' ? `Imported${p.source && p.source.nickname ? ' — from ' + p.source.nickname + "'s showcase" : ' — from another showcase'}` : '';
     const title = broken
       ? `${escapeHtml(p.name)} — ${missing.length} disc(s) no longer match anything in your Drive Disc Library`
       : catLabel ? `${escapeHtml(p.name)} — ${catLabel}` : escapeHtml(p.name);
@@ -9020,7 +9025,7 @@ function editAgentPreset(agentKey, presetId) {
   const preset = getPresetById(agentKey, presetId);
   if (!preset) return;
   if (presetCategory(preset) !== 'manual') {
-    showToast('Verified/импортированные сборки нельзя редактировать — удалите и сохраните заново со стенда.', 'error');
+    showToast("Verified/imported builds can't be edited — delete and re-save from the stand.", 'error');
     return;
   }
   const discSlots = [null, null, null, null, null, null];
@@ -9097,15 +9102,15 @@ function savePresetDraft() {
   const name = nameInput ? nameInput.value.trim() : '';
   const discEntries = (discSlots || []).map(id => id ? driveDiscLibrary.find(d => d.id === id) : null).filter(Boolean);
 
-  if (!wengine) { showToast('Выберите W-Engine.', 'error'); return; }
-  if (discEntries.length !== 6) { showToast('Нужно выбрать диски во все 6 слотов.', 'error'); return; }
-  if (!editingPresetId && presetCategoryCounts(agentKey).other >= PRESET_LIMIT) { showToast(`У этого агента уже максимум обычных (не verified) пресетов (${PRESET_LIMIT}).`, 'error'); return; }
+  if (!wengine) { showToast('Pick a W-Engine.', 'error'); return; }
+  if (discEntries.length !== 6) { showToast('Discs need to be picked for all 6 slots.', 'error'); return; }
+  if (!editingPresetId && presetCategoryCounts(agentKey).other >= PRESET_LIMIT) { showToast(`This agent already has the max regular (non-verified) presets (${PRESET_LIMIT}).`, 'error'); return; }
 
   const preset = editingPresetId
     ? updateAgentPreset(agentKey, editingPresetId, wengine, wrank || 1, discEntries, name)
     : createAgentPreset(agentKey, wengine, wrank || 1, discEntries, name, null, 'manual');
   if (preset) {
-    showToast(`Пресет «${preset.name}» сохранён.`, 'success');
+    showToast(`Preset "${preset.name}" saved.`, 'success');
     closePresetForm();
     refreshPresetViews(agentKey);
   }
@@ -9130,12 +9135,12 @@ let profileCurrentLiveBuild = null;
    deletes that row. `preset.publishedId` (local-only field) remembers
    which cloud row belongs to this preset, if any. */
 async function publishPreset(agentKey, presetId) {
-  if (!currentUser) { showToast('Войдите через Discord, чтобы публиковать пресеты.', 'error'); return; }
-  if (!myGameUid) { showToast('Сначала подтвердите владение своим UID во вкладке Профиль.', 'error'); return; }
+  if (!currentUser) { showToast('Sign in with Discord to publish presets.', 'error'); return; }
+  if (!myGameUid) { showToast('Verify your UID on the Profile tab first.', 'error'); return; }
   const preset = getPresetById(agentKey, presetId);
   if (!preset) return;
   if (presetCategory(preset) === 'imported') {
-    showToast('Сборки, сохранённые с чужого стенда, публиковать нельзя.', 'error');
+    showToast("Builds saved from someone else's stand can't be published.", 'error');
     return;
   }
   try {
@@ -9151,9 +9156,9 @@ async function publishPreset(agentKey, presetId) {
     if (error) throw error;
     preset.publishedId = data.id;
     saveAgentPresets();
-    showToast('Пресет опубликован — теперь виден другим на вашем профиле.', 'success');
+    showToast('Preset published — others can now see it on your profile.', 'success');
   } catch (err) {
-    showToast('Не удалось опубликовать: ' + (err.message || err), 'error');
+    showToast('Failed to publish: ' + (err.message || err), 'error');
   }
   refreshPresetViews(agentKey);
 }
@@ -9162,7 +9167,7 @@ async function unpublishPreset(agentKey, presetId) {
   const preset = getPresetById(agentKey, presetId);
   if (!preset || !preset.publishedId) return;
   const ok = await customConfirm(
-    'Снять пресет с публикации? Другие пользователи больше не смогут его увидеть.',
+    'Unpublish this preset? Other users will no longer be able to see it.',
     { okLabel: 'Unpublish', danger: true }
   );
   if (!ok) return;
@@ -9174,7 +9179,7 @@ async function unpublishPreset(agentKey, presetId) {
   }
   preset.publishedId = null;
   saveAgentPresets();
-  showToast('Пресет снят с публикации.', 'success');
+  showToast('Preset unpublished.', 'success');
   refreshPresetViews(agentKey);
 }
 
@@ -9247,12 +9252,12 @@ function copyPublicPresetToMine() {
   if (!currentPublicPresetView) return;
   const { agentKey, preset } = currentPublicPresetView;
   if (getAgentPresets(agentKey).length >= PRESET_LIMIT) {
-    showToast(`У агента ${cardName(agentKey)} уже максимум пресетов (${PRESET_LIMIT}). Удалите один, чтобы скопировать этот.`, 'error');
+    showToast(`${cardName(agentKey)} already has the max presets (${PRESET_LIMIT}). Delete one to copy this.`, 'error');
     return;
   }
   const created = createAgentPreset(agentKey, preset.wengine, preset.wrank || 1, (preset.discs || []).map(d => ({ ...d })), `${preset.name} (copy)`);
   if (created) {
-    showToast(`Пресет «${created.name}» добавлен в ваши пресеты.`, 'success');
+    showToast(`Preset "${created.name}" added to your presets.`, 'success');
     refreshPresetViews(agentKey);
     if (ownerPresetViewAgentKey === agentKey) renderOwnerPresetView();
     const feedModalOpen = !document.getElementById('publicPresetsBg')?.classList.contains('hidden');
@@ -9263,7 +9268,7 @@ function copyPublicPresetToMine() {
 async function renamePresetPrompt(agentKey, presetId) {
   const preset = getPresetById(agentKey, presetId);
   if (!preset) return;
-  const name = await customPrompt('Новое название пресета:', preset.name);
+  const name = await customPrompt('New preset name:', preset.name);
   if (name === null) return;
   renameAgentPreset(agentKey, presetId, name);
   if (preset.publishedId) {
@@ -9276,8 +9281,8 @@ async function deletePresetPrompt(agentKey, presetId) {
   const preset = getPresetById(agentKey, presetId);
   if (!preset) return;
   const msg = preset.publishedId
-    ? `Удалить пресет «${preset.name}»? Он также будет снят с публикации — другие перестанут его видеть.`
-    : `Удалить пресет «${preset.name}»?`;
+    ? `Delete preset "${preset.name}"? It will also be unpublished — others will stop seeing it.`
+    : `Delete preset "${preset.name}"?`;
   const ok = await customConfirm(msg, { okLabel: 'Delete', danger: true });
   if (!ok) return;
   if (preset.publishedId) {
@@ -9381,32 +9386,32 @@ async function renderOwnerPresetView() {
 // (enkaBuildDiscDisplayEntry shape), which discToSnapshot() already handles.
 async function saveCurrentShowcaseBuildAsPreset(agentKey) {
   if (!currentUser || !myGameUid) {
-    showToast('Подтвердите владение своим UID во вкладке Профиль, чтобы сохранять сборки со стенда.', 'error');
+    showToast('Verify your UID on the Profile tab to save builds from the stand.', 'error');
     return;
   }
   const liveBuild = (profileCurrentLiveBuild && profileCurrentLiveBuild.agentKey === agentKey) ? profileCurrentLiveBuild : null;
-  if (!liveBuild || !liveBuild.wengine) { showToast('Этому агенту нужен W-Engine на стенде.', 'error'); return; }
+  if (!liveBuild || !liveBuild.wengine) { showToast('This agent needs a W-Engine equipped on the stand.', 'error'); return; }
   const discEntries = liveBuild.discEntries.filter(Boolean);
-  if (discEntries.length !== 6) { showToast('Нужны все 6 дисков на стенде, чтобы сохранить пресет.', 'error'); return; }
+  if (discEntries.length !== 6) { showToast('All 6 discs need to be equipped on the stand to save a preset.', 'error'); return; }
 
-  // Со своего подтверждённого стенда — Verified (нельзя редактировать, можно
-  // публиковать). С чужого — Imported (нельзя ни редактировать, ни публиковать,
-  // видно только у себя, с пометкой "от кого").
+  // From your own verified stand — Verified (can't edit, can publish). From
+  // someone else's — Imported (can't edit or publish, visible only to you,
+  // tagged with "from whom").
   const category = (profileCurrentUid === myGameUid) ? 'verified' : 'imported';
   const counts = presetCategoryCounts(agentKey);
   const sameGroupCount = category === 'verified' ? counts.verified : counts.other;
   if (sameGroupCount >= PRESET_LIMIT) {
-    const label = category === 'verified' ? 'Verified' : 'обычных (не verified)';
-    showToast(`У этого агента уже максимум ${label} пресетов (${PRESET_LIMIT}).`, 'error');
+    const label = category === 'verified' ? 'Verified' : 'regular (non-verified)';
+    showToast(`This agent already has the max ${label} presets (${PRESET_LIMIT}).`, 'error');
     return;
   }
 
-  const name = await customPrompt('Название пресета:', nextPresetName(agentKey));
+  const name = await customPrompt('Preset name:', nextPresetName(agentKey));
   if (name === null) return;
   const preset = createAgentPreset(agentKey, liveBuild.wengine, liveBuild.wrank || 1, discEntries, name,
     { uid: profileCurrentUid, nickname: profileCurrentNickname || null }, category);
   if (preset) {
-    showToast(`Пресет «${preset.name}» сохранён${category === 'verified' ? ' (Verified)' : ' (Imported)'}.`, 'success');
+    showToast(`Preset "${preset.name}" saved${category === 'verified' ? ' (Verified)' : ' (Imported)'}.`, 'success');
     refreshPresetViews(agentKey);
   }
 }
@@ -9426,15 +9431,15 @@ function presetActionsHtml(agentKey, preset, opts = {}) {
   const { readOnly = false, matchingName = null } = opts;
   if (readOnly) {
     return matchingName
-      ? `<span class="lib-pill-btn" style="opacity:.4;cursor:default" title="У вас уже есть такая же сборка: «${escapeHtml(matchingName)}»">📋 Already saved</span>`
+      ? `<span class="lib-pill-btn" style="opacity:.4;cursor:default" title="You already have this exact build saved: \u201c${escapeHtml(matchingName)}\u201d">📋 Already saved</span>`
       : `<button class="lib-pill-btn" onclick="copyPublicPresetToMine()">📋 Copy to my presets</button>`;
   }
   const cat = presetCategory(preset);
   const editBtn = cat === 'manual'
     ? `<button class="lib-pill-btn" onclick="editAgentPreset('${agentKey}','${preset.id}')">Edit</button>`
-    : `<span class="lib-pill-btn" style="opacity:.4;cursor:default" title="${cat === 'verified' ? 'Verified — снято со стенда, нельзя редактировать' : 'Imported — сборка другого игрока, нельзя редактировать'}">🔒 Locked</span>`;
+    : `<span class="lib-pill-btn" style="opacity:.4;cursor:default" title="${cat === 'verified' ? "Verified — pulled from the stand, can't be edited" : "Imported — another player's build, can't be edited"}">🔒 Locked</span>`;
   const publishBtn = cat === 'imported'
-    ? '' // импортированные чужие сборки нельзя публиковать вообще
+    ? '' // imported builds from someone else's stand can't be published at all
     : (preset.publishedId
         ? `<button class="lib-pill-btn" onclick="unpublishPreset('${agentKey}','${preset.id}')" title="Others can currently see this preset on your public profile">🌐 Published — click to unpublish</button>`
         : `<button class="lib-pill-btn" onclick="publishPreset('${agentKey}','${preset.id}')" title="Makes this build visible to others via your Discord profile">Publish</button>`);
@@ -10580,37 +10585,37 @@ function evaluatePresetApplicability(preset, agentIdx) {
 async function saveCurrentAsPreset(agentIdx) {
   const ag = currentTeam.agents[agentIdx];
   if (!ag || !ag.key) return;
-  if (!ag.wengine) { showToast('Сначала выберите W-Engine.', 'error'); return; }
+  if (!ag.wengine) { showToast('Pick a W-Engine first.', 'error'); return; }
   const slots = ag.discSlots || [];
   const discEntries = slots.map(id => id ? driveDiscLibrary.find(d => d.id === id) : null).filter(Boolean);
-  if (discEntries.length !== 6) { showToast('Нужно выбрать все 6 дисков перед сохранением пресета.', 'error'); return; }
-  if (getAgentPresets(ag.key).length >= PRESET_LIMIT) { showToast(`У агента ${cardName(ag.key)} уже максимум пресетов (${PRESET_LIMIT}).`, 'error'); return; }
+  if (discEntries.length !== 6) { showToast('All 6 discs need to be picked before saving the preset.', 'error'); return; }
+  if (getAgentPresets(ag.key).length >= PRESET_LIMIT) { showToast(`${cardName(ag.key)} already has the max presets (${PRESET_LIMIT}).`, 'error'); return; }
 
-  const name = await customPrompt('Название пресета:', nextPresetName(ag.key));
+  const name = await customPrompt('Preset name:', nextPresetName(ag.key));
   if (name === null) return; // cancelled
   const preset = createAgentPreset(ag.key, ag.wengine, ag.wrank || 1, discEntries, name);
   if (preset) {
-    showToast(`Пресет «${preset.name}» сохранён.`, 'success');
+    showToast(`Preset "${preset.name}" saved.`, 'success');
     renderAgents();
   }
 }
 
 function showPresetConflictModal(preset, missing, conflicts) {
   const lines = [];
-  conflicts.forEach(c => lines.push(`«${c.snap.setName}» [слот ${c.snap.slot}] уже используется агентом ${c.agentName}.`));
+  conflicts.forEach(c => lines.push(`"${c.snap.setName}" [slot ${c.snap.slot}] is already used by ${c.agentName}.`));
   if (preset.source) {
-    if (missing.length) lines.push('Этот пресет импортирован прямо со стенда (не из твоей библиотеки дисков), поэтому применить его к команде нельзя — только посмотреть.');
+    if (missing.length) lines.push("This preset was imported straight from a stand (not from your Drive Disc Library), so it can't be applied to a team — view only.");
   } else {
-    missing.forEach(m => lines.push(`«${m.setName}» [слот ${m.slot}] не найден в текущей библиотеке дисков.`));
+    missing.forEach(m => lines.push(`"${m.setName}" [slot ${m.slot}] wasn't found in your current Drive Disc Library.`));
   }
   const bg = document.getElementById('dlgBg');
-  document.getElementById('dlgMsg').textContent = `Пресет «${preset.name}» нельзя применить:\n\n${lines.join('\n')}`;
+  document.getElementById('dlgMsg').textContent = `Preset "${preset.name}" can't be applied:\n\n${lines.join('\n')}`;
   document.getElementById('dlgInput').classList.add('hidden');
   document.getElementById('dlgActions').innerHTML = '';
   bg.classList.remove('hidden');
   const okBtn = document.createElement('button');
   okBtn.className = 'dlg-btn primary';
-  okBtn.textContent = 'Понятно';
+  okBtn.textContent = 'Got it';
   okBtn.onclick = () => closeDlg();
   document.getElementById('dlgActions').appendChild(okBtn);
 }
@@ -10636,7 +10641,7 @@ function applyAgentPreset(agentIdx, presetId) {
     syncDiscDerivedFields(ag, r.slot - 1);
   });
   renderAgents();
-  showToast(`Пресет «${preset.name}» применён.`, 'success');
+  showToast(`Preset "${preset.name}" applied.`, 'success');
 }
 
 
@@ -11544,7 +11549,7 @@ async function pullCloudSnapshot() {
       if (CLOUD_SYNC_KEYS.has(k) && typeof v === 'string') localStorage.setItem(k, v);
     });
     cloudSyncSuspended = false;
-    showToast('Данные загружены из облака — обновляю страницу…', 'success');
+    showToast('Data loaded from the cloud — refreshing the page…', 'success');
     setTimeout(() => location.reload(), 900);
   };
 
@@ -11554,8 +11559,8 @@ async function pullCloudSnapshot() {
     // Cloud wins if confirmed; otherwise local stays and gets pushed up,
     // overwriting the cloud copy instead.
     const proceed = await customConfirm(
-      'В облаке уже есть сохранённые данные для этого аккаунта Discord. Загрузить их и заменить команды/библиотеки, накопленные в этом браузере?',
-      { okLabel: 'Загрузить из облака', danger: false }
+      "There's already saved data in the cloud for this Discord account. Load it and replace the teams/libraries built up in this browser?",
+      { okLabel: 'Load from cloud', danger: false }
     );
     if (proceed) applyCloudSnapshot();
     else pushCloudSnapshot();
@@ -11603,8 +11608,8 @@ function openPostForm() {
   document.getElementById('postFormYoutubeInput').value = postFormMode === 'resubmit'
     ? (postFormEditingPost.youtube_url || '')
     : '';
-  document.getElementById('postFormTitle').textContent = postFormMode === 'resubmit' ? 'Исправить и отправить снова' : 'Publish to Feed';
-  document.getElementById('postFormSaveBtn').textContent = postFormMode === 'resubmit' ? 'Отправить снова' : 'Publish';
+  document.getElementById('postFormTitle').textContent = postFormMode === 'resubmit' ? 'Fix and resubmit' : 'Publish to Feed';
+  document.getElementById('postFormSaveBtn').textContent = postFormMode === 'resubmit' ? 'Resubmit' : 'Publish';
   document.getElementById('postFormBg').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
   setTimeout(() => document.getElementById('postFormTitleInput').focus(), 0);
@@ -11666,8 +11671,8 @@ function openResubmitForm(postId) {
 async function submitPostForm() {
   const title = document.getElementById('postFormTitleInput').value.trim();
   const youtubeUrl = document.getElementById('postFormYoutubeInput').value.trim();
-  if (!title) { showToast('Введите название поста.', 'error'); return; }
-  if (!isValidYoutubeUrl(youtubeUrl)) { showToast('Похоже, это не ссылка на YouTube.', 'error'); return; }
+  if (!title) { showToast('Enter a post title.', 'error'); return; }
+  if (!isValidYoutubeUrl(youtubeUrl)) { showToast("That doesn't look like a YouTube link.", 'error'); return; }
 
   if (postFormMode === 'publish') {
     const team = postFormTeam;
@@ -11680,14 +11685,14 @@ async function submitPostForm() {
       shiyu_season, shiyu_floor, shiyu_room,
       source_team_id: team.id || null,
     });
-    if (error) { showToast('Не удалось опубликовать: ' + error.message, 'error'); return; }
-    showToast('Пост отправлен на модерацию!', 'success');
+    if (error) { showToast('Failed to publish: ' + error.message, 'error'); return; }
+    showToast('Post submitted for review!', 'success');
     closePostForm();
     if (feedActiveTab === 'mine') renderMyPosts();
   } else if (postFormMode === 'resubmit') {
     const post = postFormEditingPost;
-    // Если исходная команда всё ещё существует локально — берём её актуальный
-    // снимок (диски/оружие могли обновиться), иначе оставляем старые данные поста.
+    // If the original team still exists locally, use its current snapshot
+    // (discs/weapon may have changed); otherwise keep the post's old data.
     const liveTeam = post.source_team_id ? teams.find(t => t.id === post.source_team_id) : null;
     const teamJson = liveTeam ? buildPublishableTeamSnapshot(liveTeam) : post.team_json;
     const shiyu = extractShiyuFields(teamJson);
@@ -11702,27 +11707,27 @@ async function submitPostForm() {
         p_shiyu_room: shiyu.shiyu_room,
       });
       if (error) throw error;
-      showToast('Пост отправлен на повторную модерацию.', 'success');
+      showToast('Post resubmitted for review.', 'success');
       closePostForm();
       renderMyPosts();
     } catch (err) {
-      showToast('Не удалось переотправить: ' + (err.message || err), 'error');
+      showToast('Failed to resubmit: ' + (err.message || err), 'error');
     }
   }
 }
 
 function postStatusBadgeHtml(status) {
-  const labels = { pending: 'На модерации', approved: 'Одобрено', rejected: 'Отклонено' };
+  const labels = { pending: 'Pending review', approved: 'Approved', rejected: 'Rejected' };
   return `<span class="post-status-badge ${status}">${labels[status] || status}</span>`;
 }
 
 async function renderMyPosts() {
   const el = document.getElementById('myPostsList');
-  if (!currentUser) { el.innerHTML = '<div class="empty-state">Войдите через Discord, чтобы видеть свои публикации.</div>'; return; }
+  if (!currentUser) { el.innerHTML = '<div class="empty-state">Sign in with Discord to see your posts.</div>'; return; }
   el.innerHTML = '<div class="empty-state">Loading…</div>';
   const { data: posts, error } = await sb.from('posts').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
   if (error) { el.innerHTML = `<div class="empty-state">Failed to load: ${escapeHtml(error.message)}</div>`; return; }
-  if (!posts || !posts.length) { el.innerHTML = '<div class="empty-state">Вы ещё ничего не публиковали.</div>'; return; }
+  if (!posts || !posts.length) { el.innerHTML = "<div class=\"empty-state\">You haven't published anything yet.</div>"; return; }
   myPostsCache = posts;
   el.innerHTML = posts.map(myPostHtml).join('');
 }
@@ -11737,9 +11742,9 @@ function myPostHtml(p) {
       </div>
       <div class="feed-team-preview">${feedTeamPreviewHtml(p.team_json)}</div>
       ${p.youtube_url ? `<a class="feed-post-youtube" href="${escapeHtml(p.youtube_url)}" target="_blank" rel="noopener">▶ YouTube</a>` : ''}
-      ${p.status === 'rejected' ? `<div class="post-reject-reason">${p.reject_reason ? escapeHtml(p.reject_reason) : 'Пост отклонён модератором без указания причины.'}</div>` : ''}
+      ${p.status === 'rejected' ? `<div class="post-reject-reason">${p.reject_reason ? escapeHtml(p.reject_reason) : 'Post was rejected by a moderator with no reason given.'}</div>` : ''}
       <div class="feed-post-actions">
-        ${canResubmit ? `<button class="lib-pill-btn" onclick="openResubmitForm(${p.id})">Исправить и отправить снова</button>` : ''}
+        ${canResubmit ? `<button class="lib-pill-btn" onclick="openResubmitForm(${p.id})">Fix and resubmit</button>` : ''}
         ${p.status === 'approved' ? `<button class="lib-pill-btn" onclick="copyPostLink(${p.id})">🔗 Copy link</button>` : ''}
         <button class="lib-pill-btn danger" onclick="deletePost(${p.id})">Delete</button>
       </div>
@@ -11762,9 +11767,9 @@ function populateFeedFilterOptions() {
   const floorSel = document.getElementById('feedFilterFloor');
   const roomSel = document.getElementById('feedFilterRoom');
   if (!seasonSel || seasonSel.dataset.populated) return;
-  seasonSel.innerHTML = '<option value="">Все сезоны</option>' + SHIYU_SEASONS.map(s => `<option value="${s}">S${s}</option>`).join('');
-  floorSel.innerHTML = '<option value="">Любой этаж</option>' + [1,2,3,4,5,6].map(f => `<option value="${f}">${f}F</option>`).join('');
-  roomSel.innerHTML = '<option value="">Любая комната</option><option value="A">Комната 1</option><option value="B">Комната 2</option><option value="C">Комната 3</option>';
+  seasonSel.innerHTML = '<option value="">All seasons</option>' + SHIYU_SEASONS.map(s => `<option value="${s}">S${s}</option>`).join('');
+  floorSel.innerHTML = '<option value="">Any floor</option>' + [1,2,3,4,5,6].map(f => `<option value="${f}">${f}F</option>`).join('');
+  roomSel.innerHTML = '<option value="">Any room</option><option value="A">Room 1</option><option value="B">Room 2</option><option value="C">Room 3</option>';
   seasonSel.dataset.populated = '1';
 }
 
@@ -11920,8 +11925,8 @@ function feedPostHtml(p) {
 function copyPostLink(postId) {
   const url = `${location.origin}${location.pathname}#post=${postId}`;
   navigator.clipboard.writeText(url)
-    .then(() => showToast('Ссылка на пост скопирована!', 'success'))
-    .catch(() => showToast('Не удалось скопировать ссылку.', 'error'));
+    .then(() => showToast('Post link copied!', 'success'))
+    .catch(() => showToast('Failed to copy link.', 'error'));
 }
 
 async function handlePostDeepLink() {
@@ -11937,7 +11942,7 @@ async function handlePostDeepLink() {
     el.classList.add('post-highlight');
     setTimeout(() => el.classList.remove('post-highlight'), 1800);
   } else {
-    showToast('Пост не найден — возможно, ещё не одобрен модератором или удалён.', 'error');
+    showToast("Post not found — it may not be approved yet, or it's been removed.", 'error');
   }
 }
 
