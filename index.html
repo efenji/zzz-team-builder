@@ -1053,8 +1053,8 @@ select {
 #profileReloadMyBtn:disabled { opacity: .4; cursor: default; }
 
 /* Player search (nickname/UID autocomplete) */
-.profile-search-row { position: relative; max-width: 460px; margin-bottom: 12px; }
-.profile-search-row input { width: 100%; box-sizing: border-box; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r-sm); color: var(--text); padding: 9px 10px; font-size: 13px; }
+.profile-search-row { position: relative; display: flex; align-items: center; gap: 8px; max-width: 620px; margin-bottom: 12px; }
+.profile-search-row input { flex: 1; min-width: 0; box-sizing: border-box; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r-sm); color: var(--text); padding: 9px 10px; font-size: 13px; }
 .profile-search-row input:focus { outline: none; border-color: var(--accent); }
 .profile-search-results { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 40; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r-sm); max-height: 320px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
 .profile-search-results.hidden { display: none; }
@@ -1113,11 +1113,6 @@ select {
 .dlg-btn.primary:hover { background: var(--accent); opacity: .9; }
 .dlg-btn.danger { color: var(--red); }
 .dlg-btn.danger:hover { border-color: var(--red); background: rgba(239,68,68,.12); color: var(--red); }
-.profile-uid-row { display: flex; gap: 8px; max-width: 460px; margin-bottom: 6px; }
-.profile-uid-row input {
-  flex: 1; background: var(--bg3); border: 1px solid var(--border); color: var(--text);
-  border-radius: 6px; padding: 8px 10px; font-family: 'Share Tech Mono', monospace; font-size: 13px;
-}
 .profile-layout { display: flex; gap: 16px; margin-top: 16px; align-items: flex-start; }
 .profile-agent-list-col { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; }
 .profile-agent-list { display: flex; flex-direction: column; gap: 6px; }
@@ -1534,15 +1529,12 @@ select {
 <div class="page hidden" id="pageProfile">
   <div class="section-title">Profile · Character Showcase (by UID)</div>
   <div class="profile-search-row">
-    <input type="text" id="profileSearchInput" placeholder="🔎 Поиск по нику (игра/Discord) или UID…" autocomplete="off" oninput="onProfileSearchInput()" onkeydown="if(event.key==='Escape')closeProfileSearchResults()">
+    <input type="text" id="profileUidInput" placeholder="🔎 UID, ник (игра/Discord)…" autocomplete="off" oninput="onProfileSearchInput()" onkeydown="if(event.key==='Enter'){closeProfileSearchResults();loadProfileShowcase();}else if(event.key==='Escape')closeProfileSearchResults()">
+    <button class="lib-pill-btn" onclick="closeProfileSearchResults();loadProfileShowcase()">Load</button>
+    <button class="lib-pill-btn hidden" id="profileReloadMyBtn" onclick="reloadMyShowcase()" title="Обновить свой стенд с Enka и сохранить на сайте">🔄 Reload</button>
     <div class="profile-search-results hidden" id="profileSearchResults"></div>
   </div>
   <div class="uid-verify-panel hidden" id="uidVerifyPanel"></div>
-  <div class="profile-uid-row">
-    <input type="text" id="profileUidInput" placeholder="Enter ZZZ UID, e.g. 1503301061" onkeydown="if(event.key==='Enter')loadProfileShowcase()">
-    <button class="lib-pill-btn" onclick="loadProfileShowcase()">Load</button>
-    <button class="lib-pill-btn hidden" id="profileReloadMyBtn" onclick="reloadMyShowcase()" title="Обновить свой стенд с Enka и сохранить на сайте">🔄 Reload</button>
-  </div>
   <div class="profile-cache-status" id="profileCacheStatus"></div>
   <div class="profile-actions-row">
     <button class="lib-pill-btn" id="profileSetMyBtn" onclick="setCurrentAsMyUid()" disabled title="Remember this UID and auto-load it on this tab">My account</button>
@@ -8598,7 +8590,7 @@ function sanitizeSearchTerm(q) {
 }
 
 function onProfileSearchInput() {
-  const q = sanitizeSearchTerm(document.getElementById('profileSearchInput').value);
+  const q = sanitizeSearchTerm(document.getElementById('profileUidInput').value);
   clearTimeout(profileSearchDebounce);
   if (!q) { closeProfileSearchResults(); return; }
   profileSearchDebounce = setTimeout(() => runProfileSearch(q), 250);
@@ -8628,7 +8620,6 @@ async function runProfileSearch(q) {
 
 function selectProfileSearchResult(uid) {
   closeProfileSearchResults();
-  document.getElementById('profileSearchInput').value = '';
   document.getElementById('profileUidInput').value = uid;
   loadProfileShowcase();
 }
