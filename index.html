@@ -175,7 +175,7 @@ header {
 .toolbar select { height: 34px; background-color: var(--bg3); font-size: 12px; }
 
 /* Slot C search field (Profile) — the autocomplete dropdown anchors to .tb-search. */
-.tb-search { position: relative; display: flex; flex: 1; min-width: 190px; max-width: 420px; }
+.tb-search { position: relative; display: flex; flex: 1; min-width: 150px; max-width: 420px; }
 .tb-input {
   flex: 1; min-width: 0; height: 34px; box-sizing: border-box;
   background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
@@ -195,6 +195,29 @@ header {
 }
 .tb-dropdown .profile-fav-chip { justify-content: space-between; }
 .tb-fav-empty { font-size: 11px; color: var(--text-dim); }
+
+/* Preset selector (Profile slot C) — the .preset-chip-lg tab row from the
+   detail panel, shrunk to toolbar height. Sits immediately left of the
+   act-on-preset buttons so "which preset" and "what to do with it" read as
+   one cluster. Hidden entirely when the panel isn't showing a preset. */
+.tb-preset-tabs { gap: 5px; flex-wrap: wrap; }
+.tb-preset-chip {
+  position: relative; /* anchors the absolute ✅/📥 corner badges to the chip */
+  display: flex; align-items: center; gap: 6px;
+  height: 34px; box-sizing: border-box; padding: 0 10px 0 6px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+  cursor: pointer; font-size: 12px; color: var(--text-mid); flex-shrink: 0;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.tb-preset-chip img {
+  width: 22px; height: 22px; border-radius: 50%; object-fit: contain;
+  background: var(--bg); flex-shrink: 0;
+}
+.tb-preset-chip .tpc-name { max-width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tb-preset-chip:hover { border-color: var(--border2); color: var(--text); }
+.tb-preset-chip.selected { border-color: var(--accent); background: var(--accent-d); color: var(--accent); }
+.tb-preset-chip.broken { border-color: #b45309; }
+.tb-preset-chip .tpc-warn { color: #f59e0b; font-size: 11px; }
 
 /* ── LAYOUT ── */
 .page { max-width: 1600px; margin: 0 auto; padding: 20px 16px 80px; }
@@ -1230,7 +1253,6 @@ select {
 .profile-current-player { font-size: 13px; color: var(--text-mid); margin-bottom: 10px; }
 .profile-current-player b { color: var(--text); font-weight: 700; }
 .pd-head { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 16px; }
-.pd-head-actions { margin-left: auto; flex-shrink: 0; }
 .pd-portrait { width: 96px; height: 96px; border-radius: 10px; overflow: hidden; background: var(--bg4); flex-shrink: 0; }
 .pd-portrait img { width: 100%; height: 100%; object-fit: cover; }
 .pd-name { font-family: 'Barlow Condensed', 'Oswald', sans-serif; font-size: 22px; font-weight: 900; }
@@ -1279,7 +1301,6 @@ select {
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
 }
-.preset-view-tabs { flex: 1; }
 .pd-presets-header-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .pd-preset-actions-inline { display: flex; gap: 8px; flex-wrap: wrap; }
 .pd-preset-actions { display: flex; gap: 8px; margin-top: 14px; }
@@ -1611,6 +1632,11 @@ select {
 <div class="tb-page-group hidden" id="tbGroupProfile">
   <div class="tb-group">
     <button class="tb-btn primary" id="tbPresetNew" onclick="openPresetAgentPicker()" title="New preset — pick any agent, then a W-Engine and discs from your libraries">+</button>
+    <button class="tb-btn" id="tbSaveBuild" onclick="toolbarSaveCurrentBuild()" title="Save the shown build as a preset" disabled>💾</button>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-group tb-preset-tabs hidden" id="tbPresetTabs"></div>
+  <div class="tb-group">
     <button class="tb-btn" id="tbPresetEdit" onclick="toolbarEditPreset()" title="Edit the open preset" disabled>✎</button>
     <button class="tb-btn" id="tbPresetRename" onclick="toolbarRenamePreset()" title="Rename the open preset" disabled>🏷</button>
     <button class="tb-btn" id="tbPresetPublish" onclick="toolbarTogglePublishPreset()" title="Publish the open preset" disabled>🌐</button>
@@ -8468,6 +8494,7 @@ function showPage(which) {
     renderProfileFavorites();
     updateProfileActionButtons();
     updatePresetToolbar();
+    updateSaveBuildToolbar();
     renderProfileLeftExtra();
     loadMyVerificationStatus();
     if (!profileCurrentUid && profileMyUid) {
@@ -9010,6 +9037,8 @@ function openAgentPresetView(agentKey) {
   profilePresetViewPresetId = presets[0].id;
   ownerPresetViewAgentKey = null;   // only one thing can occupy the detail panel
   ownerPresetViewPresetId = null;
+  profileCurrentLiveBuild = null;   // panel no longer shows a stand → 💾 goes dark
+  updateSaveBuildToolbar();
   profileSelectedIndex = null; // don't leave a showcase agent looking selected too
   renderProfileAgentList();
   renderProfileLeftExtra();
@@ -9033,38 +9062,37 @@ async function renderAgentPresetView() {
     profilePresetViewPresetId = null;
     document.getElementById('profileDetail').innerHTML = `<div class="profile-detail-empty">Search for a UID in the toolbar and press Load.</div>`;
     renderProfileLeftExtra();
+    clearPresetTabsToolbar();
     updatePresetToolbar();
     return;
   }
   const preset = presets.find(p => p.id === profilePresetViewPresetId) || presets[0];
   profilePresetViewPresetId = preset.id;
 
-  const tabsHtml = presets.map(p => {
+  renderPresetTabsToolbar(presets.map(p => {
     const missing = p.source ? [] : evaluatePresetApplicability(p, null).missing;
     const broken = missing.length > 0;
     const cat = presetCategory(p);
     const catLabel = cat === 'verified' ? 'Verified — pulled from your stand' : cat === 'imported' ? `Imported${p.source && p.source.nickname ? ' — from ' + p.source.nickname + "'s showcase" : ' — from another showcase'}` : '';
-    const title = broken
-      ? `${escapeHtml(p.name)} — ${missing.length} disc(s) no longer match anything in your Drive Disc Library`
-      : catLabel ? `${escapeHtml(p.name)} — ${catLabel}` : escapeHtml(p.name);
-    const catIcon = cat === 'verified' ? '<span class="preset-chip-verified" title="Verified">✅</span>' : cat === 'imported' ? '<span class="preset-chip-imported" title="Imported build — reference only">📥</span>' : '';
-    return `
-    <div class="preset-chip-lg${p.id === preset.id ? ' selected' : ''}${broken ? ' broken' : ''}" onclick="selectAgentPresetTab('${p.id}')" title="${title}">
-      <img src="${wengineUrl(p.wengine)}" onerror="this.style.opacity=.2">
-      <span>${escapeHtml(p.name)}</span>
-      ${broken ? '<span class="preset-chip-warn">!</span>' : catIcon}
-    </div>`;
-  }).join('');
+    return {
+      id: p.id,
+      name: p.name,
+      wengine: p.wengine,
+      selected: p.id === preset.id,
+      broken,
+      title: broken
+        ? `${escapeHtml(p.name)} — ${missing.length} disc(s) no longer match anything in your Drive Disc Library`
+        : catLabel ? `${escapeHtml(p.name)} — ${catLabel}` : escapeHtml(p.name),
+      badge: cat === 'verified' ? '<span class="preset-chip-verified" title="Verified">✅</span>'
+           : cat === 'imported' ? '<span class="preset-chip-imported" title="Imported build — reference only">📥</span>' : '',
+      handler: `selectAgentPresetTab('${p.id}')`,
+    };
+  }));
 
-  // Edit/Rename/Publish/Delete for your OWN presets live in the toolbar's
-  // slot B now (see updatePresetToolbar) — only the tab row stays here.
+  // Tab row → toolbar slot C, Edit/Rename/Publish/Delete → slot B. The panel
+  // is pure content now: nothing in it is a control.
   const detailHtml = await presetDetailHtml(agentKey, preset, { hideActions: true });
-  document.getElementById('profileDetail').innerHTML = `
-    <div class="preset-view-tabs-row">
-      <div class="pd-presets-row preset-view-tabs">${tabsHtml}</div>
-    </div>
-    ${detailHtml}
-  `;
+  document.getElementById('profileDetail').innerHTML = detailHtml;
   updatePresetToolbar();
 }
 
@@ -9117,6 +9145,7 @@ function refreshPresetViews(agentKey) {
   if (profilePresetViewAgentKey === agentKey) renderAgentPresetView();
   renderProfileLeftExtra();
   updatePresetToolbar();
+  updateSaveBuildToolbar(); // "already saved as…" / limit reasons may have changed
 }
 
 /* ── PRESET ACTIONS IN THE TOOLBAR (Profile slot B) ──────────────────────
@@ -9194,6 +9223,76 @@ function toolbarTogglePublishPreset() {
   if (!t) return;
   if (t.preset.publishedId) unpublishPreset(t.agentKey, t.preset.id);
   else publishPreset(t.agentKey, t.preset.id);
+}
+
+/* ── PRESET SELECTOR IN THE TOOLBAR (Profile slot C) ─────────────────────
+   The tab row that used to sit above the preset card. It moved next to the
+   act-on buttons so "which preset is open" and "what I can do with it" read
+   as one cluster, and it renders for BOTH your own presets and someone
+   else's published ones — where you're looking is always shown in the same
+   place; only whether slot B lights up differs. Items:
+     { id, name, wengine, title, selected, broken, badge, handler } */
+function renderPresetTabsToolbar(items) {
+  const el = document.getElementById('tbPresetTabs');
+  if (!el) return;
+  if (!items || !items.length) { clearPresetTabsToolbar(); return; }
+  el.classList.remove('hidden');
+  el.innerHTML = items.map(it => `
+    <div class="tb-preset-chip${it.selected ? ' selected' : ''}${it.broken ? ' broken' : ''}"
+         onclick="${it.handler}" title="${it.title}">
+      <img src="${wengineUrl(it.wengine || '')}" onerror="this.style.opacity=.2">
+      <span class="tpc-name">${escapeHtml(it.name)}</span>
+      ${it.broken ? '<span class="tpc-warn">!</span>' : (it.badge || '')}
+    </div>`).join('');
+}
+
+function clearPresetTabsToolbar() {
+  const el = document.getElementById('tbPresetTabs');
+  if (!el) return;
+  el.classList.add('hidden');
+  el.innerHTML = '';
+}
+
+/* ── "SAVE CURRENT BUILD" IN THE TOOLBAR (Profile slot B) ────────────────
+   Was a pill in pd-head; it's a create action on the agent currently shown
+   off a stand, so it belongs beside "+". Everything it needs is already in
+   profileCurrentLiveBuild, so the state is derived rather than passed in —
+   and the reasons it can't fire are now visible as a disabled tooltip
+   instead of only surfacing as a toast after the click. */
+function updateSaveBuildToolbar() {
+  const btn = document.getElementById('tbSaveBuild');
+  if (!btn) return;
+  const lb = profileCurrentLiveBuild;
+  const slug = lb && lb.agentKey;
+
+  const reason = (() => {
+    if (!slug) return 'Open an agent from a stand first';
+    if (!currentUser) return 'Sign in with Discord to save builds from a stand';
+    if (!myGameUid) return 'Verify your UID first to save builds from a stand';
+    if (!lb.wengine) return 'No W-Engine equipped on the showcase';
+    const filled = (lb.discEntries || []).filter(Boolean).length;
+    if (filled !== 6) return `Needs all 6 Drive Discs equipped (currently ${filled}/6)`;
+    const matching = findMatchingLocalPreset(slug, lb.wengine, lb.wrank, lb.discEntries);
+    if (matching) return `Already saved as \u201c${matching.name}\u201d`;
+    // Same per-category budget saveCurrentShowcaseBuildAsPreset() enforces:
+    // off your own stand it lands in Verified, off anyone else's in Imported.
+    const verified = profileCurrentUid === myGameUid;
+    const counts = presetCategoryCounts(slug);
+    if ((verified ? counts.verified : counts.other) >= PRESET_LIMIT) {
+      return `Max ${PRESET_LIMIT} ${verified ? 'Verified' : 'regular'} presets reached for this agent`;
+    }
+    return '';
+  })();
+
+  btn.disabled = !!reason;
+  btn.title = reason
+    ? `Save current build — ${reason}`
+    : `Save ${cardName(slug)}\u2019s current W-Engine + Drive Discs as a new preset`;
+}
+
+function toolbarSaveCurrentBuild() {
+  const lb = profileCurrentLiveBuild;
+  if (lb && lb.agentKey) saveCurrentShowcaseBuildAsPreset(lb.agentKey);
 }
 
 // Builds a disc-display entry for the Profile tab, but scales the main stat with
@@ -9583,7 +9682,9 @@ async function openOwnerPresetView(agentKey) {
   ownerPresetViewPresetId = String(rows[0].id);
   profilePresetViewAgentKey = null; // read-only view — nothing for slot B to act on
   profilePresetViewPresetId = null;
+  profileCurrentLiveBuild = null;
   updatePresetToolbar();
+  updateSaveBuildToolbar();
   profileSelectedIndex = null; // don't leave a showcase agent looking selected too
   renderProfileAgentList();
   renderProfileLeftExtra();
@@ -9603,6 +9704,7 @@ async function renderOwnerPresetView() {
     ownerPresetViewPresetId = null;
     document.getElementById('profileDetail').innerHTML = `<div class="profile-detail-empty">Search for a UID in the toolbar and press Load.</div>`;
     renderProfileLeftExtra();
+    clearPresetTabsToolbar();
     return;
   }
   const row = rows.find(r => String(r.id) === ownerPresetViewPresetId) || rows[0];
@@ -9610,18 +9712,24 @@ async function renderOwnerPresetView() {
   const preset = { id: row.id, name: row.name, wengine: row.wengine, wrank: row.wrank, discs: row.discs || [] };
   currentPublicPresetView = { agentKey, preset }; // lets the shared copyPublicPresetToMine() handler work
 
-  const tabsHtml = rows.map(r => `
-    <div class="preset-chip-lg${String(r.id) === ownerPresetViewPresetId ? ' selected' : ''}" onclick="selectOwnerPresetTab('${r.id}')" title="${escapeHtml(r.name)}">
-      <img src="${wengineUrl(r.wengine)}" onerror="this.style.opacity=.2">
-      <span>${escapeHtml(r.name)}</span>
-    </div>`).join('');
+  renderPresetTabsToolbar(rows.map(r => ({
+    id: r.id,
+    name: r.name,
+    wengine: r.wengine,
+    selected: String(r.id) === ownerPresetViewPresetId,
+    title: `${escapeHtml(r.name)} — published build, read-only`,
+    badge: '<span class="preset-chip-imported" title="Published by this player — read-only">🌐</span>',
+    handler: `selectOwnerPresetTab('${r.id}')`,
+  })));
 
   const matching = findMatchingPresetBySnapshots(agentKey, preset.wengine, preset.wrank || 1, preset.discs);
   const actionsHtml = presetActionsHtml(agentKey, preset, { readOnly: true, matchingName: matching ? matching.name : null });
   const detailHtml = await presetDetailHtml(agentKey, preset, { hideActions: true, readOnly: true, ownerLabel: profileCurrentNickname });
+  // Someone else's build: the selector is in the toolbar like everywhere else,
+  // but "Copy to my presets" stays in the panel — slot B only ever acts on
+  // presets that are yours.
   document.getElementById('profileDetail').innerHTML = `
     <div class="preset-view-tabs-row">
-      <div class="pd-presets-row preset-view-tabs">${tabsHtml}</div>
       <div class="pd-preset-actions-inline">${actionsHtml}</div>
     </div>
     ${detailHtml}
@@ -9792,7 +9900,8 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
 async function renderProfileDetail(i) {
   const panel = document.getElementById('profileDetail');
   const a = profileLastAvatars[i];
-  if (!a) { profileCurrentLiveBuild = null; panel.innerHTML = '<div class="profile-detail-empty">Select an agent.</div>'; return; }
+  clearPresetTabsToolbar(); // a live stand agent, not a preset — no tabs to show
+  if (!a) { profileCurrentLiveBuild = null; updateSaveBuildToolbar(); panel.innerHTML = '<div class="profile-detail-empty">Select an agent.</div>'; return; }
 
   const slug = ENKA_AGENT_MAP[a.Id];
   panel.innerHTML = '<div class="profile-detail-empty">Loading stats…</div>';
@@ -9815,23 +9924,10 @@ async function renderProfileDetail(i) {
     ? { agentKey: slug, wengine: wengineSlug, wrank: a.Weapon ? Math.max(1, a.Weapon.UpgradeLevel || 1) : 0, discEntries }
     : null;
 
-  // Lives in pd-head (top of the card) rather than down by the Presets
-  // section, so it's reachable without scrolling while browsing anyone's
-  // stand — yours or someone else's.
-  const filledDiscs = discEntries.filter(Boolean).length;
-  const matchingPreset = (slug && wengineSlug && filledDiscs === 6)
-    ? findMatchingLocalPreset(slug, wengineSlug, profileCurrentLiveBuild.wrank, discEntries)
-    : null;
-  const atPresetLimit = slug ? getAgentPresets(slug).length >= PRESET_LIMIT : false;
-  const saveDisabledReason = !slug ? ''
-    : !wengineSlug ? 'No W-Engine equipped on the showcase.'
-    : filledDiscs !== 6 ? `Needs all 6 Drive Discs equipped (currently ${filledDiscs}/6).`
-    : matchingPreset ? `Already saved as "${matchingPreset.name}".`
-    : atPresetLimit ? `Max ${PRESET_LIMIT} presets reached for this agent.`
-    : '';
-  const saveBuildBtnHtml = slug
-    ? `<button class="lib-pill-btn" ${saveDisabledReason ? 'disabled' : ''} onclick="saveCurrentShowcaseBuildAsPreset('${slug}')" title="${escapeHtml(saveDisabledReason || 'Save this character\u2019s current W-Engine + Drive Discs as a new preset')}">💾 Save current build</button>`
-    : '';
+  // "Save current build" moved to the toolbar (slot B, #tbSaveBuild) — it
+  // derives everything it needs from profileCurrentLiveBuild, which was just
+  // set above, so this is the point to refresh it.
+  updateSaveBuildToolbar();
 
   const skillLevels = enkaSkillLevels(a);
   const coreLetter = enkaCoreSkillLetter(a.CoreSkillEnhancement || 0);
@@ -9882,7 +9978,6 @@ async function renderProfileDetail(i) {
           <span class="pd-badge">Mindscape M${a.TalentLevel || 0}</span>
         </div>
       </div>
-      <div class="pd-head-actions">${saveBuildBtnHtml}</div>
     </div>
 
     <div class="pd-section-title">Stats</div>
