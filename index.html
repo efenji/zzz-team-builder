@@ -1628,36 +1628,52 @@ select {
 </div>
 
 <!-- ══ TOOLBAR · PROFILE ══
-     Slot B: preset actions (+ / edit / rename / publish / delete). Everything
-     except "+" acts on whichever of YOUR OWN presets is currently open in the
-     detail panel — same "select then act" contract the Teams tab uses. Someone
-     else's published presets stay read-only and keep their in-panel button.
+     Slot B mirrors the Saved Teams action row 1:1 — same five positions, same
+     glyph family, so the muscle memory carries across tabs:
+       +  new        (Teams: + New Team)
+       ✎  edit       (Teams: ✎ Edit Selected)
+       ⇩  save build (Teams' ⧉ Duplicate slot — the create-from-what's-shown
+                      action; ⇩ "down into my presets" deliberately mirrors ⇪
+                      "up to the public side" at the end of the row)
+       ✕  delete     (Teams: ✕ Delete Selected)
+       ⇪  publish    (Teams: ⇪ Share to Feed)
+     Rename has no Teams counterpart, so it sits after the row as a text
+     button rather than stealing one of the five icon slots — and it can't be
+     dropped, since own-preset panels render with hideActions:true and the
+     toolbar is the only place it's reachable from.
+     Everything except "+" acts on whichever of YOUR OWN presets is currently
+     open in the detail panel — same "select then act" contract the Teams tab
+     uses. Someone else's published presets stay read-only and keep their
+     in-panel button.
      Slot C: the UID / nickname search. Slot E: bookmarks + this-UID toggles. -->
 <div class="tb-page-group hidden" id="tbGroupProfile">
   <div class="tb-group">
     <button class="tb-btn primary" id="tbPresetNew" onclick="openPresetAgentPicker()" title="New preset — pick any agent, then a W-Engine and discs from your libraries">+</button>
-    <button class="tb-btn" id="tbSaveBuild" onclick="toolbarSaveCurrentBuild()" title="Save the shown build as a preset" disabled>💾</button>
+    <button class="tb-btn" id="tbPresetEdit" onclick="toolbarEditPreset()" title="Edit the open preset" disabled>✎</button>
+    <button class="tb-btn" id="tbSaveBuild" onclick="toolbarSaveCurrentBuild()" title="Save the shown build as a preset" disabled>⇩</button>
+    <button class="tb-btn danger" id="tbPresetDelete" onclick="toolbarDeletePreset()" title="Delete the open preset" disabled>✕</button>
+    <button class="tb-btn" id="tbPresetPublish" onclick="toolbarTogglePublishPreset()" title="Publish the open preset" disabled>⇪</button>
   </div>
   <div class="tb-sep"></div>
-  <div class="tb-group tb-preset-tabs hidden" id="tbPresetTabs"></div>
   <div class="tb-group">
-    <button class="tb-btn" id="tbPresetEdit" onclick="toolbarEditPreset()" title="Edit the open preset" disabled>✎</button>
-    <button class="tb-btn" id="tbPresetRename" onclick="toolbarRenamePreset()" title="Rename the open preset" disabled>🏷</button>
-    <button class="tb-btn" id="tbPresetPublish" onclick="toolbarTogglePublishPreset()" title="Publish the open preset" disabled>🌐</button>
-    <button class="tb-btn danger" id="tbPresetDelete" onclick="toolbarDeletePreset()" title="Delete the open preset" disabled>✕</button>
+    <button class="tb-btn tb-btn-txt" id="tbPresetRename" onclick="toolbarRenamePreset()" title="Rename the open preset" disabled>Rename</button>
   </div>
+  <!-- No .tb-sep between Rename and the chip row on purpose: #tbPresetTabs
+       hides itself whenever nothing is open, and a separator on both sides of
+       it would collapse into a doubled line in that (very common) state. -->
+  <div class="tb-group tb-preset-tabs hidden" id="tbPresetTabs"></div>
   <div class="tb-sep"></div>
   <div class="tb-group tb-group-search">
     <div class="tb-search">
-      <input type="text" class="tb-input" id="profileUidInput" placeholder="🔎 UID, nickname (game/Discord)…" autocomplete="off" oninput="onProfileSearchInput()" onkeydown="if(event.key==='Enter'){closeProfileSearchResults();loadProfileShowcase();}else if(event.key==='Escape')closeProfileSearchResults()">
+      <input type="text" class="tb-input" id="profileUidInput" placeholder="⌕ UID, nickname (game/Discord)…" autocomplete="off" oninput="onProfileSearchInput()" onkeydown="if(event.key==='Enter'){closeProfileSearchResults();loadProfileShowcase();}else if(event.key==='Escape')closeProfileSearchResults()">
       <div class="profile-search-results hidden" id="profileSearchResults"></div>
     </div>
     <button class="tb-btn tb-btn-txt" onclick="closeProfileSearchResults();loadProfileShowcase()">Load</button>
-    <button class="tb-btn hidden" id="profileReloadMyBtn" onclick="reloadMyShowcase()" title="Refresh your stand from Enka and save it to the site">🔄</button>
+    <button class="tb-btn hidden" id="profileReloadMyBtn" onclick="reloadMyShowcase()" title="Refresh your stand from Enka and save it to the site">⟳</button>
   </div>
   <div class="tb-group tb-push">
     <button class="tb-btn" id="profileFavBtn" onclick="toggleCurrentFavorite()" disabled title="Add to favorites">☆</button>
-    <button class="tb-btn" id="profileSetMyBtn" onclick="setCurrentAsMyUid()" disabled title="Remember this UID and auto-load it on this tab">👤</button>
+    <button class="tb-btn" id="profileSetMyBtn" onclick="setCurrentAsMyUid()" disabled title="Remember this UID and auto-load it on this tab">⌂</button>
     <div class="tb-dropdown" id="profileFavDropdown">
       <button class="tb-btn has-caret" id="profileFavListBtn" onclick="toggleProfileFavMenu(event)" title="Bookmarked accounts">★<span class="tb-caret">▾</span></button>
       <div class="hd-menu hidden" id="profileFavMenu">
