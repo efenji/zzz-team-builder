@@ -150,6 +150,51 @@ header {
 .tb-toggle:hover { border-color: var(--border2); color: var(--text); }
 .tb-toggle.active { border-color: var(--accent); background: var(--accent-d); color: var(--accent); }
 
+/* ── TOOLBAR PAGE GROUPS (one toolbar, per-tab contents) ──
+   The toolbar is part of the permanent chassis now (header → nav → toolbar)
+   and never hides; only the active .tb-page-group is displayed. Slot order is
+   the SAME left-to-right meaning on every tab:
+     A history · B create/act on the object · C scope (what am I looking at)
+     D filter/sort · E view options + bookmarks (pushed right via .tb-push)
+   A tab with no action for a slot simply omits it and the rest shift left. */
+.tb-page-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
+.tb-page-group.hidden { display: none; }
+.tb-push { margin-left: auto; }
+
+/* Text-labelled toolbar button — same 34px box as .tb-btn, auto width. Must
+   stay AFTER .tb-btn so `width: auto` wins (same specificity). */
+.tb-btn-txt {
+  width: auto; padding: 0 12px;
+  font-family: 'Barlow Condensed', 'Oswald', sans-serif;
+  font-size: 12px; font-weight: 700; letter-spacing: .04em;
+  color: var(--text); white-space: nowrap;
+}
+.tb-btn.has-caret { width: auto; padding: 0 9px; gap: 3px; }
+.tb-caret { font-size: 8px; color: var(--text-mid); }
+.tb-btn.active-fav { border-color: var(--accent); background: var(--accent-d); color: var(--accent); }
+.toolbar select { height: 34px; background-color: var(--bg3); font-size: 12px; }
+
+/* Slot C search field (Profile) — the autocomplete dropdown anchors to .tb-search. */
+.tb-search { position: relative; display: flex; flex: 1; min-width: 190px; max-width: 420px; }
+.tb-input {
+  flex: 1; min-width: 0; height: 34px; box-sizing: border-box;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); padding: 0 10px; font-size: 13px; outline: none;
+  transition: border-color .15s;
+}
+.tb-input:focus { border-color: var(--accent); }
+.tb-search .profile-search-results { top: calc(100% + 6px); }
+
+/* Bookmarks dropdown (Profile slot E) — reuses .hd-menu from the header, so
+   the favorites markup renders unchanged, just stacked instead of wrapped. */
+.tb-dropdown { position: relative; flex-shrink: 0; }
+.tb-dropdown .hd-menu { top: calc(100% + 8px); max-width: 280px; }
+.tb-dropdown .profile-favorites {
+  flex-direction: column; align-items: stretch; gap: 5px; margin: 0;
+  max-height: 300px; overflow-y: auto;
+}
+.tb-dropdown .profile-fav-chip { justify-content: space-between; }
+.tb-fav-empty { font-size: 11px; color: var(--text-dim); }
 
 /* ── LAYOUT ── */
 .page { max-width: 1600px; margin: 0 auto; padding: 20px 16px 80px; }
@@ -1042,13 +1087,6 @@ select {
 .feed-comments { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
 .feed-comments.hidden { display: none; }
 
-/* Feed subnav (Лента / Мои публикации) */
-.feed-subnav { display: flex; gap: 8px; max-width: 640px; margin: 0 auto 14px; }
-.feed-subnav .lib-pill-btn.active { border-color: var(--accent); background: var(--accent-d); color: var(--accent); }
-
-.feed-controls { display: flex; flex-wrap: wrap; gap: 8px; max-width: 640px; margin: 0 auto 14px; }
-.feed-controls select { flex: 1; min-width: 120px; }
-
 .feed-load-more-wrap { display: flex; justify-content: center; max-width: 640px; margin: 4px auto 20px; }
 .feed-load-more-wrap.hidden { display: none; }
 
@@ -1096,10 +1134,7 @@ select {
 #profileReloadMyBtn.hidden { display: none; }
 #profileReloadMyBtn:disabled { opacity: .4; cursor: default; }
 
-/* Player search (nickname/UID autocomplete) */
-.profile-search-row { position: relative; display: flex; align-items: center; gap: 8px; max-width: 620px; margin-bottom: 12px; }
-.profile-search-row input { flex: 1; min-width: 0; box-sizing: border-box; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r-sm); color: var(--text); padding: 9px 10px; font-size: 13px; }
-.profile-search-row input:focus { outline: none; border-color: var(--accent); }
+/* Player search dropdown / bookmarks / feed controls now live in the toolbar — see .tb-* above. */
 .profile-search-results { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 40; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r-sm); max-height: 320px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
 .profile-search-results.hidden { display: none; }
 .profile-search-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; cursor: pointer; font-size: 12px; }
@@ -1160,13 +1195,6 @@ select {
 .profile-layout { display: flex; gap: 16px; margin-top: 16px; align-items: flex-start; }
 .profile-agent-list-col { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; }
 .profile-agent-list { display: flex; flex-direction: column; gap: 6px; }
-.profile-agent-card.profile-presets-entry {
-  padding: 6px 10px;
-  display: flex; align-items: center; justify-content: center; text-align: center;
-  font-family: 'Barlow Condensed', 'Oswald', sans-serif; font-weight: 700; letter-spacing: .04em; font-size: 12px;
-  color: var(--text);
-}
-.profile-agent-card.profile-presets-entry.hidden { display: none; }
 .profile-agent-list.with-divider { margin-top: 14px; padding-top: 16px; border-top: 1px solid var(--border); }
 .profile-agent-card {
   background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
@@ -1185,9 +1213,6 @@ select {
 .profile-agent-card.broken { border-color: #b45309; }
 .profile-detail { flex: 1; min-width: 0; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
 .profile-detail-empty { color: var(--text-dim); font-size: 13px; text-align: center; padding: 60px 0; }
-.profile-actions-row { display: flex; gap: 8px; max-width: 460px; margin-bottom: 10px; }
-.profile-actions-row .lib-pill-btn.active-fav { border-color: var(--accent); background: var(--accent-d); color: var(--accent); }
-.profile-actions-row .lib-pill-btn:disabled { opacity: .4; cursor: default; }
 .profile-favorites { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .profile-fav-chip {
   display: flex; align-items: center; gap: 6px;
@@ -1544,7 +1569,10 @@ select {
   <button class="page-nav-btn" id="navFeedBtn" onclick="showPage('feed')">Feed</button>
 </div>
 
-<div class="toolbar" id="teamsToolbar">
+<div class="toolbar" id="mainToolbar">
+
+<!-- ══ TOOLBAR · SAVED TEAMS ══ -->
+<div class="tb-page-group" id="tbGroupTeams">
   <div class="tb-group">
     <button class="tb-btn" id="tbUndo" onclick="undo()" title="Undo (Ctrl+Z)" disabled>↺</button>
     <button class="tb-btn" id="tbRedo" onclick="redo()" title="Redo (Ctrl+Shift+Z)" disabled>↻</button>
@@ -1574,6 +1602,74 @@ select {
   </div>
 </div>
 
+<!-- ══ TOOLBAR · PROFILE ══
+     Slot B: preset actions (+ / edit / rename / publish / delete). Everything
+     except "+" acts on whichever of YOUR OWN presets is currently open in the
+     detail panel — same "select then act" contract the Teams tab uses. Someone
+     else's published presets stay read-only and keep their in-panel button.
+     Slot C: the UID / nickname search. Slot E: bookmarks + this-UID toggles. -->
+<div class="tb-page-group hidden" id="tbGroupProfile">
+  <div class="tb-group">
+    <button class="tb-btn primary" id="tbPresetNew" onclick="openPresetAgentPicker()" title="New preset — pick any agent, then a W-Engine and discs from your libraries">+</button>
+    <button class="tb-btn" id="tbPresetEdit" onclick="toolbarEditPreset()" title="Edit the open preset" disabled>✎</button>
+    <button class="tb-btn" id="tbPresetRename" onclick="toolbarRenamePreset()" title="Rename the open preset" disabled>🏷</button>
+    <button class="tb-btn" id="tbPresetPublish" onclick="toolbarTogglePublishPreset()" title="Publish the open preset" disabled>🌐</button>
+    <button class="tb-btn danger" id="tbPresetDelete" onclick="toolbarDeletePreset()" title="Delete the open preset" disabled>✕</button>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-group tb-group-search">
+    <div class="tb-search">
+      <input type="text" class="tb-input" id="profileUidInput" placeholder="🔎 UID, nickname (game/Discord)…" autocomplete="off" oninput="onProfileSearchInput()" onkeydown="if(event.key==='Enter'){closeProfileSearchResults();loadProfileShowcase();}else if(event.key==='Escape')closeProfileSearchResults()">
+      <div class="profile-search-results hidden" id="profileSearchResults"></div>
+    </div>
+    <button class="tb-btn tb-btn-txt" onclick="closeProfileSearchResults();loadProfileShowcase()">Load</button>
+    <button class="tb-btn hidden" id="profileReloadMyBtn" onclick="reloadMyShowcase()" title="Refresh your stand from Enka and save it to the site">🔄</button>
+  </div>
+  <div class="tb-group tb-push">
+    <button class="tb-btn" id="profileFavBtn" onclick="toggleCurrentFavorite()" disabled title="Add to favorites">☆</button>
+    <button class="tb-btn" id="profileSetMyBtn" onclick="setCurrentAsMyUid()" disabled title="Remember this UID and auto-load it on this tab">👤</button>
+    <div class="tb-dropdown" id="profileFavDropdown">
+      <button class="tb-btn has-caret" id="profileFavListBtn" onclick="toggleProfileFavMenu(event)" title="Bookmarked accounts">★<span class="tb-caret">▾</span></button>
+      <div class="hd-menu hidden" id="profileFavMenu">
+        <div class="hd-menu-label">Bookmarks</div>
+        <div class="profile-favorites" id="profileFavoritesRow"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOOLBAR · FEED ══
+     No slot B: publishing is an action on a TEAM, so it stays as ⇪ on the
+     Teams tab. Slot C is therefore the leftmost thing here — the sub-tabs. -->
+<div class="tb-page-group hidden" id="tbGroupFeed">
+  <div class="tb-group">
+    <button class="tb-toggle active" id="feedTabAll" onclick="showFeedTab('all')">Feed</button>
+    <button class="tb-toggle" id="feedTabMine" onclick="showFeedTab('mine')">My posts</button>
+    <button class="tb-toggle hidden" id="feedTabAdmin" onclick="showFeedTab('admin')">Moderation<span class="admin-queue-badge hidden" id="adminQueueBadge">0</span></button>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-group">
+    <select id="feedSortSelect" onchange="onFeedControlsChange()" title="Sort">
+      <option value="score">Most popular</option>
+      <option value="created_at">Newest</option>
+    </select>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-group">
+    <select id="feedFilterSeason" onchange="onFeedControlsChange()" title="Filter by Shiyu season">
+      <option value="">All seasons</option>
+    </select>
+    <select id="feedFilterFloor" onchange="onFeedControlsChange()" title="Filter by floor">
+      <option value="">Any floor</option>
+    </select>
+    <select id="feedFilterRoom" onchange="onFeedControlsChange()" title="Filter by room">
+      <option value="">Any room</option>
+    </select>
+  </div>
+</div>
+
+</div>
+
 <div class="page" id="pageTeams">
   <div class="section-title">Saved Teams</div>
   <div id="teamsGrid" class="teams-grid"></div>
@@ -1582,54 +1678,22 @@ select {
 
 <div class="page hidden" id="pageProfile">
   <div class="section-title">Profile · Character Showcase (by UID)</div>
-  <div class="profile-search-row">
-    <input type="text" id="profileUidInput" placeholder="🔎 UID, nickname (game/Discord)…" autocomplete="off" oninput="onProfileSearchInput()" onkeydown="if(event.key==='Enter'){closeProfileSearchResults();loadProfileShowcase();}else if(event.key==='Escape')closeProfileSearchResults()">
-    <button class="lib-pill-btn" onclick="closeProfileSearchResults();loadProfileShowcase()">Load</button>
-    <button class="lib-pill-btn hidden" id="profileReloadMyBtn" onclick="reloadMyShowcase()" title="Refresh your stand from Enka and save it to the site">🔄 Reload</button>
-    <div class="profile-search-results hidden" id="profileSearchResults"></div>
-  </div>
   <div class="uid-verify-panel hidden" id="uidVerifyPanel"></div>
   <div class="profile-cache-status" id="profileCacheStatus"></div>
-  <div class="profile-actions-row">
-    <button class="lib-pill-btn" id="profileSetMyBtn" onclick="setCurrentAsMyUid()" disabled title="Remember this UID and auto-load it on this tab">My account</button>
-    <button class="lib-pill-btn" id="profileFavBtn" onclick="toggleCurrentFavorite()" disabled title="Add to favorites">☆ Favorite</button>
-  </div>
-  <div class="profile-favorites" id="profileFavoritesRow"></div>
   <div class="disc-import-status" id="profileStatus"></div>
   <div class="profile-current-player" id="profileCurrentPlayer"></div>
   <div class="profile-layout">
     <div class="profile-agent-list-col">
       <div class="profile-agent-list" id="profileAgentList"></div>
-      <button class="profile-agent-card profile-presets-entry" onclick="openPresetAgentPicker()" title="Create a preset for any agent, regardless of who's on this showcase">+ Presets</button>
       <div class="profile-agent-list hidden" id="profilePresetBrowseList"></div>
     </div>
-    <div class="profile-detail" id="profileDetail"><div class="profile-detail-empty">Enter a UID above and press Load.</div></div>
+    <div class="profile-detail" id="profileDetail"><div class="profile-detail-empty">Search for a UID in the toolbar and press Load.</div></div>
   </div>
 </div>
 
 <div class="page hidden" id="pageFeed">
   <div class="section-title">Community Feed</div>
-  <div class="feed-subnav">
-    <button class="lib-pill-btn active" id="feedTabAll" onclick="showFeedTab('all')">Feed</button>
-    <button class="lib-pill-btn" id="feedTabMine" onclick="showFeedTab('mine')">My posts</button>
-    <button class="lib-pill-btn hidden" id="feedTabAdmin" onclick="showFeedTab('admin')">Moderation<span class="admin-queue-badge hidden" id="adminQueueBadge">0</span></button>
-  </div>
   <div id="feedAllWrap">
-    <div class="feed-controls">
-      <select id="feedSortSelect" onchange="onFeedControlsChange()" title="Sort">
-        <option value="score">Most popular</option>
-        <option value="created_at">Newest</option>
-      </select>
-      <select id="feedFilterSeason" onchange="onFeedControlsChange()" title="Filter by Shiyu season">
-        <option value="">All seasons</option>
-      </select>
-      <select id="feedFilterFloor" onchange="onFeedControlsChange()" title="Filter by floor">
-        <option value="">Any floor</option>
-      </select>
-      <select id="feedFilterRoom" onchange="onFeedControlsChange()" title="Filter by room">
-        <option value="">Any room</option>
-      </select>
-    </div>
     <div id="feedList" class="feed-list"></div>
     <div class="feed-load-more-wrap hidden" id="feedLoadMoreWrap">
       <button class="lib-pill-btn" id="feedLoadMoreBtn" onclick="loadMoreFeedPosts()">Show more</button>
@@ -8379,11 +8443,23 @@ function enkaPropValue(id, raw) {
 let profileLastAvatars = [];
 let profileSelectedIndex = null;
 
+// The toolbar is permanent chassis now — switching tabs swaps which
+// .tb-page-group is visible, it never hides the bar itself. Groups are static
+// markup (not re-rendered), so a half-typed UID, an open dropdown and every
+// <select> value survive a trip to another tab and back.
+function setToolbarPage(which) {
+  document.getElementById('tbGroupTeams').classList.toggle('hidden', which !== 'teams');
+  document.getElementById('tbGroupProfile').classList.toggle('hidden', which !== 'profile');
+  document.getElementById('tbGroupFeed').classList.toggle('hidden', which !== 'feed');
+  closeProfileFavMenu();
+  closeProfileSearchResults();
+}
+
 function showPage(which) {
   document.getElementById('pageTeams').classList.toggle('hidden', which !== 'teams');
   document.getElementById('pageProfile').classList.toggle('hidden', which !== 'profile');
   document.getElementById('pageFeed').classList.toggle('hidden', which !== 'feed');
-  document.getElementById('teamsToolbar').classList.toggle('hidden', which !== 'teams');
+  setToolbarPage(which);
   document.getElementById('navTeamsBtn').classList.toggle('active', which === 'teams');
   document.getElementById('navProfileBtn').classList.toggle('active', which === 'profile');
   document.getElementById('navFeedBtn').classList.toggle('active', which === 'feed');
@@ -8391,6 +8467,7 @@ function showPage(which) {
   if (which === 'profile') {
     renderProfileFavorites();
     updateProfileActionButtons();
+    updatePresetToolbar();
     renderProfileLeftExtra();
     loadMyVerificationStatus();
     if (!profileCurrentUid && profileMyUid) {
@@ -8567,6 +8644,7 @@ let profileCurrentLevel = null;
 function saveProfileFavorites() { localStorage.setItem('zzz_profile_favorites', JSON.stringify(profileFavorites)); }
 
 function loadProfileByUid(uid) {
+  closeProfileFavMenu();
   document.getElementById('profileUidInput').value = uid;
   loadProfileShowcase();
 }
@@ -8605,10 +8683,39 @@ function removeProfileFavorite(uid) {
   updateProfileActionButtons();
 }
 
+// ── Bookmarks dropdown (toolbar slot E) ──
+// The chip markup is unchanged from when this was a wrapped row under the
+// search field; only its container moved into a .hd-menu popover, since the
+// list has no upper bound and would otherwise blow the toolbar's single row.
+function toggleProfileFavMenu(e) {
+  e.stopPropagation();
+  closeAccountMenu();
+  closeSettingsMenu();
+  const menu = document.getElementById('profileFavMenu');
+  const btn = document.getElementById('profileFavListBtn');
+  const opening = menu.classList.contains('hidden');
+  menu.classList.toggle('hidden', !opening);
+  btn.classList.toggle('active-fav', opening);
+}
+function closeProfileFavMenu() {
+  const menu = document.getElementById('profileFavMenu');
+  const btn = document.getElementById('profileFavListBtn');
+  if (menu) menu.classList.add('hidden');
+  if (btn) btn.classList.remove('active-fav');
+}
+
 function renderProfileFavorites() {
   const row = document.getElementById('profileFavoritesRow');
+  const listBtn = document.getElementById('profileFavListBtn');
+  if (listBtn) {
+    const n = profileFavorites.length + (profileMyUid ? 1 : 0);
+    listBtn.title = n ? `Bookmarked accounts (${n})` : 'No bookmarked accounts yet';
+  }
   if (!row) return;
-  if (!profileMyUid && !profileFavorites.length) { row.innerHTML = ''; return; }
+  if (!profileMyUid && !profileFavorites.length) {
+    row.innerHTML = '<div class="tb-fav-empty">Nothing bookmarked yet — load a UID and press ☆.</div>';
+    return;
+  }
   let html = '';
   if (profileMyUid) {
     const active = profileCurrentUid === profileMyUid ? ' active' : '';
@@ -8634,21 +8741,25 @@ function renderProfileFavorites() {
 function updateProfileActionButtons() {
   const favBtn = document.getElementById('profileFavBtn');
   const myBtn = document.getElementById('profileSetMyBtn');
+  // Both are icon-only in the toolbar, so the state that used to live in the
+  // label ("★ Favorited" / "My account ✓") now lives in the glyph + tooltip.
   if (favBtn) {
     favBtn.disabled = !profileCurrentUid;
     const isFav = !!(profileCurrentUid && profileFavorites.some(f => f.uid === profileCurrentUid));
-    favBtn.textContent = isFav ? '★ Favorited' : '☆ Favorite';
+    favBtn.textContent = isFav ? '★' : '☆';
     favBtn.classList.toggle('active-fav', isFav);
+    favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
   }
   if (myBtn) {
     const verifiedLocked = currentUser && myGameUid;
     myBtn.disabled = verifiedLocked ? true : !profileCurrentUid;
     const isMe = !!(profileCurrentUid && profileCurrentUid === profileMyUid);
-    myBtn.textContent = isMe ? 'My account ✓' : 'My account';
     myBtn.classList.toggle('active-fav', isMe);
     myBtn.title = verifiedLocked
       ? `Already verified — UID ${myGameUid}`
-      : 'Remember this UID and auto-load it on this tab';
+      : isMe
+        ? 'This UID is set as your account'
+        : 'Remember this UID and auto-load it on this tab';
   }
 }
 
@@ -8718,7 +8829,7 @@ function closeProfileSearchResults() {
 }
 
 document.addEventListener('click', (e) => {
-  const row = document.querySelector('.profile-search-row');
+  const row = document.querySelector('#tbGroupProfile .tb-search');
   if (row && !row.contains(e.target)) closeProfileSearchResults();
 });
 
@@ -8862,6 +8973,9 @@ function selectProfileAgent(i) {
   profileSelectedIndex = i;
   profilePresetViewAgentKey = null;
   profilePresetViewPresetId = null;
+  ownerPresetViewAgentKey = null;
+  ownerPresetViewPresetId = null;
+  updatePresetToolbar();
   renderProfileAgentList();
   renderProfileLeftExtra();
   renderProfileDetail(i);
@@ -8894,6 +9008,8 @@ function openAgentPresetView(agentKey) {
   if (!presets.length) return;
   profilePresetViewAgentKey = agentKey;
   profilePresetViewPresetId = presets[0].id;
+  ownerPresetViewAgentKey = null;   // only one thing can occupy the detail panel
+  ownerPresetViewPresetId = null;
   profileSelectedIndex = null; // don't leave a showcase agent looking selected too
   renderProfileAgentList();
   renderProfileLeftExtra();
@@ -8915,8 +9031,9 @@ async function renderAgentPresetView() {
   if (!presets.length) {
     profilePresetViewAgentKey = null;
     profilePresetViewPresetId = null;
-    document.getElementById('profileDetail').innerHTML = `<div class="profile-detail-empty">Enter a UID above and press Load.</div>`;
+    document.getElementById('profileDetail').innerHTML = `<div class="profile-detail-empty">Search for a UID in the toolbar and press Load.</div>`;
     renderProfileLeftExtra();
+    updatePresetToolbar();
     return;
   }
   const preset = presets.find(p => p.id === profilePresetViewPresetId) || presets[0];
@@ -8939,27 +9056,26 @@ async function renderAgentPresetView() {
     </div>`;
   }).join('');
 
-  const actionsHtml = presetActionsHtml(agentKey, preset);
+  // Edit/Rename/Publish/Delete for your OWN presets live in the toolbar's
+  // slot B now (see updatePresetToolbar) — only the tab row stays here.
   const detailHtml = await presetDetailHtml(agentKey, preset, { hideActions: true });
   document.getElementById('profileDetail').innerHTML = `
     <div class="preset-view-tabs-row">
       <div class="pd-presets-row preset-view-tabs">${tabsHtml}</div>
-      <div class="pd-preset-actions-inline">${actionsHtml}</div>
     </div>
     ${detailHtml}
   `;
+  updatePresetToolbar();
 }
 
 async function renderProfileLeftExtra() {
-  const btn = document.querySelector('.profile-presets-entry');
   const el = document.getElementById('profilePresetBrowseList');
   if (!el) return;
   const isMyOwnStand = currentUser && myGameUid && profileCurrentUid === myGameUid;
 
   if (isMyOwnStand) {
-    // Мой стенд — "+Presets" (создать пресет для любого агента) виден, а
-    // список ниже браузит МОИ локальные пресеты, как и раньше.
-    if (btn) btn.classList.remove('hidden');
+    // Мой стенд — список ниже браузит МОИ локальные пресеты, как и раньше.
+    // Кнопка создания пресета переехала в тулбар (слот B, #tbPresetNew).
     el.classList.remove('with-divider');
     const agentsWithPresets = Object.keys(agentPresets).filter(k => (agentPresets[k] || []).length > 0);
     if (!agentsWithPresets.length) { el.innerHTML = ''; el.classList.add('hidden'); return; }
@@ -8974,11 +9090,8 @@ async function renderProfileLeftExtra() {
     return;
   }
 
-  // Чужой стенд — кнопки "+Presets" тут нет вообще (незачем создавать
-  // локальный пресет "для любого агента" стоя на чужом профиле); вместо неё
-  // сразу список агентов, для которых ЭТОТ человек опубликовал пресеты —
-  // если он вообще зарегистрирован на сайте и есть публикации.
-  if (btn) btn.classList.add('hidden');
+  // Чужой стенд — сразу список агентов, для которых ЭТОТ человек опубликовал
+  // пресеты, если он вообще зарегистрирован на сайте и есть публикации.
   if (!profileCurrentOwnerId) { el.innerHTML = ''; el.classList.add('hidden'); return; }
 
   const rows = await loadAllProfileOwnerPresets(profileCurrentOwnerId);
@@ -9003,6 +9116,84 @@ async function renderProfileLeftExtra() {
 function refreshPresetViews(agentKey) {
   if (profilePresetViewAgentKey === agentKey) renderAgentPresetView();
   renderProfileLeftExtra();
+  updatePresetToolbar();
+}
+
+/* ── PRESET ACTIONS IN THE TOOLBAR (Profile slot B) ──────────────────────
+   Same contract as the Teams tab: the detail panel holds the selection, the
+   toolbar acts on it. The "selection" here is whichever of YOUR OWN presets is
+   open in the right-hand panel (profilePresetViewAgentKey/PresetId). Someone
+   else's published preset stays read-only and keeps its single in-panel
+   "Copy to my presets" button — there is nothing else to do with it, and it
+   would be wrong to light up Delete/Publish for a build that isn't yours. */
+function toolbarPresetTarget() {
+  const agentKey = profilePresetViewAgentKey;
+  const presetId = profilePresetViewPresetId;
+  if (!agentKey || !presetId) return null;
+  const preset = getPresetById(agentKey, presetId);
+  return preset ? { agentKey, preset } : null;
+}
+
+function updatePresetToolbar() {
+  const editBtn = document.getElementById('tbPresetEdit');
+  if (!editBtn) return;
+  const renameBtn = document.getElementById('tbPresetRename');
+  const pubBtn = document.getElementById('tbPresetPublish');
+  const delBtn = document.getElementById('tbPresetDelete');
+  const target = toolbarPresetTarget();
+
+  if (!target) {
+    [editBtn, renameBtn, pubBtn, delBtn].forEach(b => {
+      b.disabled = true;
+      b.classList.remove('active-fav');
+    });
+    const hint = ' — open one of your presets first';
+    editBtn.title = 'Edit the open preset' + hint;
+    renameBtn.title = 'Rename the open preset' + hint;
+    pubBtn.title = 'Publish the open preset' + hint;
+    delBtn.title = 'Delete the open preset' + hint;
+    return;
+  }
+
+  const { preset } = target;
+  const cat = presetCategory(preset);
+  const label = `\u201c${preset.name}\u201d`;
+
+  // Only hand-built presets are editable — 'verified' (pulled straight off
+  // your own stand) and 'imported' (someone else's stand) are snapshots by
+  // design, exactly as presetActionsHtml() has always treated them.
+  editBtn.disabled = cat !== 'manual';
+  editBtn.title = cat === 'manual'
+    ? `Edit ${label}`
+    : cat === 'verified'
+      ? "Verified — pulled from the stand, can't be edited"
+      : "Imported — another player's build, can't be edited";
+
+  renameBtn.disabled = false;
+  renameBtn.title = `Rename ${label}`;
+
+  // Imported builds aren't yours to share, so publishing is off the table.
+  const published = !!preset.publishedId;
+  pubBtn.disabled = cat === 'imported';
+  pubBtn.classList.toggle('active-fav', published && cat !== 'imported');
+  pubBtn.title = cat === 'imported'
+    ? "Imported build — can't be published"
+    : published
+      ? `${label} is published — click to unpublish`
+      : `Publish ${label} to your public profile`;
+
+  delBtn.disabled = false;
+  delBtn.title = `Delete ${label}`;
+}
+
+function toolbarEditPreset()   { const t = toolbarPresetTarget(); if (t) editAgentPreset(t.agentKey, t.preset.id); }
+function toolbarRenamePreset() { const t = toolbarPresetTarget(); if (t) renamePresetPrompt(t.agentKey, t.preset.id); }
+function toolbarDeletePreset() { const t = toolbarPresetTarget(); if (t) deletePresetPrompt(t.agentKey, t.preset.id); }
+function toolbarTogglePublishPreset() {
+  const t = toolbarPresetTarget();
+  if (!t) return;
+  if (t.preset.publishedId) unpublishPreset(t.agentKey, t.preset.id);
+  else publishPreset(t.agentKey, t.preset.id);
 }
 
 // Builds a disc-display entry for the Profile tab, but scales the main stat with
@@ -9390,6 +9581,9 @@ async function openOwnerPresetView(agentKey) {
   if (!rows.length) return;
   ownerPresetViewAgentKey = agentKey;
   ownerPresetViewPresetId = String(rows[0].id);
+  profilePresetViewAgentKey = null; // read-only view — nothing for slot B to act on
+  profilePresetViewPresetId = null;
+  updatePresetToolbar();
   profileSelectedIndex = null; // don't leave a showcase agent looking selected too
   renderProfileAgentList();
   renderProfileLeftExtra();
@@ -9407,7 +9601,7 @@ async function renderOwnerPresetView() {
   if (!rows.length) {
     ownerPresetViewAgentKey = null;
     ownerPresetViewPresetId = null;
-    document.getElementById('profileDetail').innerHTML = `<div class="profile-detail-empty">Enter a UID above and press Load.</div>`;
+    document.getElementById('profileDetail').innerHTML = `<div class="profile-detail-empty">Search for a UID in the toolbar and press Load.</div>`;
     renderProfileLeftExtra();
     return;
   }
@@ -10370,7 +10564,10 @@ function toggleVisOption(key, btn) {
   renderTeams();
 }
 function initToolbarToggles() {
-  document.querySelectorAll('.tb-toggle').forEach(btn => {
+  // Scoped to the Teams group on purpose: .tb-toggle is now also used by the
+  // Feed sub-tabs, whose active state is owned by showFeedTab(), not by
+  // displayOptions. A bare '.tb-toggle' query would clear it on load.
+  document.querySelectorAll('#tbGroupTeams .tb-toggle[data-key]').forEach(btn => {
     btn.classList.toggle('active', !!displayOptions[btn.dataset.key]);
   });
 }
@@ -11490,8 +11687,13 @@ function closeSettingsMenu() {
   const m = document.getElementById('settingsMenu');
   if (m) m.classList.add('hidden');
 }
-document.addEventListener('click', () => { closeAccountMenu(); closeSettingsMenu(); });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeAccountMenu(); closeSettingsMenu(); } });
+document.addEventListener('click', (e) => {
+  closeAccountMenu();
+  closeSettingsMenu();
+  const favDd = document.getElementById('profileFavDropdown');
+  if (favDd && !favDd.contains(e.target)) closeProfileFavMenu();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeAccountMenu(); closeSettingsMenu(); closeProfileFavMenu(); } });
 
 async function confirmLogout() {
   closeAccountMenu();
@@ -12249,7 +12451,7 @@ function updateHeaderHeightVar() {
   if (h) document.documentElement.style.setProperty('--header-h', h.offsetHeight + 'px');
   const nav = document.querySelector('.page-nav');
   if (nav) document.documentElement.style.setProperty('--nav-h', nav.offsetHeight + 'px');
-  const tb = document.getElementById('teamsToolbar');
+  const tb = document.getElementById('mainToolbar');
   if (tb) document.documentElement.style.setProperty('--toolbar-h', tb.classList.contains('hidden') ? '0px' : tb.offsetHeight + 'px');
 }
 updateHeaderHeightVar();
