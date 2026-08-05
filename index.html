@@ -1330,6 +1330,38 @@ select {
 .preset-form-agent { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
 .preset-form-agent img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
 
+/* ── Locked ('verified'/'imported') preset form ──
+   Same form as a hand-built preset, but everything except the name is a
+   read-only view of the saved snapshot: no pointer cursor, no hover affordance
+   and no click handler at all on the W-Engine card or the disc slots (see
+   renderPresetDraftEditor's `locked` branch), so there's nothing to click
+   that would look editable and then refuse. The ⊘ glyph is the lock marker,
+   matching the monochrome set the rest of the toolbar uses. */
+.preset-form-locked-note {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--r-sm); padding: 8px 10px; margin-bottom: 12px;
+  font-size: 11.5px; color: var(--text-mid); line-height: 1.35;
+}
+.preset-form-locked-tag {
+  color: var(--text-dim); font-size: 9px; letter-spacing: .06em;
+  margin-left: 4px;
+}
+.ag-we-card.locked .ag-we-top { cursor: default; }
+.ag-we-card.locked .ag-we-top:hover { background: none; }
+.ag-we-card.locked .ag-we-img { opacity: .65; }
+.ag-we-card.locked .slot-lock { font-size: 12px; color: var(--text-dim); flex-shrink: 0; }
+.disc-slot.locked { cursor: default; }
+.disc-slot.locked:hover { border-color: var(--border); }
+.disc-slot.locked img { opacity: .55; }
+.disc-slot.locked .slot-lock {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; color: var(--text); text-shadow: 0 0 4px #000;
+  pointer-events: none;
+}
+
 /* ── Layout: grid on the left, fixed Detail panel on the right (mirrors the
    in-game Drive Disc Storage screen — selecting a card updates the panel). */
 .disc-lib-body { flex: 1; min-height: 0; display: flex; overflow: hidden; }
@@ -1637,10 +1669,11 @@ select {
                       "up to the public side" at the end of the row)
        ✕  delete     (Teams: ✕ Delete Selected)
        ⇪  publish    (Teams: ⇪ Share to Feed)
-     Rename has no Teams counterpart, so it sits after the row as a text
-     button rather than stealing one of the five icon slots — and it can't be
-     dropped, since own-preset panels render with hideActions:true and the
-     toolbar is the only place it's reachable from.
+     There is deliberately no separate Rename button: ✎ opens the edit form
+     for EVERY preset, and for 'verified'/'imported' ones that form comes up
+     with the W-Engine and discs locked, leaving the name as the only editable
+     field. So "rename" is just "edit a locked preset" — one entry point, one
+     mental model, and the row stays exactly five buttons wide like Teams.
      Everything except "+" acts on whichever of YOUR OWN presets is currently
      open in the detail panel — same "select then act" contract the Teams tab
      uses. Someone else's published presets stay read-only and keep their
@@ -1654,13 +1687,10 @@ select {
     <button class="tb-btn danger" id="tbPresetDelete" onclick="toolbarDeletePreset()" title="Delete the open preset" disabled>✕</button>
     <button class="tb-btn" id="tbPresetPublish" onclick="toolbarTogglePublishPreset()" title="Publish the open preset" disabled>⇪</button>
   </div>
-  <div class="tb-sep"></div>
-  <div class="tb-group">
-    <button class="tb-btn tb-btn-txt" id="tbPresetRename" onclick="toolbarRenamePreset()" title="Rename the open preset" disabled>Rename</button>
-  </div>
-  <!-- No .tb-sep between Rename and the chip row on purpose: #tbPresetTabs
-       hides itself whenever nothing is open, and a separator on both sides of
-       it would collapse into a doubled line in that (very common) state. -->
+  <!-- No .tb-sep between the action row and the chip row on purpose:
+       #tbPresetTabs hides itself whenever nothing is open, and a separator on
+       both sides of it would collapse into a doubled line in that (very
+       common) state. -->
   <div class="tb-group tb-preset-tabs hidden" id="tbPresetTabs"></div>
   <div class="tb-sep"></div>
   <div class="tb-group tb-group-search">
@@ -9151,7 +9181,7 @@ async function renderProfileLeftExtra() {
     const count = rows.filter(r => r.agent_key === k).length;
     return `<div class="profile-agent-card${k === ownerPresetViewAgentKey ? ' selected' : ''}" onclick="openOwnerPresetView('${k}')">
     <div class="pac-name">${escapeHtml(cardName(k))}</div>
-    <div class="pac-sub">🌐 ${count} published</div>
+    <div class="pac-sub">⇪ ${count} published</div>
   </div>`;
   }).join('');
 }
@@ -9186,19 +9216,17 @@ function toolbarPresetTarget() {
 function updatePresetToolbar() {
   const editBtn = document.getElementById('tbPresetEdit');
   if (!editBtn) return;
-  const renameBtn = document.getElementById('tbPresetRename');
   const pubBtn = document.getElementById('tbPresetPublish');
   const delBtn = document.getElementById('tbPresetDelete');
   const target = toolbarPresetTarget();
 
   if (!target) {
-    [editBtn, renameBtn, pubBtn, delBtn].forEach(b => {
+    [editBtn, pubBtn, delBtn].forEach(b => {
       b.disabled = true;
       b.classList.remove('active-fav');
     });
     const hint = ' — open one of your presets first';
     editBtn.title = 'Edit the open preset' + hint;
-    renameBtn.title = 'Rename the open preset' + hint;
     pubBtn.title = 'Publish the open preset' + hint;
     delBtn.title = 'Delete the open preset' + hint;
     return;
@@ -9208,18 +9236,18 @@ function updatePresetToolbar() {
   const cat = presetCategory(preset);
   const label = `\u201c${preset.name}\u201d`;
 
-  // Only hand-built presets are editable — 'verified' (pulled straight off
-  // your own stand) and 'imported' (someone else's stand) are snapshots by
-  // design, exactly as presetActionsHtml() has always treated them.
-  editBtn.disabled = cat !== 'manual';
+  // ✎ opens the form for EVERY preset — what differs is how much of it is
+  // editable. 'verified' (pulled straight off your own stand) and 'imported'
+  // (someone else's stand) stay snapshots by design, so their form comes up
+  // with the W-Engine and discs locked and only the name in play. That's why
+  // there's no separate Rename button any more: renaming one of those IS
+  // editing it, as far as the user is concerned.
+  editBtn.disabled = false;
   editBtn.title = cat === 'manual'
     ? `Edit ${label}`
     : cat === 'verified'
-      ? "Verified — pulled from the stand, can't be edited"
-      : "Imported — another player's build, can't be edited";
-
-  renameBtn.disabled = false;
-  renameBtn.title = `Rename ${label}`;
+      ? `Rename ${label} — verified build, W-Engine and discs are locked`
+      : `Rename ${label} — imported build, W-Engine and discs are locked`;
 
   // Imported builds aren't yours to share, so publishing is off the table.
   const published = !!preset.publishedId;
@@ -9236,7 +9264,6 @@ function updatePresetToolbar() {
 }
 
 function toolbarEditPreset()   { const t = toolbarPresetTarget(); if (t) editAgentPreset(t.agentKey, t.preset.id); }
-function toolbarRenamePreset() { const t = toolbarPresetTarget(); if (t) renamePresetPrompt(t.agentKey, t.preset.id); }
 function toolbarDeletePreset() { const t = toolbarPresetTarget(); if (t) deletePresetPrompt(t.agentKey, t.preset.id); }
 function toolbarTogglePublishPreset() {
   const t = toolbarPresetTarget();
@@ -9372,7 +9399,7 @@ function aggregateProfileDiscSubstats(discEntries) {
 let presetDraft = null; // { agentKey, name, wengine, wrank, discSlots: [6], editingPresetId }
 
 function openPresetCreateForm(agentKey) {
-  presetDraft = { agentKey, name: '', wengine: null, wrank: 1, discSlots: [null, null, null, null, null, null], editingPresetId: null };
+  presetDraft = { agentKey, name: '', wengine: null, wrank: 1, discSlots: [null, null, null, null, null, null], editingPresetId: null, locked: false, discSnapshots: null };
   document.getElementById('presetFormTitle').textContent = 'New Preset';
   renderPresetDraftEditor();
   document.getElementById('presetFormBg').classList.remove('hidden');
@@ -9383,23 +9410,38 @@ function openPresetCreateForm(agentKey) {
 // discs/name can be changed instead of only delete-and-recreate. Each disc
 // snapshot is resolved back to whichever CURRENT Drive Disc Library entry
 // matches it (same fingerprint lookup evaluatePresetApplicability uses) —
-// slots that don't resolve (snapshot no longer matches anything, or this is
-// a showcase-imported preset with no library backing at all) just start
+// slots that don't resolve (snapshot no longer matches anything) just start
 // empty, ready to be pointed at a real disc.
+//
+// 'verified'/'imported' presets open here too, but LOCKED: they're snapshots
+// of a stand, so their W-Engine/Refinement/discs aren't editable and the name
+// is the only live field (this is what replaced the old Rename button). Their
+// discs have no Drive Disc Library backing at all, so the fingerprint lookup
+// above would resolve nothing and the form would draw six empty slots — the
+// locked path therefore renders straight from preset.discs instead, and
+// discSnapshots carries them.
 function editAgentPreset(agentKey, presetId) {
   const preset = getPresetById(agentKey, presetId);
   if (!preset) return;
-  if (presetCategory(preset) !== 'manual') {
-    showToast("Verified/imported builds can't be edited — delete and re-save from the stand.", 'error');
-    return;
-  }
+  const locked = presetCategory(preset) !== 'manual';
   const discSlots = [null, null, null, null, null, null];
-  (preset.discs || []).forEach(snap => {
-    const id = findLibraryDiscIdForSnapshot(snap);
-    if (id && snap.slot >= 1 && snap.slot <= 6) discSlots[snap.slot - 1] = id;
-  });
-  presetDraft = { agentKey, name: preset.name, wengine: preset.wengine, wrank: preset.wrank || 1, discSlots, editingPresetId: presetId };
-  document.getElementById('presetFormTitle').textContent = 'Edit Preset';
+  if (!locked) {
+    (preset.discs || []).forEach(snap => {
+      const id = findLibraryDiscIdForSnapshot(snap);
+      if (id && snap.slot >= 1 && snap.slot <= 6) discSlots[snap.slot - 1] = id;
+    });
+  }
+  const discSnapshots = locked ? [null, null, null, null, null, null] : null;
+  if (locked) {
+    (preset.discs || []).forEach(snap => {
+      if (snap && snap.slot >= 1 && snap.slot <= 6) discSnapshots[snap.slot - 1] = snap;
+    });
+  }
+  presetDraft = {
+    agentKey, name: preset.name, wengine: preset.wengine, wrank: preset.wrank || 1,
+    discSlots, editingPresetId: presetId, locked, discSnapshots,
+  };
+  document.getElementById('presetFormTitle').textContent = locked ? 'Rename Preset' : 'Edit Preset';
   renderPresetDraftEditor();
   document.getElementById('presetFormBg').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
@@ -9414,14 +9456,26 @@ function presetFormBgClick(e) { if (e.target === document.getElementById('preset
 function renderPresetDraftEditor() {
   const body = document.getElementById('presetFormBody');
   if (!body || !presetDraft) return;
-  const { agentKey, wengine, wrank, discSlots } = presetDraft;
+  const { agentKey, wengine, wrank, discSlots, locked, discSnapshots } = presetDraft;
 
   const weImg = wengine
     ? `<img src="${wengineUrl(wengine)}" onerror="this.style.opacity=.2">`
-    : `<span class="we-ph-ico">⚙️</span>`;
+    : `<span class="we-ph-ico">⚙</span>`;
   const rankTrack = makeSegTrack(5, wrank || 1, true, `data-action="preset-wrank" data-min="1"`);
 
+  // Locked cells come from the preset's own snapshot (no library entry exists
+  // to look up) and carry no click handler at all, so there's no way into the
+  // disc picker from here. Unlocked cells behave exactly as before.
   const cells = [0, 1, 2, 3, 4, 5].map(si => {
+    if (locked) {
+      const snap = (discSnapshots || [])[si];
+      if (!snap) return `<div class="disc-slot locked empty-num" title="Slot ${si + 1} — empty in this build"><span class="dn">${si + 1}</span></div>`;
+      const label = `${escapeHtml(snap.setName)} · ${escapeHtml(discStatLabel(snap.mainStat))} ${discStatValueDisplay(snap.mainStat, snap.mainStatValue)} — locked`;
+      return `<div class="disc-slot locked" title="${label}">
+        <img src="${discUrl(snap.setName)}" onerror="this.style.opacity=.2">
+        <span class="slot-lock">⊘</span>
+      </div>`;
+    }
     const discId = discSlots[si];
     const entry = discId ? driveDiscLibrary.find(d => d.id === discId) : null;
     const label = entry
@@ -9432,6 +9486,38 @@ function renderPresetDraftEditor() {
     </div>`;
   });
 
+  const lockNote = locked
+    ? `<div class="preset-form-locked-note">⊘ Snapshot of a stand — the W-Engine and discs are fixed. The name is yours to change.</div>`
+    : '';
+
+  const weCard = locked
+    ? `<div class="ag-we-card locked" style="margin:10px 0" title="Locked — part of the saved snapshot">
+        <div class="ag-we-top">
+          <div class="ag-we-img">${weImg}</div>
+          <div class="ag-we-info">
+            <span class="ag-we-label">W-Engine</span>
+            <span class="ag-we-name${wengine ? '' : ' empty'}">${wengine ? prettyName(wengine) : '—'}</span>
+          </div>
+          <span class="slot-lock">⊘</span>
+        </div>
+        ${wengine ? `<div class="ag-we-refrow">
+          <div class="seg-label purple"><span>Refinement</span><span class="seg-val">${wrank || 1}</span></div>
+        </div>` : ''}
+      </div>`
+    : `<div class="ag-we-card" style="margin:10px 0">
+        <div class="ag-we-top" onclick="openModal('preset-wengine', 0)">
+          <div class="ag-we-img">${weImg}</div>
+          <div class="ag-we-info">
+            <span class="ag-we-label">W-Engine</span>
+            <span class="ag-we-name${wengine ? '' : ' empty'}">${wengine ? prettyName(wengine) : 'Select'}</span>
+          </div>
+        </div>
+        ${wengine ? `<div class="ag-we-refrow" onclick="event.stopPropagation()">
+          <div class="seg-label purple"><span>Refinement</span><span class="seg-val">${wrank || 1}</span></div>
+          ${rankTrack}
+        </div>` : ''}
+      </div>`;
+
   body.innerHTML = `
     <div class="preset-form-row">
       <label class="preset-form-label">Agent</label>
@@ -9441,30 +9527,62 @@ function renderPresetDraftEditor() {
       <label class="preset-form-label">Name</label>
       <input type="text" id="presetDraftName" class="preset-form-input" value="${escapeHtml(presetDraft.name || '')}" placeholder="${escapeHtml(nextPresetName(agentKey))}">
     </div>
-    <div class="ag-we-card" style="margin:10px 0">
-      <div class="ag-we-top" onclick="openModal('preset-wengine', 0)">
-        <div class="ag-we-img">${weImg}</div>
-        <div class="ag-we-info">
-          <span class="ag-we-label">W-Engine</span>
-          <span class="ag-we-name${wengine ? '' : ' empty'}">${wengine ? prettyName(wengine) : 'Select'}</span>
-        </div>
-      </div>
-      ${wengine ? `<div class="ag-we-refrow" onclick="event.stopPropagation()">
-        <div class="seg-label purple"><span>Refinement</span><span class="seg-val">${wrank || 1}</span></div>
-        ${rankTrack}
-      </div>` : ''}
-    </div>
-    <div class="preset-form-label" style="margin-bottom:5px">Drive Discs</div>
+    ${lockNote}
+    ${weCard}
+    <div class="preset-form-label" style="margin-bottom:5px">Drive Discs${locked ? ' <span class="preset-form-locked-tag">⊘ locked</span>' : ''}</div>
     <div class="ag-slots-row" style="margin-bottom:5px">${cells.slice(0, 3).join('')}</div>
     <div class="ag-slots-row">${cells.slice(3, 6).join('')}</div>
   `;
 }
 
-function savePresetDraft() {
+/* Pushes a local preset's current contents onto its published row, if it has
+   one. Previously only the name was ever synced (and only from the old Rename
+   prompt), so editing a published preset's W-Engine/Refinement/discs left the
+   public copy showing the OLD build indefinitely — silently, with no way for
+   the owner to notice. Every edit path now goes through here. A failure is
+   logged and surfaced but deliberately non-fatal: the local edit already
+   succeeded, and re-saving (or unpublish/publish) will retry the sync. */
+async function syncPublishedPreset(preset) {
+  if (!preset || !preset.publishedId) return;
+  try {
+    const { error } = await sb.from('presets').update({
+      name: preset.name,
+      wengine: preset.wengine,
+      wrank: preset.wrank || 1,
+      discs: preset.discs,
+    }).eq('id', preset.publishedId);
+    if (error) throw error;
+  } catch (err) {
+    console.error('[Presets] failed to sync edit to the published copy:', err.message || err);
+    showToast('Saved locally, but the published copy could not be updated.', 'error');
+  }
+}
+
+async function savePresetDraft() {
   if (!presetDraft) return;
-  const { agentKey, wengine, wrank, discSlots, editingPresetId } = presetDraft;
+  const { agentKey, wengine, wrank, discSlots, editingPresetId, locked } = presetDraft;
   const nameInput = document.getElementById('presetDraftName');
   const name = nameInput ? nameInput.value.trim() : '';
+
+  // Locked ('verified'/'imported') presets: the name is the only live field,
+  // so this is the rename path. It deliberately does NOT go through
+  // updateAgentPreset() — that one insists on 6 discs resolved out of the
+  // Drive Disc Library (which a stand snapshot has none of) and clears
+  // preset.source, which would throw away the "saved off UID/nickname"
+  // attribution on an imported build.
+  if (locked) {
+    const preset = getPresetById(agentKey, editingPresetId);
+    if (!preset) { closePresetForm(); return; }
+    const prevName = preset.name;
+    renameAgentPreset(agentKey, editingPresetId, name); // empty/whitespace is a no-op by design
+    closePresetForm();
+    if (preset.name === prevName) return; // nothing actually changed — no toast, no cloud write
+    showToast(`Preset renamed to "${preset.name}".`, 'success');
+    refreshPresetViews(agentKey);
+    await syncPublishedPreset(preset);
+    return;
+  }
+
   const discEntries = (discSlots || []).map(id => id ? driveDiscLibrary.find(d => d.id === id) : null).filter(Boolean);
 
   if (!wengine) { showToast('Pick a W-Engine.', 'error'); return; }
@@ -9478,6 +9596,7 @@ function savePresetDraft() {
     showToast(`Preset "${preset.name}" saved.`, 'success');
     closePresetForm();
     refreshPresetViews(agentKey);
+    await syncPublishedPreset(preset);
   }
 }
 
@@ -9630,18 +9749,9 @@ function copyPublicPresetToMine() {
   }
 }
 
-async function renamePresetPrompt(agentKey, presetId) {
-  const preset = getPresetById(agentKey, presetId);
-  if (!preset) return;
-  const name = await customPrompt('New preset name:', preset.name);
-  if (name === null) return;
-  renameAgentPreset(agentKey, presetId, name);
-  if (preset.publishedId) {
-    try { await sb.from('presets').update({ name: preset.name }).eq('id', preset.publishedId); }
-    catch (err) { console.error('[Presets] failed to sync rename to public copy:', err.message || err); }
-  }
-  refreshPresetViews(agentKey);
-}
+// (renamePresetPrompt used to live here — the standalone rename prompt went
+// away with the Rename button; renaming now happens in the edit form, which
+// opens for locked presets with only the name editable. See savePresetDraft.)
 async function deletePresetPrompt(agentKey, presetId) {
   const preset = getPresetById(agentKey, presetId);
   if (!preset) return;
@@ -9738,7 +9848,7 @@ async function renderOwnerPresetView() {
     wengine: r.wengine,
     selected: String(r.id) === ownerPresetViewPresetId,
     title: `${escapeHtml(r.name)} — published build, read-only`,
-    badge: '<span class="preset-chip-imported" title="Published by this player — read-only">🌐</span>',
+    badge: '<span class="preset-chip-imported" title="Published by this player — read-only">⇪</span>',
     handler: `selectOwnerPresetTab('${r.id}')`,
   })));
 
@@ -9804,24 +9914,30 @@ async function saveCurrentShowcaseBuildAsPreset(agentKey) {
 // Rename/Publish-Unpublish/Delete (or, read-only, "Copy to my presets") —
 // pulled out so callers can place these in a top action row next to the
 // preset tabs instead of leaving them pinned to presetDetailHtml's footer.
+/* In-panel action pills. NOTE: for your OWN presets both current call sites
+   pass hideActions:true (the toolbar owns those actions now), so only the
+   readOnly branch is actually reachable today — the rest is kept in sync with
+   the toolbar's behaviour so it stays correct if it's ever switched back on. */
 function presetActionsHtml(agentKey, preset, opts = {}) {
   const { readOnly = false, matchingName = null } = opts;
   if (readOnly) {
     return matchingName
-      ? `<span class="lib-pill-btn" style="opacity:.4;cursor:default" title="You already have this exact build saved: \u201c${escapeHtml(matchingName)}\u201d">📋 Already saved</span>`
-      : `<button class="lib-pill-btn" onclick="copyPublicPresetToMine()">📋 Copy to my presets</button>`;
+      ? `<span class="lib-pill-btn" style="opacity:.4;cursor:default" title="You already have this exact build saved: \u201c${escapeHtml(matchingName)}\u201d">⧉ Already saved</span>`
+      : `<button class="lib-pill-btn" onclick="copyPublicPresetToMine()">⧉ Copy to my presets</button>`;
   }
   const cat = presetCategory(preset);
+  // Locked presets open the same form, just with everything but the name
+  // frozen — so this is one button for all three categories, not an Edit
+  // button plus a dead "Locked" chip plus a separate Rename.
   const editBtn = cat === 'manual'
     ? `<button class="lib-pill-btn" onclick="editAgentPreset('${agentKey}','${preset.id}')">Edit</button>`
-    : `<span class="lib-pill-btn" style="opacity:.4;cursor:default" title="${cat === 'verified' ? "Verified — pulled from the stand, can't be edited" : "Imported — another player's build, can't be edited"}">🔒 Locked</span>`;
+    : `<button class="lib-pill-btn" onclick="editAgentPreset('${agentKey}','${preset.id}')" title="${cat === 'verified' ? "Verified — pulled from the stand; only the name can be changed" : "Imported — another player's build; only the name can be changed"}">⊘ Rename</button>`;
   const publishBtn = cat === 'imported'
     ? '' // imported builds from someone else's stand can't be published at all
     : (preset.publishedId
-        ? `<button class="lib-pill-btn" onclick="unpublishPreset('${agentKey}','${preset.id}')" title="Others can currently see this preset on your public profile">🌐 Published — click to unpublish</button>`
+        ? `<button class="lib-pill-btn" onclick="unpublishPreset('${agentKey}','${preset.id}')" title="Others can currently see this preset on your public profile">⇪ Published — click to unpublish</button>`
         : `<button class="lib-pill-btn" onclick="publishPreset('${agentKey}','${preset.id}')" title="Makes this build visible to others via your Discord profile">Publish</button>`);
   return `${editBtn}
-    <button class="lib-pill-btn" onclick="renamePresetPrompt('${agentKey}','${preset.id}')">Rename</button>
     ${publishBtn}
     <button class="lib-pill-btn danger" onclick="deletePresetPrompt('${agentKey}','${preset.id}')">Delete</button>`;
 }
@@ -11050,7 +11166,7 @@ function renderAgents() {
 
       const weImg = a.wengine
         ? `<div class="ag-we-img"><img src="${wengineUrl(a.wengine)}" onerror="this.style.opacity=.2"></div>`
-        : `<div class="ag-we-img"><span class="we-ph-ico">⚙️</span></div>`;
+        : `<div class="ag-we-img"><span class="we-ph-ico">⚙</span></div>`;
 
       const refRow = a.wengine
         ? `<div class="ag-we-refrow" onclick="event.stopPropagation()">
