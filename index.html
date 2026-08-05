@@ -1297,6 +1297,10 @@ select {
 .preset-chip-lg:hover { border-color: var(--border2); color: var(--text); }
 .preset-chip-lg.selected { border-color: var(--accent); background: var(--accent-d); color: var(--accent); }
 .pd-preset-detail { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border2); }
+/* The dashed divider only earns its keep when something sits above it (the
+   read-only "Copy to my presets" row). Since the tab row moved to the
+   toolbar, the detail is usually the panel's FIRST child — no divider then. */
+.pd-preset-detail:first-child { margin-top: 0; padding-top: 0; border-top: none; }
 .preset-view-tabs-row {
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
