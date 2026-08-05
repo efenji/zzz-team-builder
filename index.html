@@ -30,13 +30,45 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--text); font-family: 'Barlow', 'Inter', sans-serif; min-height: 100vh; }
 
+/* ── PINNED BAR STACK (header + primary nav + toolbar) ──
+   One sticky element holding all three bars, instead of three independently
+   sticky bars offset by JS-measured heights.
+
+   The old approach set --header-h / --nav-h from offsetHeight and used them as
+   each bar's `top`. That leaked page content through a seam between the bars
+   for two reasons, both unavoidable in that design:
+     • offsetHeight returns a ROUNDED integer, while layout heights here are
+       fractional (font metrics + odd paddings + 1px borders). Round up by a
+       fraction of a pixel and the bar below sits that fraction too low.
+     • the values went stale. They were measured once at the end of the script
+       and only refreshed on `resize` — but the bars change height after that:
+       the webfonts (@import at the top of this file) swap in and reflow the
+       nav's Barlow Condensed buttons, and renderAuthUI() injects the Discord
+       avatar chip into the header once the Supabase session resolves.
+   Stacking them in a normal flow container removes the whole class of bug: the
+   browser does the arithmetic, at full sub-pixel precision, and redoes it
+   automatically on every reflow. Behaviour is unchanged — the bars were always
+   pinned together and never scrolled away individually.
+
+   The wrapper also carries the bars' own background, so even a sub-pixel
+   rounding seam between two children can only ever expose --bg2, never the
+   scrolling page beneath.
+
+   The children keep their z-index ladder (100 > 99 > 98) so that dropdowns
+   opened in the header overlap the nav and toolbar below; z-index needs a
+   positioned element, hence `position: relative` rather than `static`. */
+.topbar-stack {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--bg2);
+}
+
 /* ── HEADER ── */
 header {
   background: var(--bg2);
   border-bottom: 1px solid var(--border);
   padding: 11px 20px;
   display: flex; align-items: center; gap: 12px;
-  position: sticky; top: 0; z-index: 100;
+  position: relative; z-index: 100;
 }
 .header-brand { display: flex; flex-direction: column; }
 .header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
@@ -79,7 +111,7 @@ header {
   display: flex; align-items: center; gap: 4px;
   background: var(--bg2); border-bottom: 1px solid var(--border);
   padding: 0 20px;
-  position: sticky; top: var(--header-h, 57px); z-index: 99;
+  position: relative; z-index: 99;
 }
 .page-nav-btn {
   background: transparent; border: none; color: var(--text-mid);
@@ -102,7 +134,7 @@ header {
   border-bottom: 1px solid var(--border);
   padding: 9px 20px;
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-  position: sticky; top: calc(var(--header-h, 57px) + var(--nav-h, 46px)); z-index: 98;
+  position: relative; z-index: 98;
 }
 .toolbar.hidden { display: none; }
 .tb-group { display: flex; align-items: center; gap: 5px; }
@@ -1591,6 +1623,13 @@ select {
 </head>
 <body>
 
+<!-- All three pinned bars live in ONE sticky wrapper. They used to be three
+     separate `position: sticky` elements whose `top` offsets were fed by
+     JS-measured pixel heights (--header-h / --nav-h), which is what caused the
+     page content to show through a hairline gap between them — see the
+     .topbar-stack CSS for the full explanation. -->
+<div class="topbar-stack">
+
 <header>
   <div class="header-brand">
     <div class="logo"><em>ZZZ</em> · Team Builder</div>
@@ -1744,7 +1783,9 @@ select {
   </div>
 </div>
 
-</div>
+</div><!-- /.toolbar -->
+
+</div><!-- /.topbar-stack -->
 
 <div class="page" id="pageTeams">
   <div class="section-title">Saved Teams</div>
@@ -8539,7 +8580,8 @@ function showPage(which) {
   document.getElementById('navTeamsBtn').classList.toggle('active', which === 'teams');
   document.getElementById('navProfileBtn').classList.toggle('active', which === 'profile');
   document.getElementById('navFeedBtn').classList.toggle('active', which === 'feed');
-  updateHeaderHeightVar();
+  // (No height re-measure needed on tab switch any more — the toolbar changing
+  // height as its page group swaps is now just a reflow inside .topbar-stack.)
   if (which === 'profile') {
     renderProfileFavorites();
     updateProfileActionButtons();
@@ -12677,16 +12719,11 @@ updateUndoRedoButtons();
 renderTeams();
 handlePostDeepLink();
 
-function updateHeaderHeightVar() {
-  const h = document.querySelector('header');
-  if (h) document.documentElement.style.setProperty('--header-h', h.offsetHeight + 'px');
-  const nav = document.querySelector('.page-nav');
-  if (nav) document.documentElement.style.setProperty('--nav-h', nav.offsetHeight + 'px');
-  const tb = document.getElementById('mainToolbar');
-  if (tb) document.documentElement.style.setProperty('--toolbar-h', tb.classList.contains('hidden') ? '0px' : tb.offsetHeight + 'px');
-}
-updateHeaderHeightVar();
-window.addEventListener('resize', updateHeaderHeightVar);
+// (updateHeaderHeightVar() used to live here, publishing --header-h / --nav-h /
+// --toolbar-h so that the three pinned bars could offset their own `top`. The
+// bars now stack inside a single sticky .topbar-stack wrapper, so the browser
+// handles it at sub-pixel precision and re-does it on every reflow — no
+// measuring, no stale values, no seam. --toolbar-h had no CSS readers at all.)
 </script>
 </body>
 </html>
