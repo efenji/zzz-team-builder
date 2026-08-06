@@ -9224,7 +9224,7 @@ async function runProfileSearch(q) {
 
   el.innerHTML = data.map(p => `
     <div class="profile-search-item" onclick="selectProfileSearchResult('${escapeHtml(p.game_uid)}')">
-      ${p.discord_avatar_url ? `<img src="${escapeHtml(p.discord_avatar_url)}" onerror="this.style.display='none'">` : ''}
+      ${avatarImgHtml(p.discord_avatar_url)}
       <div class="psi-names">
         <span class="psi-game">${escapeHtml(p.game_nickname || 'UID ' + p.game_uid)}</span>
         <span class="psi-meta">${escapeHtml(p.discord_username || '')}${p.discord_username ? ' · ' : ''}UID ${escapeHtml(p.game_uid)}</span>
@@ -10918,19 +10918,62 @@ function cardName(k) {
   const cut = k.replace(/_image$/,'').split(/[-.]/)[0];
   return cut.split(' ').filter(Boolean).map(w=>w[0].toUpperCase()+w.slice(1)).join(' ');
 }
+// String(s ?? '') — раньше функция падала на всём, что не строка (null из БД,
+// число), а вызывается она в том числе на полях вида p.title / m.Value.
+// Апостроф экранируется потому, что escapeHtml подставляется и внутрь
+// одинарных кавычек (`onclick="foo('${escapeHtml(x)}')"`).
 function escapeHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+/* ── АВАТАРКИ ИЗ БД ──
+   profiles.discord_avatar_url приходит из строки, которую владелец аккаунта в
+   принципе может переписать сам, поэтому она НЕ доверенная. Раньше она
+   подставлялась в src="${...}" без экранирования: кавычка в значении закрывала
+   атрибут, а в том же теге уже стоит onerror — то есть это был рабочий
+   persistent-XSS. Теперь URL проходит белый список схем (только http/https,
+   что заодно отсекает javascript:/data:) и экранируется. */
+function safeImgUrl(u) {
+  if (typeof u !== 'string') return '';
+  const t = u.trim();
+  if (!/^https?:\/\//i.test(t)) return '';
+  return escapeHtml(t);
+}
+function avatarImgHtml(url, cls) {
+  const safe = safeImgUrl(url);
+  if (!safe) return '';
+  return `<img${cls ? ` class="${cls}"` : ''} src="${safe}" onerror="this.style.display='none'">`;
 }
 
 // List of known Shiyu Defense season numbers, newest first. A new season
 // drops roughly every 2 weeks — just prepend the new number here when it does.
 const SHIYU_SEASONS = ['53', '52'];
 
+/* Это список АКТУАЛЬНЫХ сезонов: новый в него дописывается, старые из него
+   уходят. А вот у сохранённой команды сезон остаётся навсегда — поэтому строить
+   <option>'ы напрямую из SHIYU_SEASONS нельзя.
+   Что происходило раньше: команда сохранена с shiyu:'51', сезон 51 из массива
+   ушёл; showEditor() делает sdShiyu.value = '51', такой опции нет → value
+   становится '', а saveTeam() читает value обратно и МОЛЧА стирает сезон при
+   любом сохранении этой команды.
+   Поэтому и селект редактора, и фильтр в тулбаре работают с объединением
+   "актуальные сезоны + всё, что реально встречается в сохранённых командах". */
+function knownShiyuSeasons() {
+  const set = new Set(SHIYU_SEASONS);
+  (teams || []).forEach(t => { if (t && t.shiyu) set.add(String(t.shiyu)); });
+  return [...set].sort((a, b) => (parseInt(b, 10) || 0) - (parseInt(a, 10) || 0));
+}
+
+// Без кэша на dataset.built: набор сезонов зависит от `teams`, а он меняется
+// (импорт, облачная синхронизация, удаление последней команды старого сезона).
+// Пересборка одного <select> из ~5 опций бесплатна, а вот залипший список
+// приводил бы ровно к тому же стиранию сезона.
 function populateShiyuSelect() {
   const sel = document.getElementById('sdShiyu');
-  if (!sel || sel.dataset.built) return;
-  sel.innerHTML = '<option value="">—</option>' + SHIYU_SEASONS.map(s => `<option value="${s}">${s}</option>`).join('');
-  sel.dataset.built = '1';
+  if (!sel) return;
+  sel.innerHTML = '<option value="">—</option>' + knownShiyuSeasons().map(s => `<option value="${s}">${s}</option>`).join('');
 }
 
 function newTeam() {
@@ -10950,7 +10993,6 @@ function newTeam() {
   };
 }
 
-function updateSideOptions() {}
 function updateRoomOptions() {
   const floor = +document.getElementById('sdFloor').value;
   const sel   = document.getElementById('sdSide');
@@ -11030,7 +11072,13 @@ let shiyuFilter = localStorage.getItem('zzz_shiyu_filter') || '';
 function populateShiyuFilterSelect() {
   const sel = document.getElementById('shiyuFilterSelect');
   if (!sel) return;
-  sel.innerHTML = '<option value="">All Shiyu</option>' + SHIYU_SEASONS.map(s => `<option value="${s}">S${s} only</option>`).join('');
+  const seasons = knownShiyuSeasons();
+  // Сохранённый фильтр может указывать на сезон, от которого не осталось ни
+  // одной команды. Опции для него в списке нет, селект показывал бы "All Shiyu",
+  // а shiyuFilter при этом продолжал бы фильтровать — сетка пустая, причина не
+  // видна. Держим такой сезон в списке, чтобы состояние всегда было на экране.
+  if (shiyuFilter && !seasons.includes(shiyuFilter)) seasons.unshift(shiyuFilter);
+  sel.innerHTML = '<option value="">All Shiyu</option>' + seasons.map(s => `<option value="${s}">S${s} only</option>`).join('');
   sel.value = shiyuFilter;
 }
 function setShiyuFilter(val) {
@@ -11120,11 +11168,14 @@ function duplicateSelectedTeam() {
   selectedTeamIds = new Set(newIds);
   renderTeams();
 }
-function deleteSelectedTeam() {
+// customConfirm вместо нативного confirm(): это был единственный оставшийся
+// системный диалог на основном пути приложения — везде остальное давно
+// использует собственный dlg-box.
+async function deleteSelectedTeam() {
   const ids = [...selectedTeamIds];
   if (!ids.length) return;
   const msg = ids.length === 1 ? 'Delete team?' : `Delete ${ids.length} teams?`;
-  if (!confirm(msg)) return;
+  if (!(await customConfirm(msg))) return;
   pushUndo();
   teams = teams.filter(t => !ids.includes(t.id));
   localStorage.setItem('zzz_teams', JSON.stringify(teams));
@@ -11213,22 +11264,11 @@ function saveTeam() {
   localStorage.setItem('zzz_teams', JSON.stringify(teams));
   renderTeams(); closeEditor();
 }
-function deleteTeam(id) {
-  if(!confirm('Delete team?')) return;
-  teams=teams.filter(x=>x.id!==id);
-  localStorage.setItem('zzz_teams', JSON.stringify(teams));
-  renderTeams();
-}
-function duplicateTeam(id) {
-  const idx = teams.findIndex(x=>x.id===id);
-  if (idx === -1) return;
-  const copy = JSON.parse(JSON.stringify(teams[idx]));
-  copy.id = uid();
-  copy.name = copy.name + ' Copy';
-  teams.splice(idx + 1, 0, copy);
-  localStorage.setItem('zzz_teams', JSON.stringify(teams));
-  renderTeams();
-}
+// Здесь были deleteTeam(id) / duplicateTeam(id) — легаси со времён кнопок на
+// самой карточке. Их вытеснили deleteSelectedTeam() / duplicateSelectedTeam()
+// из тулбара, вызовов не осталось ни одного, а undo они не писали вообще
+// (pushUndo отсутствовал) — то есть при случайном возврате к ним получился бы
+// ещё и баг. Удалены. Там же был пустой стаб updateSideOptions().
 
 /* ── RENDER AGENTS ── */
 function makeSegTrack(steps, val, purple, dataAttrs, maxVal) {
@@ -12216,13 +12256,13 @@ function renderAuthUI() {
   if (currentUser) {
     el.innerHTML = `<div class="account-menu" id="accountMenu">
       <div class="auth-user" onclick="toggleAccountMenu(event)" title="Account menu">
-        ${currentUser.avatar ? `<img class="auth-avatar" src="${currentUser.avatar}" onerror="this.style.display='none'">` : ''}
+        ${avatarImgHtml(currentUser.avatar, 'auth-avatar')}
         <span class="auth-name">${escapeHtml(currentUser.username)}</span>
         <span class="account-caret">▾</span>
       </div>
       <div class="account-dropdown hidden" id="accountDropdown">
         <div class="account-dropdown-user">
-          ${currentUser.avatar ? `<img src="${currentUser.avatar}" onerror="this.style.display='none'">` : ''}
+          ${avatarImgHtml(currentUser.avatar)}
           <div>
             <div class="account-dropdown-name">${escapeHtml(currentUser.username)}</div>
             ${isAdmin ? '<span class="account-dropdown-admin-badge">Admin</span>' : ''}
@@ -12353,7 +12393,10 @@ async function logoutDiscord() {
    Deliberately NOT synced: zzz_enka_ref_cache_* (a TTL'd reference-data
    cache, not user data — re-fetches fine on its own). */
 const CLOUD_SYNC_KEYS = new Set([
-  'zzz_teams', 'zzz_advanced_mode', 'zzz_disc_advanced_mode',
+  // 'zzz_advanced_mode' здесь больше нет: этот ключ никогда не пишется в
+  // localStorage (переименован в 'zzz_disc_advanced_mode' ещё в v58+), так что
+  // он только раздувал сравнение снимков в pullCloudSnapshot().
+  'zzz_teams', 'zzz_disc_advanced_mode',
   'zzz_agent_library', 'zzz_wengine_library', 'zzz_bangboo_library',
   'zzz_drive_disc_library', 'zzz_profile_favorites', 'zzz_profile_my_uid',
   'zzz_shiyu_filter', 'zzz_display_options', 'zzz_accent_color',
@@ -12443,7 +12486,11 @@ async function pullCloudSnapshot() {
     const v = localStorage.getItem(k);
     if (v !== null) localSnapshot[k] = v;
   });
-  const cloudKeys = Object.keys(row.data);
+  // Только отслеживаемые ключи: в облачной строке может лежать наследие от
+  // прежних версий CLOUD_SYNC_KEYS, и тогда длины наборов не совпали бы никогда
+  // — alreadyInSync не срабатывал бы, и диалог конфликта всплывал бы при каждом
+  // входе, хотя реальных расхождений нет.
+  const cloudKeys = Object.keys(row.data).filter(k => CLOUD_SYNC_KEYS.has(k));
   const localKeys = Object.keys(localSnapshot);
   const alreadyInSync = cloudKeys.length === localKeys.length
     && cloudKeys.every(k => localSnapshot[k] === row.data[k]);
@@ -12701,7 +12748,7 @@ function adminQueuePostHtml(p) {
   return `<div class="feed-post" data-post-id="${p.id}">
     <div class="feed-post-body" style="width:100%">
       <div class="feed-post-head">
-        ${author.discord_avatar_url ? `<img class="feed-author-avatar" src="${author.discord_avatar_url}" onerror="this.style.display='none'">` : ''}
+        ${avatarImgHtml(author.discord_avatar_url, 'feed-author-avatar')}
         <span class="feed-author-name">${escapeHtml(author.discord_username || '???')}</span>
         <span class="feed-post-title">${escapeHtml(p.title)}</span>
         ${resubmitTag}
@@ -12770,7 +12817,9 @@ function populateFeedFilterOptions() {
   const roomSel = document.getElementById('feedFilterRoom');
   if (!seasonSel || seasonSel.dataset.populated) return;
   seasonSel.innerHTML = '<option value="">All seasons</option>' + SHIYU_SEASONS.map(s => `<option value="${s}">S${s}</option>`).join('');
-  floorSel.innerHTML = '<option value="">Any floor</option>' + [1,2,3,4,5,6].map(f => `<option value="${f}">${f}F</option>`).join('');
+  // 1–5, ровно как в #sdFloor редактора. Раньше здесь был ещё 6 — опция, под
+  // которую невозможно опубликовать ни один пост.
+  floorSel.innerHTML = '<option value="">Any floor</option>' + [1,2,3,4,5].map(f => `<option value="${f}">${f}F</option>`).join('');
   roomSel.innerHTML = '<option value="">Any room</option><option value="A">Room 1</option><option value="B">Room 2</option><option value="C">Room 3</option>';
   seasonSel.dataset.populated = '1';
 }
@@ -12908,7 +12957,7 @@ function feedPostHtml(p) {
     </div>
     <div class="feed-post-body">
       <div class="feed-post-head">
-        ${p.discord_avatar_url ? `<img class="feed-author-avatar" src="${p.discord_avatar_url}" onerror="this.style.display='none'">` : ''}
+        ${avatarImgHtml(p.discord_avatar_url, 'feed-author-avatar')}
         <span class="feed-author-name" onclick="openPublicPresetsViewer('${p.user_id}', '${encodeURIComponent(p.discord_username || '???')}')" style="cursor:pointer" title="View this user's published presets">${escapeHtml(p.discord_username || '???')}</span>
         <span class="feed-post-title">${escapeHtml(p.title)}</span>
       </div>
@@ -12987,7 +13036,7 @@ async function loadComments(postId) {
   if (error) { el.innerHTML = `<div class="empty-state" style="padding:8px">Error: ${escapeHtml(error.message)}</div>`; return; }
   const listHtml = (comments || []).map(c => `
     <div class="comment-row">
-      ${c.profiles?.discord_avatar_url ? `<img class="comment-avatar" src="${c.profiles.discord_avatar_url}" onerror="this.style.display='none'">` : ''}
+      ${avatarImgHtml(c.profiles?.discord_avatar_url, 'comment-avatar')}
       <span class="comment-author">${escapeHtml(c.profiles?.discord_username || '???')}</span>
       <span class="comment-body">${escapeHtml(c.body)}</span>
     </div>`).join('') || '<div class="empty-state" style="padding:8px">No comments yet</div>';
