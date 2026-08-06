@@ -1280,8 +1280,8 @@ select {
    hero is this site's own additions (snapshot freshness, Discord owner, status
    line) and is styled as a plain strip so it reads as ours, not as a fake part
    of the game UI.
-   Every image here comes through enkaUiUrl() — change that one function when
-   the assets get mirrored into our own repo. */
+   Every image here comes through enkaUiUrl() (our zzz/enka-ui WebP mirror)
+   with an automatic per-image fallback to the original enka.network URL. */
 .player-card {
   background: var(--bg2); border: 1px solid var(--border);
   border-radius: 10px; overflow: hidden; margin-bottom: 16px;
@@ -8247,13 +8247,40 @@ async function getEnkaEquipmentItems() {
 
 // ── ENKA UI ASSETS ──────────────────────────────────────────────────────
 // Every icon path inside Enka's reference files is repo-relative, e.g.
-// "/ui/zzz/IconInterKnot0011.png". This single function turns one into a
-// loadable URL — when these images get mirrored into our own asset repo,
-// this is the ONLY place that needs to change.
-const ENKA_UI_BASE = 'https://enka.network';
+// "/ui/zzz/IconInterKnot0011.png". These images are mirrored into our own
+// asset repo as WebP: zzz/enka-ui/<same-filename>.webp — enkaUiUrl() points
+// there. enkaUiFallbackUrl() is the ORIGINAL enka.network PNG, used when the
+// mirror doesn't have a file yet: reference JSONs update ahead of our mirror
+// (and occasionally ahead of Enka's own CDN — six 3.x medal icons were
+// 404 there at mirror time), so every consumer of these URLs must survive a
+// miss. <img> tags do it via enkaImgFallback(); the namecard background does
+// it via the preload chain in applyHeroNamecard().
 function enkaUiUrl(path) {
   if (!path) return '';
-  return /^https?:\/\//.test(path) ? path : ENKA_UI_BASE + path;
+  if (/^https?:\/\//.test(path)) return path;
+  const name = path.split('/').pop().replace(/\.png$/i, '.webp');
+  return `${BASE}/enka-ui/${name}`;
+}
+function enkaUiFallbackUrl(path) {
+  if (!path) return '';
+  return /^https?:\/\//.test(path) ? path : 'https://enka.network' + path;
+}
+// onerror handler for mirrored Enka <img>s: first miss retries the original
+// enka.network URL (from data-fb), second miss hides the image. Setting
+// this.onerror=null before the swap would lose the hide step, so the state is
+// tracked via the data attribute instead: it's cleared after the swap.
+function enkaImgFallback(img) {
+  const fb = img.dataset.fb;
+  if (fb) {
+    delete img.dataset.fb;
+    img.src = fb;
+  } else {
+    img.style.display = 'none';
+  }
+}
+// Shorthand producing the src/data-fb/onerror attribute triple for an <img>.
+function enkaImgAttrs(path) {
+  return `src="${enkaUiUrl(path)}" data-fb="${enkaUiFallbackUrl(path)}" onerror="enkaImgFallback(this)"`;
 }
 
 /* ── PROFILE REFERENCE FILES ──
@@ -9062,6 +9089,21 @@ function renderPlayerCardMeta() {
     : '';
 }
 
+/* background-image can't use onerror, so the namecard goes through an
+   explicit preload chain: try the mirror, on miss try the original Enka URL,
+   on a double miss just leave the hero with its plain background. The hero
+   element is captured per-call, so a stale load finishing after another UID
+   opened can't paint the wrong card. */
+function applyHeroNamecard(hero, iconPath) {
+  const tryLoad = (url, onFail) => {
+    const im = new Image();
+    im.onload = () => { if (document.getElementById('pcHero') === hero) hero.style.backgroundImage = `url("${url}")`; };
+    im.onerror = onFail || null;
+    im.src = url;
+  };
+  tryLoad(enkaUiUrl(iconPath), () => tryLoad(enkaUiFallbackUrl(iconPath)));
+}
+
 async function renderPlayerCard() {
   const hero = document.getElementById('pcHero');
   if (!hero) return;
@@ -9109,11 +9151,11 @@ async function renderPlayerCard() {
   const pfpIcon = pfps[String(pd.ProfileId)]?.Icon;
   const pfpEl = document.getElementById('pcPfp');
   if (pfpEl && pfpIcon) {
-    pfpEl.innerHTML = `<img src="${enkaUiUrl(pfpIcon)}" onerror="this.style.display='none'">`;
+    pfpEl.innerHTML = `<img ${enkaImgAttrs(pfpIcon)}>`;
   }
 
   const cardIcon = namecards[String(pd.CallingCardId)]?.Icon;
-  if (cardIcon) hero.style.backgroundImage = `url("${enkaUiUrl(cardIcon)}")`;
+  if (cardIcon) applyHeroNamecard(hero, cardIcon);
 
   // Titles come in two flavours: a base entry in .Titles and, for some, a
   // variant id (base id + 2 digits) in .TitleVariants that overrides only the
@@ -9140,7 +9182,7 @@ async function renderPlayerCard() {
       if (!def) return '';
       const name = def.Name ? (locs[def.Name] || '') : '';
       return `<div class="pc-medal" title="${escapeHtml(name)}">
-        <img src="${enkaUiUrl(def.Icon)}" onerror="this.style.display='none'">
+        <img ${enkaImgAttrs(def.Icon)}>
         ${m.Value != null ? escapeHtml(String(m.Value)) : ''}
       </div>`;
     }).join('');
