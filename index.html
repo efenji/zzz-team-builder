@@ -217,16 +217,10 @@ header {
 .tb-input:focus { border-color: var(--accent); }
 .tb-search .profile-search-results { top: calc(100% + 6px); }
 
-/* Bookmarks dropdown (Profile slot E) — reuses .hd-menu from the header, so
-   the favorites markup renders unchanged, just stacked instead of wrapped. */
-.tb-dropdown { position: relative; flex-shrink: 0; }
-.tb-dropdown .hd-menu { top: calc(100% + 8px); max-width: 280px; }
-.tb-dropdown .profile-favorites {
-  flex-direction: column; align-items: stretch; gap: 5px; margin: 0;
-  max-height: 300px; overflow-y: auto;
-}
-.tb-dropdown .profile-fav-chip { justify-content: space-between; }
-.tb-fav-empty { font-size: 11px; color: var(--text-dim); }
+/* (The bookmarks dropdown that used to sit in Profile slot E is gone — the
+   list moved to #profileFavBar at the top of the page, where it can wrap.
+   .tb-btn.has-caret / .tb-caret above are left in place as generic utilities
+   for any future toolbar dropdown.) */
 
 /* Preset selector (Profile slot C) — the .preset-chip-lg tab row from the
    detail panel, shrunk to toolbar height. Sits immediately left of the
@@ -1268,7 +1262,97 @@ select {
 .profile-agent-card.broken { border-color: #b45309; }
 .profile-detail { flex: 1; min-width: 0; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
 .profile-detail-empty { color: var(--text-dim); font-size: 13px; text-align: center; padding: 60px 0; }
-.profile-favorites { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.profile-favorites { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ── BOOKMARKED ACCOUNTS BAR (top of the Profile tab, full width) ──
+   Was a dropdown in the toolbar; the list has no upper bound, so it lives out
+   here where it can wrap onto extra rows instead of being squeezed into a
+   popover. Hidden outright when empty rather than showing a placeholder — the
+   "load a UID and press ☆" hint lives in the ☆ button's tooltip instead. */
+.profile-fav-bar { margin-bottom: 12px; }
+.profile-fav-bar.hidden { display: none; }
+
+/* ── PLAYER CARD ──
+   Deliberately shaped like the in-game profile screen: the account's namecard
+   is the background image, dimmed by a left-to-right gradient so the text over
+   it stays readable no matter which card the player picked. .pc-meta below the
+   hero is this site's own additions (snapshot freshness, Discord owner, status
+   line) and is styled as a plain strip so it reads as ours, not as a fake part
+   of the game UI.
+   Every image here comes through enkaUiUrl() — change that one function when
+   the assets get mirrored into our own repo. */
+.player-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; overflow: hidden; margin-bottom: 16px;
+}
+/* Nothing loaded yet: the card must not sit there as an empty bordered box,
+   but the meta strip still has to be able to show "Loading…" / "Enter a
+   numeric UID." — so the chrome drops away and the status line is left bare,
+   which is exactly how these two lines looked before the card existed. */
+.player-card.empty { background: none; border: none; margin-bottom: 10px; }
+.player-card.empty .pc-meta { border-top: none; background: none; padding: 0; min-height: 0; }
+.pc-hero {
+  position: relative; min-height: 132px;
+  padding: 16px 18px;
+  display: flex; align-items: center; gap: 16px;
+  background-size: cover; background-position: center;
+}
+.pc-hero.hidden { display: none; }
+.pc-hero::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(17,17,17,.92) 0%, rgba(17,17,17,.78) 45%, rgba(17,17,17,.45) 100%);
+}
+.pc-hero > * { position: relative; }
+.pc-pfp {
+  width: 78px; height: 78px; border-radius: 50%; flex-shrink: 0;
+  background: var(--bg4); border: 2px solid var(--accent-30); overflow: hidden;
+}
+.pc-pfp img { width: 100%; height: 100%; object-fit: cover; }
+.pc-id { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.pc-nick-row { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.pc-nick {
+  font-family: 'Barlow Condensed', 'Oswald', sans-serif;
+  font-size: 26px; font-weight: 900; letter-spacing: .02em; line-height: 1;
+}
+.pc-uid {
+  font-family: 'Share Tech Mono', monospace; font-size: 11px;
+  color: var(--text-mid); letter-spacing: .08em;
+}
+.pc-title {
+  align-self: flex-start; font-size: 11.5px; font-weight: 700;
+  padding: 2px 9px; border-radius: 20px;
+  border: 1px solid rgba(255,255,255,.18);
+  /* ColorA/ColorB come straight out of titles.json — the game renders titles
+     as that exact two-stop gradient, so the text is clipped to it. */
+  background: linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+}
+.pc-title span {
+  background: linear-gradient(90deg, var(--pc-title-a, #e6e9ea), var(--pc-title-b, #8ea3ae));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.pc-desc { font-size: 12.5px; color: var(--text-mid); line-height: 1.4; max-width: 62ch; }
+.pc-side { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.pc-level {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim);
+}
+.pc-level b { color: var(--accent); font-size: 15px; }
+.pc-medals { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.pc-medal {
+  display: flex; align-items: center; gap: 4px;
+  background: rgba(0,0,0,.45); border: 1px solid var(--border2);
+  border-radius: 20px; padding: 2px 8px 2px 3px;
+  font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text);
+}
+.pc-medal img { width: 20px; height: 20px; object-fit: contain; }
+.pc-meta {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 8px 18px; border-top: 1px solid var(--border);
+  background: var(--bg3); min-height: 33px;
+}
+.pc-meta > * { margin-bottom: 0 !important; }
+.pc-meta-discord { font-size: 11px; color: var(--text-mid); }
+.pc-meta-discord b { color: var(--text); font-weight: 700; }
 .profile-fav-chip {
   display: flex; align-items: center; gap: 6px;
   background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
@@ -1282,8 +1366,8 @@ select {
   color: var(--text-dim); padding: 1px 6px; border-radius: 50%; line-height: 1; font-size: 11px;
 }
 .profile-fav-chip .fav-x:hover { color: var(--red); background: rgba(239,68,68,.15); }
-.profile-current-player { font-size: 13px; color: var(--text-mid); margin-bottom: 10px; }
-.profile-current-player b { color: var(--text); font-weight: 700; }
+/* (.profile-current-player is gone — the nickname · UID · Lv line it styled is
+   now the hero half of .player-card above.) */
 .pd-head { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 16px; }
 .pd-portrait { width: 96px; height: 96px; border-radius: 10px; overflow: hidden; background: var(--bg4); flex-shrink: 0; }
 .pd-portrait img { width: 100%; height: 100%; object-fit: cover; }
@@ -1699,6 +1783,11 @@ select {
 </div>
 
 <!-- ══ TOOLBAR · PROFILE ══
+     Slot A on this tab is the ⌂/☆ pair — the same leftmost position undo/redo
+     occupies on Saved Teams. Both act on whichever UID is currently loaded,
+     and the bookmark LIST they used to open as a dropdown now lives full-width
+     at the top of the page itself (#profileFavBar), so it can wrap onto as
+     many rows as it needs instead of being crammed into a popover.
      Slot B mirrors the Saved Teams action row 1:1 — same five positions, same
      glyph family, so the muscle memory carries across tabs:
        +  new        (Teams: + New Team)
@@ -1720,6 +1809,11 @@ select {
      Slot C: the UID / nickname search. Slot E: bookmarks + this-UID toggles. -->
 <div class="tb-page-group hidden" id="tbGroupProfile">
   <div class="tb-group">
+    <button class="tb-btn" id="profileSetMyBtn" onclick="setCurrentAsMyUid()" disabled title="Remember this UID and auto-load it on this tab">⌂</button>
+    <button class="tb-btn" id="profileFavBtn" onclick="toggleCurrentFavorite()" disabled title="Add to favorites">☆</button>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-group">
     <button class="tb-btn primary" id="tbPresetNew" onclick="openPresetAgentPicker()" title="New preset — pick any agent, then a W-Engine and discs from your libraries">+</button>
     <button class="tb-btn" id="tbPresetEdit" onclick="toolbarEditPreset()" title="Edit the open preset" disabled>✎</button>
     <button class="tb-btn" id="tbSaveBuild" onclick="toolbarSaveCurrentBuild()" title="Save the shown build as a preset" disabled>⇩</button>
@@ -1739,17 +1833,6 @@ select {
     </div>
     <button class="tb-btn tb-btn-txt" onclick="closeProfileSearchResults();loadProfileShowcase()">Load</button>
     <button class="tb-btn hidden" id="profileReloadMyBtn" onclick="reloadMyShowcase()" title="Refresh your stand from Enka and save it to the site">⟳</button>
-  </div>
-  <div class="tb-group tb-push">
-    <button class="tb-btn" id="profileFavBtn" onclick="toggleCurrentFavorite()" disabled title="Add to favorites">☆</button>
-    <button class="tb-btn" id="profileSetMyBtn" onclick="setCurrentAsMyUid()" disabled title="Remember this UID and auto-load it on this tab">⌂</button>
-    <div class="tb-dropdown" id="profileFavDropdown">
-      <button class="tb-btn has-caret" id="profileFavListBtn" onclick="toggleProfileFavMenu(event)" title="Bookmarked accounts">★<span class="tb-caret">▾</span></button>
-      <div class="hd-menu hidden" id="profileFavMenu">
-        <div class="hd-menu-label">Bookmarks</div>
-        <div class="profile-favorites" id="profileFavoritesRow"></div>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -1795,10 +1878,31 @@ select {
 
 <div class="page hidden" id="pageProfile">
   <div class="section-title">Profile · Character Showcase (by UID)</div>
+
+  <!-- Bookmarked accounts, full width, wrapping onto as many rows as needed.
+       My own (verified) account is always the first chip. Hidden entirely when
+       there's nothing bookmarked — see renderProfileFavorites(). -->
+  <div class="profile-fav-bar hidden" id="profileFavBar">
+    <div class="profile-favorites" id="profileFavoritesRow"></div>
+  </div>
+
+  <!-- Player card. The hero half mirrors the in-game profile screen (namecard
+       as the background, Inter-Knot profile picture, nickname, title, signature,
+       UID/level, badges); the meta strip under it carries the things only THIS
+       site knows — when the stand snapshot was last refreshed, the owner's
+       Discord name, and the loading/error line. The meta strip stays in the DOM
+       even with nothing loaded, because that's where "Loading…" and
+       "Enter a numeric UID." have to appear. -->
+  <div class="player-card empty" id="profilePlayerCard">
+    <div class="pc-hero hidden" id="pcHero"></div>
+    <div class="pc-meta">
+      <div class="profile-cache-status" id="profileCacheStatus"></div>
+      <div class="disc-import-status" id="profileStatus"></div>
+      <div class="pc-meta-discord" id="pcMetaDiscord"></div>
+    </div>
+  </div>
+
   <div class="uid-verify-panel hidden" id="uidVerifyPanel"></div>
-  <div class="profile-cache-status" id="profileCacheStatus"></div>
-  <div class="disc-import-status" id="profileStatus"></div>
-  <div class="profile-current-player" id="profileCurrentPlayer"></div>
   <div class="profile-layout">
     <div class="profile-agent-list-col">
       <div class="profile-agent-list" id="profileAgentList"></div>
@@ -8140,6 +8244,57 @@ async function getEnkaEquipmentItems() {
   return enkaEquipmentItemsPromise;
 }
 
+// ── ENKA UI ASSETS ──────────────────────────────────────────────────────
+// Every icon path inside Enka's reference files is repo-relative, e.g.
+// "/ui/zzz/IconInterKnot0011.png". This single function turns one into a
+// loadable URL — when these images get mirrored into our own asset repo,
+// this is the ONLY place that needs to change.
+const ENKA_UI_BASE = 'https://enka.network';
+function enkaUiUrl(path) {
+  if (!path) return '';
+  return /^https?:\/\//.test(path) ? path : ENKA_UI_BASE + path;
+}
+
+/* ── PROFILE REFERENCE FILES ──
+   The player card needs four more static reference files beyond the three the
+   stat engine already pulls. They're small and only fetched the first time a
+   player card is drawn, then memoised in memory and cached in localStorage on
+   the same 7-day TTL / version stamp as the others.
+     pfps.json      ProfileDetail.ProfileId     -> { Icon }        117 entries
+     namecards.json ProfileDetail.CallingCardId -> { Icon }        178 entries
+     titles.json    ProfileDetail.Title         -> { TitleText, ColorA, ColorB }
+     medals.json    SocialDetail.MedalList[].MedalIcon -> { Name, Icon }
+     locs.json      the localisation keys the two above hand back
+   locs.json ships all 12 languages (~290 KB), so only the English slice is
+   kept — that's 449 keys and comfortably cacheable. */
+const ENKA_PROFILE_REFS = {
+  pfps:      { file: 'pfps.json',      key: 'zzz_enka_ref_pfps' },
+  namecards: { file: 'namecards.json', key: 'zzz_enka_ref_namecards' },
+  titles:    { file: 'titles.json',    key: 'zzz_enka_ref_titles' },
+  medals:    { file: 'medals.json',    key: 'zzz_enka_ref_medals' },
+  locs:      { file: 'locs.json',      key: 'zzz_enka_ref_locs_en', pick: d => d.en || {} },
+};
+const enkaProfileRefData = {};
+const enkaProfileRefPromises = {};
+async function getEnkaProfileRef(name) {
+  const def = ENKA_PROFILE_REFS[name];
+  if (!def) return {};
+  if (enkaProfileRefData[name]) return enkaProfileRefData[name];
+  if (!enkaProfileRefPromises[name]) {
+    enkaProfileRefPromises[name] = (async () => {
+      const cached = loadEnkaRefCache(def.key);
+      if (cached) { enkaProfileRefData[name] = cached; return cached; }
+      const res = await fetch(`https://raw.githubusercontent.com/EnkaNetwork/API-docs/master/store/zzz/${def.file}`);
+      const raw = await res.json();
+      const data = def.pick ? def.pick(raw) : raw;
+      enkaProfileRefData[name] = data;
+      saveEnkaRefCache(def.key, data);
+      return data;
+    })().catch(err => { enkaProfileRefPromises[name] = null; throw err; });
+  }
+  return enkaProfileRefPromises[name];
+}
+
 // ── PROFILE STAT ENGINE ─────────────────────────────────────────────────
 // Computes an agent's final stat sheet the same way Enka's own showcase
 // does, using the officially documented formulas (see EnkaNetwork/API-docs
@@ -8568,7 +8723,6 @@ function setToolbarPage(which) {
   document.getElementById('tbGroupTeams').classList.toggle('hidden', which !== 'teams');
   document.getElementById('tbGroupProfile').classList.toggle('hidden', which !== 'profile');
   document.getElementById('tbGroupFeed').classList.toggle('hidden', which !== 'feed');
-  closeProfileFavMenu();
   closeProfileSearchResults();
 }
 
@@ -8759,11 +8913,16 @@ let profileCurrentUid = null;
 let profileCurrentOwnerId = null; // Supabase profiles.id of whoever's UID is on screen, if any
 let profileCurrentNickname = '';
 let profileCurrentLevel = null;
+// Raw PlayerInfo.SocialDetail of whoever's UID is on screen — the player card
+// needs ProfileId / CallingCardId / Title / MedalList / Desc out of it, and
+// it's already in the payload (live and from the saved snapshot alike), so
+// there's nothing extra to fetch or store server-side.
+let profileCurrentSocial = null;
+let profileCurrentDiscordName = null;
 
 function saveProfileFavorites() { localStorage.setItem('zzz_profile_favorites', JSON.stringify(profileFavorites)); }
 
 function loadProfileByUid(uid) {
-  closeProfileFavMenu();
   document.getElementById('profileUidInput').value = uid;
   loadProfileShowcase();
 }
@@ -8785,56 +8944,61 @@ function clearMyUid() {
   updateProfileActionButtons();
 }
 
-function toggleCurrentFavorite() {
+// Adding is a one-click action; removing asks first, since a bookmark can hold
+// a nickname you'd have to go find again. Same dialog as deleting a preset.
+async function toggleCurrentFavorite() {
   if (!profileCurrentUid) return;
   const idx = profileFavorites.findIndex(f => f.uid === profileCurrentUid);
-  if (idx >= 0) profileFavorites.splice(idx, 1);
-  else profileFavorites.push({ uid: profileCurrentUid, nickname: profileCurrentNickname || '' });
+  if (idx >= 0) {
+    if (!(await confirmRemoveFavorite(profileFavorites[idx]))) return;
+    profileFavorites.splice(idx, 1);
+  } else {
+    profileFavorites.push({ uid: profileCurrentUid, nickname: profileCurrentNickname || '' });
+  }
   saveProfileFavorites();
   renderProfileFavorites();
   updateProfileActionButtons();
 }
 
-function removeProfileFavorite(uid) {
+function favoriteLabel(fav) {
+  if (!fav) return 'this account';
+  return fav.nickname ? `${fav.nickname} (UID ${fav.uid})` : `UID ${fav.uid}`;
+}
+
+function confirmRemoveFavorite(fav) {
+  return customConfirm(`Remove ${favoriteLabel(fav)} from your bookmarked accounts?`,
+    { okLabel: 'Remove', danger: true });
+}
+
+async function removeProfileFavorite(uid) {
+  const fav = profileFavorites.find(f => f.uid === uid);
+  if (!fav) return;
+  if (!(await confirmRemoveFavorite(fav))) return;
   profileFavorites = profileFavorites.filter(f => f.uid !== uid);
   saveProfileFavorites();
   renderProfileFavorites();
   updateProfileActionButtons();
 }
 
-// ── Bookmarks dropdown (toolbar slot E) ──
-// The chip markup is unchanged from when this was a wrapped row under the
-// search field; only its container moved into a .hd-menu popover, since the
-// list has no upper bound and would otherwise blow the toolbar's single row.
-function toggleProfileFavMenu(e) {
-  e.stopPropagation();
-  closeAccountMenu();
-  closeSettingsMenu();
-  const menu = document.getElementById('profileFavMenu');
-  const btn = document.getElementById('profileFavListBtn');
-  const opening = menu.classList.contains('hidden');
-  menu.classList.toggle('hidden', !opening);
-  btn.classList.toggle('active-fav', opening);
-}
-function closeProfileFavMenu() {
-  const menu = document.getElementById('profileFavMenu');
-  const btn = document.getElementById('profileFavListBtn');
-  if (menu) menu.classList.add('hidden');
-  if (btn) btn.classList.remove('active-fav');
-}
+// (toggleProfileFavMenu / closeProfileFavMenu used to live here. The bookmarks
+// popover is gone — the list is a full-width wrapping row on the page now, so
+// there's nothing to open or close.)
 
+/* ── BOOKMARKED ACCOUNTS ──
+   Renders the full-width chip row at the top of the Profile tab. My own
+   (verified) account is always first, then the favorites in insertion order.
+   The whole bar hides when there's nothing to show, so it doesn't leave an
+   empty band under the section title. */
 function renderProfileFavorites() {
   const row = document.getElementById('profileFavoritesRow');
-  const listBtn = document.getElementById('profileFavListBtn');
-  if (listBtn) {
-    const n = profileFavorites.length + (profileMyUid ? 1 : 0);
-    listBtn.title = n ? `Bookmarked accounts (${n})` : 'No bookmarked accounts yet';
-  }
+  const bar = document.getElementById('profileFavBar');
   if (!row) return;
   if (!profileMyUid && !profileFavorites.length) {
-    row.innerHTML = '<div class="tb-fav-empty">Nothing bookmarked yet — load a UID and press ☆.</div>';
+    row.innerHTML = '';
+    if (bar) bar.classList.add('hidden');
     return;
   }
+  if (bar) bar.classList.remove('hidden');
   let html = '';
   if (profileMyUid) {
     const active = profileCurrentUid === profileMyUid ? ' active' : '';
@@ -8867,7 +9031,9 @@ function updateProfileActionButtons() {
     const isFav = !!(profileCurrentUid && profileFavorites.some(f => f.uid === profileCurrentUid));
     favBtn.textContent = isFav ? '★' : '☆';
     favBtn.classList.toggle('active-fav', isFav);
-    favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
+    favBtn.title = !profileCurrentUid
+      ? 'Load a UID first, then press ☆ to bookmark that account'
+      : isFav ? 'Remove from bookmarked accounts' : 'Add to bookmarked accounts';
   }
   if (myBtn) {
     const verifiedLocked = currentUser && myGameUid;
@@ -8882,14 +9048,112 @@ function updateProfileActionButtons() {
   }
 }
 
-function renderProfileCurrentPlayer() {
-  const el = document.getElementById('profileCurrentPlayer');
+/* ── PLAYER CARD ──
+   Draws the in-game-looking half of #profilePlayerCard from the showcase
+   payload's SocialDetail, plus this site's own extras in the meta strip.
+   Async because the four reference files are fetched lazily on first use; the
+   text half is written immediately and the image-backed bits fill in when the
+   refs land, so a cold cache never blocks the card from appearing. */
+function clearPlayerCard() {
+  profileCurrentSocial = null;
+  profileCurrentDiscordName = null;
+  const hero = document.getElementById('pcHero');
+  if (hero) { hero.innerHTML = ''; hero.classList.add('hidden'); hero.style.backgroundImage = ''; }
+  document.getElementById('profilePlayerCard')?.classList.add('empty');
+  renderPlayerCardMeta();
+}
+
+function renderPlayerCardMeta() {
+  const el = document.getElementById('pcMetaDiscord');
   if (!el) return;
-  if (!profileCurrentUid) { el.textContent = ''; return; }
-  const lvlPart = profileCurrentLevel != null ? ` · Lv.${escapeHtml(String(profileCurrentLevel))}` : '';
-  el.innerHTML = profileCurrentNickname
-    ? `<b>${escapeHtml(profileCurrentNickname)}</b> · UID ${escapeHtml(profileCurrentUid)}${lvlPart}`
-    : `UID ${escapeHtml(profileCurrentUid)}${lvlPart}`;
+  el.innerHTML = profileCurrentDiscordName
+    ? `Discord: <b>${escapeHtml(profileCurrentDiscordName)}</b>`
+    : '';
+}
+
+async function renderPlayerCard() {
+  const hero = document.getElementById('pcHero');
+  if (!hero) return;
+  if (!profileCurrentUid) { clearPlayerCard(); return; }
+
+  const pd = profileCurrentSocial?.ProfileDetail || {};
+  const desc = profileCurrentSocial?.Desc || '';
+  const medalList = profileCurrentSocial?.MedalList || [];
+
+  // Text-only pass first — no awaiting, so the card is on screen immediately.
+  const levelHtml = profileCurrentLevel != null
+    ? `<div class="pc-level">Inter-Knot <b>${escapeHtml(String(profileCurrentLevel))}</b></div>`
+    : '';
+  hero.innerHTML = `
+    <div class="pc-pfp" id="pcPfp"></div>
+    <div class="pc-id">
+      <div class="pc-nick-row">
+        <div class="pc-nick">${escapeHtml(profileCurrentNickname || 'Unknown Proxy')}</div>
+        <div class="pc-uid">UID ${escapeHtml(profileCurrentUid)}</div>
+      </div>
+      <div class="pc-title hidden" id="pcTitle"></div>
+      ${desc ? `<div class="pc-desc">${escapeHtml(desc)}</div>` : ''}
+    </div>
+    <div class="pc-side">
+      ${levelHtml}
+      <div class="pc-medals" id="pcMedals"></div>
+    </div>`;
+  hero.classList.remove('hidden');
+  document.getElementById('profilePlayerCard')?.classList.remove('empty');
+
+  // Image/label pass. Any single ref failing (offline, GitHub hiccup) must not
+  // take the whole card down, hence the per-file catch — the card just stays in
+  // its text-only state for whatever didn't load.
+  const [pfps, namecards, titles, medals, locs] = await Promise.all([
+    getEnkaProfileRef('pfps').catch(() => ({})),
+    getEnkaProfileRef('namecards').catch(() => ({})),
+    getEnkaProfileRef('titles').catch(() => ({})),
+    getEnkaProfileRef('medals').catch(() => ({})),
+    getEnkaProfileRef('locs').catch(() => ({})),
+  ]);
+
+  // Another UID may have finished loading while those were in flight.
+  if (!profileCurrentUid || document.getElementById('pcHero') !== hero) return;
+
+  const pfpIcon = pfps[String(pd.ProfileId)]?.Icon;
+  const pfpEl = document.getElementById('pcPfp');
+  if (pfpEl && pfpIcon) {
+    pfpEl.innerHTML = `<img src="${enkaUiUrl(pfpIcon)}" onerror="this.style.display='none'">`;
+  }
+
+  const cardIcon = namecards[String(pd.CallingCardId)]?.Icon;
+  if (cardIcon) hero.style.backgroundImage = `url("${enkaUiUrl(cardIcon)}")`;
+
+  // Titles come in two flavours: a base entry in .Titles and, for some, a
+  // variant id (base id + 2 digits) in .TitleVariants that overrides only the
+  // text. Colours always live on the base entry, so fall back to the id with
+  // the variant suffix trimmed off.
+  const titleId = String(pd.Title || '');
+  const baseTitles = titles.Titles || {};
+  const variant = (titles.TitleVariants || {})[titleId];
+  const base = baseTitles[titleId] || baseTitles[titleId.slice(0, 7)] || null;
+  const titleKey = variant?.TitleText || base?.TitleText;
+  const titleText = titleKey ? locs[titleKey] : null;
+  const titleEl = document.getElementById('pcTitle');
+  if (titleEl && titleText) {
+    if (base?.ColorA) titleEl.style.setProperty('--pc-title-a', '#' + base.ColorA);
+    if (base?.ColorB) titleEl.style.setProperty('--pc-title-b', '#' + base.ColorB);
+    titleEl.innerHTML = `<span>${escapeHtml(titleText)}</span>`;
+    titleEl.classList.remove('hidden');
+  }
+
+  const medalsEl = document.getElementById('pcMedals');
+  if (medalsEl) {
+    medalsEl.innerHTML = medalList.map(m => {
+      const def = medals[String(m.MedalIcon)];
+      if (!def) return '';
+      const name = def.Name ? (locs[def.Name] || '') : '';
+      return `<div class="pc-medal" title="${escapeHtml(name)}">
+        <img src="${enkaUiUrl(def.Icon)}" onerror="this.style.display='none'">
+        ${m.Value != null ? escapeHtml(String(m.Value)) : ''}
+      </div>`;
+    }).join('');
+  }
 }
 
 function setProfileStatus(msg, kind) {
@@ -8960,6 +9224,7 @@ async function loadProfileShowcase() {
   document.getElementById('profileAgentList').innerHTML = '';
   document.getElementById('profileDetail').innerHTML = '<div class="profile-detail-empty">Loading…</div>';
   document.getElementById('profileCacheStatus').textContent = '';
+  clearPlayerCard();
   profileSelectedIndex = null;
 
   // Если этот UID подтверждён каким-то пользователем сайта и у него есть
@@ -8969,10 +9234,11 @@ async function loadProfileShowcase() {
   let data = null;
   let cacheInfo = null;
   let ownerId = null;
+  let ownerDiscordName = null;
   try {
     const { data: ownerRow, error: ownerErr } = await sb
       .from('profiles')
-      .select('id, showcase_snapshot, showcase_updated_at')
+      .select('id, discord_username, showcase_snapshot, showcase_updated_at')
       .eq('game_uid', uidVal)
       .maybeSingle();
     if (ownerErr) console.error('[Profile] failed to look up profiles row for UID', uidVal, ':', ownerErr.message || ownerErr);
@@ -8981,6 +9247,7 @@ async function loadProfileShowcase() {
       // сохранённый снимок стенда — он нужен ниже, чтобы подтянуть его
       // ОПУБЛИКОВАННЫЕ пресеты, а не показывать локальные пресеты этого браузера.
       ownerId = ownerRow.id;
+      ownerDiscordName = ownerRow.discord_username || null;
       if (ownerRow.showcase_snapshot) {
         data = ownerRow.showcase_snapshot;
         cacheInfo = { updatedAt: ownerRow.showcase_updated_at };
@@ -8998,12 +9265,12 @@ async function loadProfileShowcase() {
     if (data.error) { setProfileStatus(`Error: ${data.error}`, 'err'); return; }
   }
 
-  applyShowcaseData(data, uidVal, cacheInfo, ownerId);
+  applyShowcaseData(data, uidVal, cacheInfo, ownerId, ownerDiscordName);
 }
 
 // Общая часть применения данных стенда (Enka-ответ) к UI — используется и
 // для живой загрузки, и для показа серверного кэша, и после Reload.
-function applyShowcaseData(data, uidVal, cacheInfo, ownerId = null) {
+function applyShowcaseData(data, uidVal, cacheInfo, ownerId = null, discordName = null) {
   const avatars = data?.PlayerInfo?.ShowcaseDetail?.AvatarList || [];
   if (!avatars.length) { setProfileStatus('Showcase is empty (or private) for that UID.', 'err'); return; }
 
@@ -9012,9 +9279,12 @@ function applyShowcaseData(data, uidVal, cacheInfo, ownerId = null) {
   const profileDetail = data?.PlayerInfo?.SocialDetail?.ProfileDetail || {};
   profileCurrentUid = uidVal;
   profileCurrentOwnerId = ownerId;
+  profileCurrentSocial = data?.PlayerInfo?.SocialDetail || null;
   profileCurrentNickname = profileDetail.Nickname || '';
   profileCurrentLevel = profileDetail.Level ?? null;
-  renderProfileCurrentPlayer();
+  profileCurrentDiscordName = discordName || null;
+  renderPlayerCard();
+  renderPlayerCardMeta();
   updateProfileActionButtons();
   renderProfileFavorites();
   renderReloadMyButton();
@@ -9068,7 +9338,7 @@ async function reloadMyShowcase() {
     if (error) throw error;
     myGameNickname = nickname || myGameNickname;
     showToast('Stand refreshed and saved.', 'success');
-    applyShowcaseData(data, myGameUid, { updatedAt: new Date().toISOString(), justNow: true }, currentUser.id);
+    applyShowcaseData(data, myGameUid, { updatedAt: new Date().toISOString(), justNow: true }, currentUser.id, currentUser.username);
   } catch (err) {
     showToast('Failed to save: ' + (err.message || err), 'error');
   } finally {
@@ -11963,10 +12233,8 @@ function closeSettingsMenu() {
 document.addEventListener('click', (e) => {
   closeAccountMenu();
   closeSettingsMenu();
-  const favDd = document.getElementById('profileFavDropdown');
-  if (favDd && !favDd.contains(e.target)) closeProfileFavMenu();
 });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeAccountMenu(); closeSettingsMenu(); closeProfileFavMenu(); } });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeAccountMenu(); closeSettingsMenu(); } });
 
 async function confirmLogout() {
   closeAccountMenu();
