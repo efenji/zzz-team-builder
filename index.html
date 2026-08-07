@@ -1201,6 +1201,16 @@ select {
 .disc-detail-row.up-flat .disc-detail-row-label { color: var(--accent-60); }
 .disc-detail-row.up-pen  .disc-detail-row-label { color: var(--accent2); }
 
+/* Лист статов: красится и значение, а не только подпись. Правила намеренно
+   заужены классом .pd-stat-row — строки сабстатов внутри карточки диска
+   используют те же up-*, и там значение должно оставаться нейтральным.
+   .pd-stat-note («базовое + бонус» в скобках) под это не попадает: он
+   переопределяет color сам и остаётся приглушённым, иначе строка превратилась
+   бы в одно сплошное цветное пятно. */
+.disc-detail-row.pd-stat-row.up-main .disc-detail-row-val { color: var(--accent); }
+.disc-detail-row.pd-stat-row.up-flat .disc-detail-row-val { color: var(--accent-60); }
+.disc-detail-row.pd-stat-row.up-pen  .disc-detail-row-val { color: var(--accent2); }
+
 .dd-useful {
   display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;
   font-family: 'Share Tech Mono', monospace; font-size: 11px;
@@ -9821,7 +9831,7 @@ function usefulRuleMatches(when, discEntries) {
 // агента. Наборы зависят от мейн-статов надетых дисков, поэтому один и тот же
 // диск в двух разных сборках одного агента может подсвечиваться по-разному.
 function resolveUsefulSubstats(agentKey, discEntries) {
-  const empty = { main: new Set(), flat: new Set(), rule: null, noPen: false };
+  const empty = { main: new Set(), flat: new Set(), rule: null, noPen: false, specialty: null };
   if (!agentKey) return empty;
   const specialty = getAgentClasses(agentKey)[0];
   const rule = (USEFUL_SUBSTATS_AGENT[agentKey] || []).find(r => usefulRuleMatches(r.when, discEntries))
@@ -9832,7 +9842,7 @@ function resolveUsefulSubstats(agentKey, discEntries) {
   const flat = new Set(rule.flat || []);
   main.forEach(s => { const f = USEFUL_FLAT_COUNTERPART[s]; if (f) flat.add(f); });
   flat.forEach(s => { if (main.has(s)) flat.delete(s); }); // основной зачёт важнее
-  return { main, flat, rule, noPen: NO_PEN_SPECIALTIES.has(specialty) };
+  return { main, flat, rule, noPen: NO_PEN_SPECIALTIES.has(specialty), specialty };
 }
 
 // Какой из трёх зачётов забирает этот сабстат ('' — бесполезен).
@@ -9860,6 +9870,54 @@ function countUsefulProcs(discEntries, useful) {
     return row;
   });
   return { total, perDisc };
+}
+
+/* ── ПОДСВЕТКА СТРОК ЛИСТА СТАТОВ ──────────────────────────────────────────
+   Берётся тот же набор «полезного», что и для сабстатов, но спроецированный на
+   строки листа. Проекция нужна потому, что в листе НЕТ отдельных строк 'HP%' и
+   'HP': процент и флет складываются в одну строку 'HP'. Поэтому имена из
+   наборов нормализуются срезанием '%' через discStatLabel(), и у Rupture строка
+   HP уезжает в основной зачёт (в наборе HP%), а строка ATK — во флетовый (в
+   наборе ATK%): ровно та асимметрия, что задана правилом Rupture.
+   Основной зачёт проверяется раньше флетового: у Rupture 'HP' лежит в обоих
+   наборах (флет подтянулся автоматически от HP%), и строка должна достаться
+   основному.
+   Два правила сверх сабстатных — их из наборов не вывести, потому что таких
+   сабстатов в игре не существует:
+     • Sheer Force — основной зачёт для Rupture. Вся их механика считается от
+       него (весь урон идёт как Sheer DMG с Sheer Force вместо множителя), а
+       строка эта и добавляется в лист только для Rupture.
+     • Бонус урона по атрибуту — основной зачёт для ВСЕХ. В листе у агента ровно
+       одна такая строка, его собственного элемента, и она работает всегда. */
+const ELEMENTAL_DMG_FAMS = new Set(['315', '316', '317', '318', '319', '323']);
+
+function statSheetBucket(row, useful) {
+  if (!useful || !useful.rule) return ''; // агента нет в таблицах — подсветки нет вовсе
+  if (ELEMENTAL_DMG_FAMS.has(row.fam)) return 'main';
+  if (row.fam === 'sheer') return useful.specialty === 'Rupture' ? 'main' : '';
+  // PEN считается в сабстатах отдельным зачётом, поэтому и строка ведёт себя
+  // так же — включая отключение через NO_PEN_SPECIALTIES.
+  if (row.fam === '232') return useful.noPen ? '' : 'pen';
+  for (const s of useful.main) if (discStatLabel(s) === row.label) return 'main';
+  for (const s of useful.flat) if (discStatLabel(s) === row.label) return 'flat';
+  return '';
+}
+
+/* Разметка листа статов. Была скопирована в панель профиля и панель пресета
+   один в один — свёрнуто в одно место, иначе подсветку пришлось бы добавлять
+   двумя одинаковыми правками и они бы разъехались при следующей. */
+function statSheetRowsHtml(sheet, useful) {
+  if (!sheet) return '<div class="disc-detail-row-empty">No reference data available for this agent.</div>';
+  return sheet.map(s => {
+    const b = statSheetBucket(s, useful);
+    return `
+      <div class="disc-detail-row pd-stat-row${b ? ' up-' + b : ''}">
+        <div class="disc-detail-row-label">${escapeHtml(s.label)}${s.approximate ? ' <span class="pd-stat-approx" title="Kit-specific conditional bonus not modeled — may run slightly under the true value">⚠</span>' : ''}</div>
+        <div class="disc-detail-row-val">${formatEnkaStatValue(s.total, s.isPercent, s.fam)}
+          <span class="pd-stat-note">(${formatEnkaStatValue(s.base, s.isPercent, s.fam)} + ${formatEnkaStatValue(s.bonus, s.isPercent, s.fam)})</span>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 // Сырые ключи, без discStatLabel(): подсказка существует ровно чтобы объяснить
@@ -10499,15 +10557,16 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
     ? `<div class="pd-preset-warn pd-preset-note">ℹ Shared build${ownerLabel ? ` by ${escapeHtml(ownerLabel)}` : ''}. The Level/Core Skill Enhancement shown use <em>your own</em> Agent Library settings for ${escapeHtml(cardName(agentKey))} — only the W-Engine and discs are actually part of what was published.</div>`
     : '';
 
-  const statsHtml = sheet
-    ? sheet.map(s => `
-      <div class="disc-detail-row">
-        <div class="disc-detail-row-label">${escapeHtml(s.label)}${s.approximate ? ' <span class="pd-stat-approx" title="Kit-specific conditional bonus not modeled — may run slightly under the true value">⚠</span>' : ''}</div>
-        <div class="disc-detail-row-val">${formatEnkaStatValue(s.total, s.isPercent, s.fam)}
-          <span class="pd-stat-note">(${formatEnkaStatValue(s.base, s.isPercent, s.fam)} + ${formatEnkaStatValue(s.bonus, s.isPercent, s.fam)})</span>
-        </div>
-      </div>`).join('')
-    : '<div class="disc-detail-row-empty">No reference data available for this agent.</div>';
+  // discEntries и useful нужны раньше, чем строятся строки листа статов:
+  // подсветка строк идёт из того же разрешённого набора, что и подсветка
+  // сабстатов ниже. Порядок вычислений — единственное, что тут изменилось.
+  const discEntries = (preset.discs || []).slice().sort((a, b) => a.slot - b.slot);
+  const setCounts = {};
+  discEntries.forEach(d => { setCounts[d.setName] = (setCounts[d.setName] || 0) + 1; });
+  const useful = resolveUsefulSubstats(agentKey, discEntries);
+  const procCounts = countUsefulProcs(discEntries, useful);
+
+  const statsHtml = statSheetRowsHtml(sheet, useful);
 
   const wengineHtml = preset.wengine
     ? `<div class="pd-wengine">
@@ -10520,12 +10579,7 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
       </div>`
     : '<div class="pd-sub">No W-Engine equipped.</div>';
 
-  const discEntries = (preset.discs || []).slice().sort((a, b) => a.slot - b.slot);
-  const setCounts = {};
-  discEntries.forEach(d => { setCounts[d.setName] = (setCounts[d.setName] || 0) + 1; });
   const setsHtml = Object.entries(setCounts).map(([n, c]) => `<span class="pd-badge">${escapeHtml(n)} ×${c}</span>`).join('') || '<span class="pd-sub">—</span>';
-  const useful = resolveUsefulSubstats(agentKey, discEntries);
-  const procCounts = countUsefulProcs(discEntries, useful);
   const discsHtml = discEntries.length
     ? `<div class="pd-discs-grid">${discEntries.map(d => `<div class="pd-disc-card">${discDetailBlockHtml(d, { useful })}</div>`).join('')}</div>`
     : '<div class="pd-sub">No Drive Discs equipped.</div>';
@@ -10608,15 +10662,13 @@ async function renderProfileDetail(i) {
   const skillLevels = enkaSkillLevels(a);
   const coreLetter = enkaCoreSkillLetter(a.CoreSkillEnhancement || 0);
 
-  const statsHtml = sheet
-    ? sheet.map(s => `
-      <div class="disc-detail-row">
-        <div class="disc-detail-row-label">${escapeHtml(s.label)}${s.approximate ? ' <span class="pd-stat-approx" title="Kit-specific conditional bonus not modeled — may run slightly under the true value">⚠</span>' : ''}</div>
-        <div class="disc-detail-row-val">${formatEnkaStatValue(s.total, s.isPercent, s.fam)}
-          <span class="pd-stat-note">(${formatEnkaStatValue(s.base, s.isPercent, s.fam)} + ${formatEnkaStatValue(s.bonus, s.isPercent, s.fam)})</span>
-        </div>
-      </div>`).join('')
-    : '<div class="disc-detail-row-empty">No reference data available for this agent.</div>';
+  // slug пуст для агента, которого ещё нет в наших таблицах (свежий патч) —
+  // тогда resolveUsefulSubstats() отдаёт пустые наборы, подсветки и итога нет,
+  // а всё остальное в панели рисуется как обычно.
+  const useful = resolveUsefulSubstats(slug, discEntries);
+  const procCounts = countUsefulProcs(discEntries, useful);
+
+  const statsHtml = statSheetRowsHtml(sheet, useful);
 
   const skillsHtml = skillLevels.map(s => `<div class="pd-skill-pill">${escapeHtml(s.label)} <b>Lv.${s.level}</b></div>`).join('')
     + (coreLetter ? `<div class="pd-skill-pill">Core Skill Enhancement <b>${coreLetter}</b></div>` : '');
@@ -10632,11 +10684,6 @@ async function renderProfileDetail(i) {
       </div>`
     : '<div class="pd-sub">No W-Engine equipped.</div>';
 
-  // slug пуст для агента, которого ещё нет в наших таблицах (свежий патч) —
-  // тогда resolveUsefulSubstats() отдаёт пустые наборы, подсветки и итога нет,
-  // а всё остальное в панели рисуется как обычно.
-  const useful = resolveUsefulSubstats(slug, discEntries);
-  const procCounts = countUsefulProcs(discEntries, useful);
   const discsHtml = discEntries.length
     ? `<div class="pd-discs-grid">${discEntries.map(d => `<div class="pd-disc-card">${discDetailBlockHtml(d, { useful })}</div>`).join('')}</div>`
     : '<div class="pd-sub">No Drive Discs equipped.</div>';
