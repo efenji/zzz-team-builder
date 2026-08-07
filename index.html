@@ -1200,6 +1200,35 @@ select {
 .comment-input-row { display: flex; gap: 8px; margin-top: 8px; }
 .comment-input-row input { flex: 1; background: var(--bg3); border: 1px solid var(--border); color: var(--text); border-radius: var(--r-sm); padding: 6px 10px; font-size: 12.5px; }
 
+/* ── ПОЛЕЗНЫЕ ПРОКИ ──
+   Три зачёта, три оттенка: основной — полный акцент, плоский — тот же акцент
+   приглушённый (он «половинчатый» по смыслу), PEN — второй акцент, потому что
+   это стат совсем другой природы. Бесполезные проки просто гаснут. */
+.up-main { color: var(--accent); }
+.up-flat { color: var(--accent-60); }
+.up-pen  { color: var(--accent2); }
+
+.up-summary {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px;
+  font-family: 'Share Tech Mono', monospace; font-size: 12px; margin-bottom: 8px;
+}
+.up-summary b { font-size: 15px; }
+.up-summary .up-of { color: var(--text-dim); }
+
+.pd-agg-item.up-main .procs { color: var(--accent); font-weight: 700; }
+.pd-agg-item.up-flat .procs, .pd-agg-item.up-flat .val { color: var(--accent-60); }
+.pd-agg-item.up-pen  .procs, .pd-agg-item.up-pen  .val { color: var(--accent2); }
+.pd-agg-row .pd-agg-item:not(.up-main):not(.up-flat):not(.up-pen) { opacity: .4; }
+
+.disc-detail-row.up-main .disc-detail-row-label { color: var(--accent); font-weight: 600; }
+.disc-detail-row.up-flat .disc-detail-row-label { color: var(--accent-60); }
+.disc-detail-row.up-pen  .disc-detail-row-label { color: var(--accent2); }
+
+.dd-useful {
+  display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;
+  font-family: 'Share Tech Mono', monospace; font-size: 11px;
+}
+
 /* ── TOASTS ── */
 #toastContainer { position: fixed; top: 16px; right: 16px; z-index: 400; display: flex; flex-direction: column; gap: 8px; max-width: 340px; }
 .toast {
@@ -8190,10 +8219,16 @@ const ENKA_PROPERTY_MAP = {
   30503: 'Energy Regen', 31203: 'Anomaly Proficiency', 31403: 'Anomaly Mastery',
   31503: 'Physical DMG Bonus', 31603: 'Fire DMG Bonus', 31703: 'Ice DMG Bonus',
   31803: 'Electric DMG Bonus', 31903: 'Ether DMG Bonus',
+  // Ratio-варианты ('...02'), которыми приходят МЕЙН-статы шестого слота.
+  // Без них enkaPropName() не находил имени и печатал сырой id — на карточке
+  // диска было «30502 = 6000» вместо «Energy Regen 60%» (и так же было бы с
+  // Anomaly Mastery). Расчёт статов при этом работал, потому что семейство
+  // определяется по префиксу id, а не по имени.
+  30502: 'Energy Regen', 31402: 'Anomaly Mastery',
 };
 // Percent-displayed stats need PropertyValue / 100 (enka stores these ×100
 // vs. this tool's plain percent numbers, e.g. CRIT Rate 2400 → 24%).
-const ENKA_PERCENT_PROPS = new Set([11102, 12102, 13102, 12202, 20103, 21103, 23103, 31403, 30503, 31503, 31603, 31703, 31803, 31903, 32303]);
+const ENKA_PERCENT_PROPS = new Set([11102, 12102, 13102, 12202, 20103, 21103, 23103, 31403, 31402, 30503, 30502, 31503, 31603, 31703, 31803, 31903, 32303]);
 
 // Static reference data (equipments/avatars/weapons.json) only changes when
 // Enka updates its store after a game patch, so beyond the in-memory/promise
@@ -8575,6 +8610,18 @@ Object.entries(ENKA_DISCSET_MAP).forEach(([id, name]) => { SETNAME_TO_SUITID[nam
 const NAME_TO_ENKA_PROP_ID = {};
 Object.entries(ENKA_PROPERTY_MAP).forEach(([id, name]) => { NAME_TO_ENKA_PROP_ID[name] = Number(id); });
 
+// Energy Regen и Anomaly Mastery существуют в ДВУХ вариантах: '...02' (ratio,
+// множит базу — именно так приходит мейн-стат диска) и '...03' (flat). Инверсия
+// выше — last-wins, а числовые ключи объекта перебираются по возрастанию, так
+// что по имени всегда остаётся flat-вариант. Для сабстатов это неважно (ни того,
+// ни другого в пуле сабстатов нет), а вот мейн-стат шестого слота из-за этого
+// в пресетах прибавлялся плоско вместо умножения базы. Живой стенд Enka не
+// задет — там PropertyId приходит из ответа напрямую.
+const MAIN_STAT_ENKA_PROP_ID_OVERRIDE = { 'Energy Regen': 30502, 'Anomaly Mastery': 31402 };
+function mainStatEnkaPropId(name) {
+  return MAIN_STAT_ENKA_PROP_ID_OVERRIDE[name] ?? NAME_TO_ENKA_PROP_ID[name];
+}
+
 // A character's level cap only rises every 10 levels, and (per the game's
 // own systems) W-Engines share that exact same breakpoint scheme — so no
 // separate lookup table is needed, just this one formula. PromotionLevel is
@@ -8638,7 +8685,7 @@ async function buildManualAgentStatSheet(agentKey, wengineKey, discEntries) {
   (discEntries || []).forEach(d => {
     if (!d) return;
     if (d.setName) setCounts[d.setName] = (setCounts[d.setName] || 0) + 1;
-    const mainId = NAME_TO_ENKA_PROP_ID[d.mainStat];
+    const mainId = mainStatEnkaPropId(d.mainStat);
     if (mainId != null && d.mainStatValue != null) {
       noteFam(mainId, enkaPropBucket(mainId), toRawPropValue(mainId, parseFloat(d.mainStatValue) || 0));
     }
@@ -9693,11 +9740,6 @@ function toolbarSaveCurrentBuild() {
 // account's gear exactly as it is, not just what this tool's own Drive Disc
 // Library happens to support.
 function enkaBuildDiscDisplayEntry(equipment, slot, itemsRef) {
-  // TEMP DEBUG: MainStatList sometimes renders empty in the Profile tab even
-  // though RandomPropertyList (sub-stats) works fine — logging the raw object
-  // to find the real field name/shape for the main stat. Remove once fixed.
-  console.log('[ZZZ Profile] raw disc equipment (slot ' + slot + '):', equipment);
-
   const itemDef = itemsRef[String(equipment.Id)];
   const suitId = itemDef?.SuitId;
   const rarityNum = itemDef?.Rarity || 4;
@@ -9719,6 +9761,182 @@ function enkaBuildDiscDisplayEntry(equipment, slot, itemsRef) {
   });
   const rarityLetter = { 4: 'S', 3: 'A', 2: 'B' }[rarityNum] || '?';
   return { id: `enka-${equipment.Uid}`, setName, slot, mainStat, mainStatValue, level: equipment.Level, maxLevel: 15, subStats, rarityLetter };
+}
+
+/* ── ПОЛЕЗНЫЕ ПРОКИ ───────────────────────────────────────────────────────
+   Три «валюты», которые считаются РАЗДЕЛЬНО и никогда не смешиваются:
+     main — основной зачёт: процентные статы, криты, Anomaly Proficiency;
+     flat — плоский зачёт: HP/ATK/DEF (плюс всё, что правило явно положило сюда);
+     pen  — PEN, всегда отдельно и всегда, независимо от агента и правил.
+
+   Дробных весов у плоских проков намеренно НЕТ. Цена плоского прока
+   выводится точно (флет_за_прок / (База × процент_за_прок / 100)), но База
+   зависит от уровня агента, Core Skill Enhancement и базовой атаки W-Engine
+   — то есть от вещей, которых в опубликованном пресете нет и которые сейчас
+   подтягиваются из библиотек ЗРИТЕЛЯ. Проверено на живых сборках: вес флет-ATK
+   гуляет 0.38–0.47, флет-HP 0.43–0.50, флет-DEF 0.52–0.71. Раздельный счёт
+   вместо курса даёт гарантированно воспроизводимые целые числа.
+
+   Правила читаются сверху вниз, первое подошедшее выигрывает. `when`
+   отсутствует → правило дефолтное. `when` может быть массивом — это ИЛИ.
+   Сначала проверяются личные правила агента (USEFUL_SUBSTATS_AGENT), и если
+   ни одно из них не подошло — берётся набор его специальности.
+
+   Плоские статы в таблицах НЕ ПИШУТСЯ: плоский аналог подтягивается сам от
+   процентного стата в основном зачёте (полезен ATK% → полезен и флет ATK).
+   PEN тоже не пишется. */
+
+const USEFUL_FLAT_COUNTERPART = { 'HP%': 'HP', 'ATK%': 'ATK', 'DEF%': 'DEF' };
+
+// Шаблон Miyabi: криты и ATK% в основной зачёт, Anomaly Proficiency — в
+// плоский. На него ссылаются ещё два правила (любой Anomaly-агент с крит-мейном
+// на 4-м слоте и Soukaku в такой же ситуации), поэтому он объявлен один раз.
+const UP_MIYABI = { main: ['CRIT Rate', 'CRIT DMG', 'ATK%'], flat: ['Anomaly Proficiency'] };
+
+// Условие «ушли в аномалию»: Anomaly Proficiency мейном на 4-м слоте ИЛИ
+// Anomaly Mastery мейном на 6-м. Одинаково для Attack и Stun.
+const UP_WHEN_ANOMALY_BUILD = [
+  { slot: 4, mainStat: 'Anomaly Proficiency' },
+  { slot: 6, mainStat: 'Anomaly Mastery' },
+];
+
+const USEFUL_SUBSTATS = {
+  Anomaly: [
+    { when: { slot: 4, mainStat: ['CRIT Rate', 'CRIT DMG'] }, ...UP_MIYABI },
+    { main: ['Anomaly Proficiency', 'ATK%'] },
+  ],
+  Attack: [
+    { when: UP_WHEN_ANOMALY_BUILD, main: ['Anomaly Proficiency', 'ATK%'] },
+    { main: ['ATK%', 'CRIT Rate', 'CRIT DMG'] },
+  ],
+  Defense: [
+    { when: { slot: 4, mainStat: 'Anomaly Proficiency' }, main: ['ATK%', 'Anomaly Proficiency'] },
+    { main: ['ATK%'] },
+  ],
+  // ATK% здесь сидит в ПЛОСКОМ зачёте, а не в основном. Из-за этого флет ATK
+  // не подтягивается (аналог выводится только от статов основного зачёта) —
+  // ровно как и задумано: у Rupture плоская атака не считается вообще.
+  Rupture: [
+    { main: ['HP%', 'CRIT Rate', 'CRIT DMG'], flat: ['ATK%'] },
+  ],
+  Stun: [
+    { when: UP_WHEN_ANOMALY_BUILD, main: ['Anomaly Proficiency', 'ATK%'] },
+    { main: ['ATK%', 'CRIT Rate', 'CRIT DMG'] },
+  ],
+  Support: [
+    { when: { slot: 4, mainStat: 'Anomaly Proficiency' }, main: ['Anomaly Proficiency', 'ATK%'] },
+    { when: { slot: 4, mainStat: ['CRIT Rate', 'CRIT DMG'] }, main: ['ATK%', 'CRIT Rate', 'CRIT DMG'] },
+    { main: ['ATK%'] },
+  ],
+};
+
+// Исключения. Кого здесь нет — считается по своей специальности.
+const USEFUL_SUBSTATS_AGENT = {
+  'miyabi':     [{ ...UP_MIYABI }],
+  'zhao':       [{ main: ['HP%'] }],
+  'nangong yu': [{ main: ['ATK%', 'Anomaly Proficiency'] }],
+  'yuzuha':     [{ main: ['Anomaly Proficiency', 'ATK%'] }],
+  'lucia': [
+    { when: { slot: 4, mainStat: ['CRIT Rate', 'CRIT DMG'] }, main: ['ATK%', 'CRIT Rate', 'CRIT DMG'] },
+    { when: { slot: 4, mainStat: 'Anomaly Proficiency' },     main: ['Anomaly Proficiency', 'ATK%'] },
+    { main: ['HP%'] },
+  ],
+  'soukaku': [
+    { when: { slot: 4, mainStat: ['CRIT Rate', 'CRIT DMG'] }, ...UP_MIYABI },
+    { main: ['Anomaly Proficiency', 'ATK%'] },
+  ],
+};
+
+function usefulMainStatAtSlot(discEntries, slot) {
+  const d = (discEntries || []).find(x => x && Number(x.slot) === Number(slot));
+  return d ? d.mainStat : null;
+}
+
+function usefulRuleMatches(when, discEntries) {
+  if (!when) return true; // правило без `when` — дефолтное, подходит всегда
+  const clauses = Array.isArray(when) ? when : [when];
+  return clauses.some(c => {
+    const actual = usefulMainStatAtSlot(discEntries, c.slot);
+    if (!actual) return false;
+    const want = Array.isArray(c.mainStat) ? c.mainStat : [c.mainStat];
+    return want.includes(actual);
+  });
+}
+
+// Возвращает { main:Set, flat:Set, rule } для конкретной сборки конкретного
+// агента. Наборы зависят от мейн-статов надетых дисков, поэтому один и тот же
+// диск в двух разных сборках одного агента может подсвечиваться по-разному.
+function resolveUsefulSubstats(agentKey, discEntries) {
+  const empty = { main: new Set(), flat: new Set(), rule: null };
+  if (!agentKey) return empty;
+  const specialty = getAgentClasses(agentKey)[0];
+  const rule = (USEFUL_SUBSTATS_AGENT[agentKey] || []).find(r => usefulRuleMatches(r.when, discEntries))
+    || (USEFUL_SUBSTATS[specialty] || []).find(r => usefulRuleMatches(r.when, discEntries))
+    || null;
+  if (!rule) return empty;
+  const main = new Set(rule.main || []);
+  const flat = new Set(rule.flat || []);
+  main.forEach(s => { const f = USEFUL_FLAT_COUNTERPART[s]; if (f) flat.add(f); });
+  flat.forEach(s => { if (main.has(s)) flat.delete(s); }); // основной зачёт важнее
+  return { main, flat, rule };
+}
+
+// Какой из трёх зачётов забирает этот сабстат ('' — бесполезен).
+function usefulProcBucket(statName, useful) {
+  if (statName === 'PEN') return 'pen';
+  if (useful.main.has(statName)) return 'main';
+  if (useful.flat.has(statName)) return 'flat';
+  return '';
+}
+
+// Считает проки по зачётам — суммарно и отдельно по каждому диску.
+function countUsefulProcs(discEntries, useful) {
+  const total = { main: 0, flat: 0, pen: 0, all: 0 };
+  const perDisc = (discEntries || []).map(d => {
+    const row = { main: 0, flat: 0, pen: 0, all: 0 };
+    ((d && d.subStats) || []).forEach(s => {
+      const n = s.procs || 0;
+      row.all += n;
+      const b = usefulProcBucket(s.name, useful);
+      if (b) row[b] += n;
+    });
+    ['main', 'flat', 'pen', 'all'].forEach(k => total[k] += row[k]);
+    return row;
+  });
+  return { total, perDisc };
+}
+
+// Сырые ключи, без discStatLabel(): подсказка существует ровно чтобы объяснить
+// разницу между 'HP%' и 'HP', так что срезать '%' здесь нельзя.
+function usefulSetsTitle(useful) {
+  const m = [...useful.main].join(', ') || '—';
+  const f = [...useful.flat].join(', ') || '—';
+  return `Основной зачёт: ${m}\nПлоский зачёт: ${f}\nPEN считается всегда и отдельно`;
+}
+
+// Строка-итог над таблицей сумм сабстатов.
+function usefulProcsSummaryHtml(counts, useful) {
+  if (!useful.rule) return '';
+  const t = counts.total;
+  return `<div class="up-summary" title="${escapeHtml(usefulSetsTitle(useful))}">
+    <span class="up-main"><b>${t.main}</b> useful</span>
+    <span class="up-flat"><b>+${t.flat}</b> flat</span>
+    <span class="up-pen"><b>+${t.pen}</b> PEN</span>
+    <span class="up-of">of ${t.all} procs</span>
+  </div>`;
+}
+
+// Таблица сумм сабстатов с подсветкой по зачётам.
+function substatTotalsRowHtml(agg, useful) {
+  const items = Object.entries(agg).map(([name, t]) => {
+    const b = usefulProcBucket(name, useful);
+    // Имя берётся СЫРЫМ, без discStatLabel(): в этой строке рядом стоят и 'HP%',
+    // и плоский 'HP' (как и 'ATK%'/'ATK'), и они попадают в РАЗНЫЕ зачёты —
+    // срезав '%', обе строки стали бы одинаковым «HP», и было бы непонятно,
+    // почему одна подсвечена ярко, а другая приглушённо.
+    return `<div class="pd-agg-item${b ? ' up-' + b : ''}"><span class="procs">${t.procs}</span> ${escapeHtml(name)} <span class="val">${Math.round(t.value * 10) / 10}${ENKA_PERCENT_PROPS_LABEL_HINT(name)}</span></div>`;
+  }).join('');
+  return items || '<span class="pd-sub">No sub-stats.</span>';
 }
 
 // Sums sub-stat procs+values across a set of disc display entries, grouped
@@ -10331,13 +10549,14 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
   const setCounts = {};
   discEntries.forEach(d => { setCounts[d.setName] = (setCounts[d.setName] || 0) + 1; });
   const setsHtml = Object.entries(setCounts).map(([n, c]) => `<span class="pd-badge">${escapeHtml(n)} ×${c}</span>`).join('') || '<span class="pd-sub">—</span>';
+  const useful = resolveUsefulSubstats(agentKey, discEntries);
+  const procCounts = countUsefulProcs(discEntries, useful);
   const discsHtml = discEntries.length
-    ? `<div class="pd-discs-grid">${discEntries.map(d => `<div class="pd-disc-card">${discDetailBlockHtml(d)}</div>`).join('')}</div>`
+    ? `<div class="pd-discs-grid">${discEntries.map(d => `<div class="pd-disc-card">${discDetailBlockHtml(d, { useful })}</div>`).join('')}</div>`
     : '<div class="pd-sub">No Drive Discs equipped.</div>';
   const agg = aggregateProfileDiscSubstats(discEntries);
-  const aggHtml = Object.entries(agg).map(([name, t]) =>
-    `<div class="pd-agg-item"><span class="procs">${t.procs}</span> ${escapeHtml(name)} <span class="val">${Math.round(t.value * 10) / 10}${ENKA_PERCENT_PROPS_LABEL_HINT(name)}</span></div>`
-  ).join('') || '<span class="pd-sub">No sub-stats.</span>';
+  const aggHtml = substatTotalsRowHtml(agg, useful);
+  const usefulSummary = usefulProcsSummaryHtml(procCounts, useful);
 
   return `
     <div class="pd-preset-detail">
@@ -10368,6 +10587,7 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
       <div class="pd-sets-list">${setsHtml}</div>
 
       <div class="pd-section-title">Sub-Stat Totals (all equipped discs)</div>
+      ${usefulSummary}
       <div class="pd-agg-row">${aggHtml}</div>
 
       <div class="pd-section-title">Drive Discs</div>
@@ -10437,16 +10657,20 @@ async function renderProfileDetail(i) {
       </div>`
     : '<div class="pd-sub">No W-Engine equipped.</div>';
 
+  // slug пуст для агента, которого ещё нет в наших таблицах (свежий патч) —
+  // тогда resolveUsefulSubstats() отдаёт пустые наборы, подсветки и итога нет,
+  // а всё остальное в панели рисуется как обычно.
+  const useful = resolveUsefulSubstats(slug, discEntries);
+  const procCounts = countUsefulProcs(discEntries, useful);
   const discsHtml = discEntries.length
-    ? `<div class="pd-discs-grid">${discEntries.map(d => `<div class="pd-disc-card">${discDetailBlockHtml(d)}</div>`).join('')}</div>`
+    ? `<div class="pd-discs-grid">${discEntries.map(d => `<div class="pd-disc-card">${discDetailBlockHtml(d, { useful })}</div>`).join('')}</div>`
     : '<div class="pd-sub">No Drive Discs equipped.</div>';
 
   const setsHtml = Object.entries(setCounts).map(([n, c]) => `<span class="pd-badge">${escapeHtml(n)} ×${c}</span>`).join('') || '<span class="pd-sub">—</span>';
 
   const agg = aggregateProfileDiscSubstats(discEntries);
-  const aggHtml = Object.entries(agg).map(([name, t]) =>
-    `<div class="pd-agg-item"><span class="procs">${t.procs}</span> ${escapeHtml(name)} <span class="val">${Math.round(t.value * 10) / 10}${ENKA_PERCENT_PROPS_LABEL_HINT(name)}</span></div>`
-  ).join('') || '<span class="pd-sub">No sub-stats.</span>';
+  const aggHtml = substatTotalsRowHtml(agg, useful);
+  const usefulSummary = usefulProcsSummaryHtml(procCounts, useful);
 
   panel.innerHTML = `
     <div class="pd-head">
@@ -10474,6 +10698,7 @@ async function renderProfileDetail(i) {
     <div class="pd-sets-list">${setsHtml}</div>
 
     <div class="pd-section-title">Sub-Stat Totals (all equipped discs)</div>
+    ${usefulSummary}
     <div class="pd-agg-row">${aggHtml}</div>
 
     <div class="pd-section-title">Drive Discs</div>
@@ -10509,14 +10734,29 @@ function renderDriveDiscGrid() {
 // both by the main Drive Disc Library detail panel and by any disc picker —
 // wherever a disc gets chosen, this same block shows its exact stats.
 function discDetailBlockHtml(d, opts = {}) {
+  // opts.useful — { main:Set, flat:Set } из resolveUsefulSubstats(). Отсутствует
+  // там, где у диска нет контекста агента и сборки (библиотека дисков, пикер):
+  // подсветка вне сборки была бы выдумкой, ведь наборы зависят от мейн-статов
+  // остальных надетых дисков.
+  const useful = opts.useful || null;
+  const row = { main: 0, flat: 0, pen: 0 };
   const subsHtml = (d.subStats || []).map(s => {
     const extra = (s.procs || 1) - 1; // first proc is the disc's baseline roll — badge shows only additional upgrades
+    const bucket = useful ? usefulProcBucket(s.name, useful) : '';
+    if (bucket) row[bucket] += s.procs || 0;
     return `
-    <div class="disc-detail-row">
+    <div class="disc-detail-row${bucket ? ' up-' + bucket : ''}">
       <div class="disc-detail-row-label">${discStatLabel(s.name)}${extra > 0 ? ` <span class="disc-detail-badge">+${extra}</span>` : ''}</div>
       <div class="disc-detail-row-val">${s.value}</div>
     </div>`;
   }).join('');
+  const usefulLine = useful && useful.rule
+    ? `<div class="dd-useful" title="${escapeHtml(usefulSetsTitle(useful))}">
+        <span class="up-main"><b>${row.main}</b> useful</span>
+        <span class="up-flat">+${row.flat} flat</span>
+        <span class="up-pen">+${row.pen} PEN</span>
+      </div>`
+    : '';
   const deleteBtn = opts.showDelete
     ? `<div class="disc-detail-actions"><button class="disc-detail-del" onclick="deleteDriveDisc('${d.id}')">✕ Delete this disc</button></div>`
     : '';
@@ -10535,6 +10775,7 @@ function discDetailBlockHtml(d, opts = {}) {
     </div>
     <div class="disc-detail-section">Sub-Stats</div>
     ${subsHtml || '<div class="disc-detail-row-empty">—</div>'}
+    ${usefulLine}
     ${deleteBtn}`;
 }
 
