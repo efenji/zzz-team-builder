@@ -9824,6 +9824,27 @@ const USEFUL_SUBSTATS = {
    отдаёт ровно один класс), так что [0] однозначен. */
 const NO_PEN_SPECIALTIES = new Set(['Rupture']);
 
+/* ЛИЧНЫЕ исключения подсветки листа статов — поверх карты специальностей
+   (SPECIALTY_SIGNATURE_STAT_FAM ниже). Нужны там, где стат работает из-за кита
+   конкретного агента, а не его класса, и потому не выводится ни из наборов
+   сабстатов, ни из специальности.
+   `fam` — семейство строки листа (см. ENKA_STAT_FAMILY_META). `when` — то же
+   условие по мейн-стату диска, что и в USEFUL_SUBSTATS: без него правило
+   безусловное, с ним — срабатывает только на подходящей сборке. Правила одного
+   агента независимы: срабатывают все подошедшие, а не первое, как в наборах
+   сабстатов. */
+const AGENT_STAT_FAM_RULES = {
+  // Кит этих четырёх крутится вокруг регена энергии независимо от их классов
+  // (Anomaly у Velina и Burnice, Attack у Orphie, Stun у Dialyn).
+  'velina':           [{ fam: '305' }],                                     // Energy Regen
+  'burnice':          [{ fam: '305' }],
+  'dialyn':           [{ fam: '305' }],
+  'orphie-and-magus': [{ fam: '305' }],
+  // Impact у Nicole полезен только в сборке под него — то есть когда мейн-стат
+  // 6-го слота именно Impact. Energy Regen ей уже даёт её Support-специальность.
+  'nicole-demara':    [{ fam: '122', when: { slot: 6, mainStat: 'Impact' } }],
+};
+
 // Исключения. Кого здесь нет — считается по своей специальности.
 const USEFUL_SUBSTATS_AGENT = {
   'miyabi':     [{ ...UP_MIYABI }],
@@ -9861,7 +9882,7 @@ function usefulRuleMatches(when, discEntries) {
 // агента. Наборы зависят от мейн-статов надетых дисков, поэтому один и тот же
 // диск в двух разных сборках одного агента может подсвечиваться по-разному.
 function resolveUsefulSubstats(agentKey, discEntries) {
-  const empty = { main: new Set(), flat: new Set(), rule: null, noPen: false, specialty: null, penRatioUseful: false };
+  const empty = { main: new Set(), flat: new Set(), rule: null, noPen: false, specialty: null, penRatioUseful: false, extraFams: new Set() };
   if (!agentKey) return empty;
   const specialty = getAgentClasses(agentKey)[0];
   const rule = (USEFUL_SUBSTATS_AGENT[agentKey] || []).find(r => usefulRuleMatches(r.when, discEntries))
@@ -9878,6 +9899,11 @@ function resolveUsefulSubstats(agentKey, discEntries) {
     // Тот же noPen, что и для плоского PEN: причина одна — урон Rupture идёт мимо
     // защиты, так что пробивание брони им бесполезно в любом виде.
     penRatioUseful: !noPen && usefulMainStatAtSlot(discEntries, 5) === 'PEN Ratio',
+    // filter, а не find: правила одного агента независимы, и сработать должны все
+    // подошедшие сразу. Правило без `when` usefulRuleMatches() пропускает всегда.
+    extraFams: new Set((AGENT_STAT_FAM_RULES[agentKey] || [])
+      .filter(r => usefulRuleMatches(r.when, discEntries))
+      .map(r => r.fam)),
   };
 }
 
@@ -9926,7 +9952,9 @@ function countUsefulProcs(discEntries, useful) {
      • Бонус урона по атрибуту — основной зачёт для ВСЕХ. В листе у агента ровно
        одна такая строка, его собственного элемента, и она работает всегда.
      • PEN Ratio — основной зачёт, но только если мейн-стат 5-го слота именно
-       PEN Ratio, и только не у Rupture. */
+       PEN Ratio, и только не у Rupture.
+     • Личные исключения по агенту — см. AGENT_STAT_FAM_RULES выше (Energy Regen
+       у Velina/Burnice/Dialyn/Orphie, Impact у Nicole под условием сборки). */
 const ELEMENTAL_DMG_FAMS = new Set(['315', '316', '317', '318', '319', '323']);
 
 /* Строка листа, полезная для специальности ВСЕГДА, независимо от надетых дисков:
@@ -9950,6 +9978,10 @@ function statSheetBucket(row, useful) {
   if (!useful || !useful.rule) return ''; // агента нет в таблицах — подсветки нет вовсе
   if (ELEMENTAL_DMG_FAMS.has(row.fam)) return 'main';
   if (SPECIALTY_SIGNATURE_STAT_FAM[useful.specialty] === row.fam) return 'main';
+  // Личные исключения (AGENT_STAT_FAM_RULES) проверяются до PEN-веток: если такое
+  // правило когда-нибудь укажет на PEN, оно должно перебить общий запрет, а не
+  // упереться в ранний return ниже.
+  if (useful.extraFams && useful.extraFams.has(row.fam)) return 'main';
   // PEN Ratio ('231') — как строка бонуса урона по атрибуту, но по условию: он не
   // выпадает сабстатом и приходит только мейн-статом 5-го слота, так что полезен
   // ровно тогда, когда такой диск действительно надет.
