@@ -9787,8 +9787,10 @@ const USEFUL_SUBSTATS = {
 /* Специальности, для которых PEN не идёт НИ В ОДИН зачёт и гаснет как обычный
    бесполезный прок. У Rupture урон идёт от Disorder и атрибутных аномалий, а на
    них PEN не влияет — так что прок в PEN для них такой же мусор, как флет DEF
-   для атакующего. Это единственное место, где PEN перестал быть безусловным;
-   решение принимается по специальности, а не по агенту, поэтому личное правило
+   для атакующего. Тем же флагом гасится и строка PEN Ratio в листе статов:
+   причина одна и та же, различать их смысла нет.
+   Это единственное место, где PEN перестал быть безусловным; решение
+   принимается по специальности, а не по агенту, поэтому личное правило
    из USEFUL_SUBSTATS_AGENT его не переопределяет.
    Проверено: пересечений специальностей у агентов нет (getAgentClasses всегда
    отдаёт ровно один класс), так что [0] однозначен. */
@@ -9831,7 +9833,7 @@ function usefulRuleMatches(when, discEntries) {
 // агента. Наборы зависят от мейн-статов надетых дисков, поэтому один и тот же
 // диск в двух разных сборках одного агента может подсвечиваться по-разному.
 function resolveUsefulSubstats(agentKey, discEntries) {
-  const empty = { main: new Set(), flat: new Set(), rule: null, noPen: false, specialty: null };
+  const empty = { main: new Set(), flat: new Set(), rule: null, noPen: false, specialty: null, penRatioUseful: false };
   if (!agentKey) return empty;
   const specialty = getAgentClasses(agentKey)[0];
   const rule = (USEFUL_SUBSTATS_AGENT[agentKey] || []).find(r => usefulRuleMatches(r.when, discEntries))
@@ -9842,7 +9844,13 @@ function resolveUsefulSubstats(agentKey, discEntries) {
   const flat = new Set(rule.flat || []);
   main.forEach(s => { const f = USEFUL_FLAT_COUNTERPART[s]; if (f) flat.add(f); });
   flat.forEach(s => { if (main.has(s)) flat.delete(s); }); // основной зачёт важнее
-  return { main, flat, rule, noPen: NO_PEN_SPECIALTIES.has(specialty), specialty };
+  const noPen = NO_PEN_SPECIALTIES.has(specialty);
+  return {
+    main, flat, rule, specialty, noPen,
+    // Тот же noPen, что и для плоского PEN: причина одна — урон Rupture идёт мимо
+    // защиты, так что пробивание брони им бесполезно в любом виде.
+    penRatioUseful: !noPen && usefulMainStatAtSlot(discEntries, 5) === 'PEN Ratio',
+  };
 }
 
 // Какой из трёх зачётов забирает этот сабстат ('' — бесполезен).
@@ -9882,21 +9890,44 @@ function countUsefulProcs(discEntries, useful) {
    Основной зачёт проверяется раньше флетового: у Rupture 'HP' лежит в обоих
    наборах (флет подтянулся автоматически от HP%), и строка должна достаться
    основному.
-   Два правила сверх сабстатных — их из наборов не вывести, потому что таких
+   Три правила сверх сабстатных — их из наборов не вывести, потому что таких
    сабстатов в игре не существует:
-     • Sheer Force — основной зачёт для Rupture. Вся их механика считается от
-       него (весь урон идёт как Sheer DMG с Sheer Force вместо множителя), а
-       строка эта и добавляется в лист только для Rupture.
+     • Ключевой стат специальности — см. SPECIALTY_SIGNATURE_STAT_FAM ниже
+       (Sheer Force у Rupture, Energy Regen у Support, Anomaly Mastery у Anomaly,
+       Impact у Stun). Полезен всегда, независимо от сборки.
      • Бонус урона по атрибуту — основной зачёт для ВСЕХ. В листе у агента ровно
-       одна такая строка, его собственного элемента, и она работает всегда. */
+       одна такая строка, его собственного элемента, и она работает всегда.
+     • PEN Ratio — основной зачёт, но только если мейн-стат 5-го слота именно
+       PEN Ratio, и только не у Rupture. */
 const ELEMENTAL_DMG_FAMS = new Set(['315', '316', '317', '318', '319', '323']);
+
+/* Строка листа, полезная для специальности ВСЕГДА, независимо от надетых дисков:
+   у каждого из этих классов ровно одна такая, вокруг которой построена вся его
+   механика. Ни один из этих статов не выпадает сабстатом, поэтому вывести их из
+   наборов USEFUL_SUBSTATS невозможно — нужна отдельная карта.
+   Решение принимается по специальности, а НЕ по наличию строки в листе: Energy
+   Regen, Anomaly Mastery и Impact — все три опции мейн-стата 6-го слота, так что
+   в листе они могут оказаться у кого угодно, но полезны только своему классу.
+   Attack и Defense здесь отсутствуют намеренно: у них нет отдельного стата,
+   который работал бы вне зависимости от сборки, — всё существенное уже описано
+   их наборами сабстатов. */
+const SPECIALTY_SIGNATURE_STAT_FAM = {
+  Rupture: 'sheer', // Sheer Force — весь урон идёт как Sheer DMG, с ним вместо множителя
+  Support: '305',   // Energy Regen
+  Anomaly: '314',   // Anomaly Mastery
+  Stun:    '122',   // Impact
+};
 
 function statSheetBucket(row, useful) {
   if (!useful || !useful.rule) return ''; // агента нет в таблицах — подсветки нет вовсе
   if (ELEMENTAL_DMG_FAMS.has(row.fam)) return 'main';
-  if (row.fam === 'sheer') return useful.specialty === 'Rupture' ? 'main' : '';
-  // PEN считается в сабстатах отдельным зачётом, поэтому и строка ведёт себя
-  // так же — включая отключение через NO_PEN_SPECIALTIES.
+  if (SPECIALTY_SIGNATURE_STAT_FAM[useful.specialty] === row.fam) return 'main';
+  // PEN Ratio ('231') — как строка бонуса урона по атрибуту, но по условию: он не
+  // выпадает сабстатом и приходит только мейн-статом 5-го слота, так что полезен
+  // ровно тогда, когда такой диск действительно надет.
+  if (row.fam === '231') return useful.penRatioUseful ? 'main' : '';
+  // Плоский PEN ('232') считается в сабстатах отдельным зачётом, поэтому и строка
+  // ведёт себя так же — включая отключение через NO_PEN_SPECIALTIES.
   if (row.fam === '232') return useful.noPen ? '' : 'pen';
   for (const s of useful.main) if (discStatLabel(s) === row.label) return 'main';
   for (const s of useful.flat) if (discStatLabel(s) === row.label) return 'flat';
