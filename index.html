@@ -9710,7 +9710,8 @@ function enkaBuildDiscDisplayEntry(equipment, slot, itemsRef) {
    Три «валюты», которые считаются РАЗДЕЛЬНО и никогда не смешиваются:
      main — основной зачёт: процентные статы, криты, Anomaly Proficiency;
      flat — плоский зачёт: HP/ATK/DEF (плюс всё, что правило явно положило сюда);
-     pen  — PEN, всегда отдельно и всегда, независимо от агента и правил.
+     pen  — PEN, всегда отдельно от двух других зачётов, но не для всех
+            специальностей: см. NO_PEN_SPECIALTIES ниже.
 
    Дробных весов у плоских проков намеренно НЕТ. Цена плоского прока
    выводится точно (флет_за_прок / (База × процент_за_прок / 100)), но База
@@ -9773,6 +9774,16 @@ const USEFUL_SUBSTATS = {
   ],
 };
 
+/* Специальности, для которых PEN не идёт НИ В ОДИН зачёт и гаснет как обычный
+   бесполезный прок. У Rupture урон идёт от Disorder и атрибутных аномалий, а на
+   них PEN не влияет — так что прок в PEN для них такой же мусор, как флет DEF
+   для атакующего. Это единственное место, где PEN перестал быть безусловным;
+   решение принимается по специальности, а не по агенту, поэтому личное правило
+   из USEFUL_SUBSTATS_AGENT его не переопределяет.
+   Проверено: пересечений специальностей у агентов нет (getAgentClasses всегда
+   отдаёт ровно один класс), так что [0] однозначен. */
+const NO_PEN_SPECIALTIES = new Set(['Rupture']);
+
 // Исключения. Кого здесь нет — считается по своей специальности.
 const USEFUL_SUBSTATS_AGENT = {
   'miyabi':     [{ ...UP_MIYABI }],
@@ -9810,7 +9821,7 @@ function usefulRuleMatches(when, discEntries) {
 // агента. Наборы зависят от мейн-статов надетых дисков, поэтому один и тот же
 // диск в двух разных сборках одного агента может подсвечиваться по-разному.
 function resolveUsefulSubstats(agentKey, discEntries) {
-  const empty = { main: new Set(), flat: new Set(), rule: null };
+  const empty = { main: new Set(), flat: new Set(), rule: null, noPen: false };
   if (!agentKey) return empty;
   const specialty = getAgentClasses(agentKey)[0];
   const rule = (USEFUL_SUBSTATS_AGENT[agentKey] || []).find(r => usefulRuleMatches(r.when, discEntries))
@@ -9821,12 +9832,14 @@ function resolveUsefulSubstats(agentKey, discEntries) {
   const flat = new Set(rule.flat || []);
   main.forEach(s => { const f = USEFUL_FLAT_COUNTERPART[s]; if (f) flat.add(f); });
   flat.forEach(s => { if (main.has(s)) flat.delete(s); }); // основной зачёт важнее
-  return { main, flat, rule };
+  return { main, flat, rule, noPen: NO_PEN_SPECIALTIES.has(specialty) };
 }
 
 // Какой из трёх зачётов забирает этот сабстат ('' — бесполезен).
 function usefulProcBucket(statName, useful) {
-  if (statName === 'PEN') return 'pen';
+  // useful.noPen отсутствует у объектов не из resolveUsefulSubstats() —
+  // undefined здесь falsy, то есть поведение по умолчанию прежнее.
+  if (statName === 'PEN') return useful.noPen ? '' : 'pen';
   if (useful.main.has(statName)) return 'main';
   if (useful.flat.has(statName)) return 'flat';
   return '';
@@ -9854,7 +9867,10 @@ function countUsefulProcs(discEntries, useful) {
 function usefulSetsTitle(useful) {
   const m = [...useful.main].join(', ') || '—';
   const f = [...useful.flat].join(', ') || '—';
-  return `Useful: ${m}\nFlat: ${f}\nPEN always counts, and always separately`;
+  const pen = useful.noPen
+    ? "PEN doesn't count for this class"
+    : 'PEN always counts, and always separately';
+  return `Useful: ${m}\nFlat: ${f}\n${pen}`;
 }
 
 /* Сегменты строки-сводки проков. Нулевые зачёты не печатаются ВООБЩЕ: «+0 flat
