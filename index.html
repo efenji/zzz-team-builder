@@ -8421,7 +8421,15 @@ function computeEnkaWeaponContribs(weaponDef, level, breakLevel) {
   const enhanceRate = enkaWengineEnhanceRate(level, rarityNum);
   const { starRate, randRate } = enkaWengineStarData(breakLevel, rarityNum);
   const main = weaponDef.MainStat;
-  if (main) out.push({ id: main.PropertyId, value: main.PropertyValue * (1 + (enhanceRate + starRate) / 10000) });
+  /* Math.floor не косметика: игра держит базовую атаку W-Engine целым числом и
+     умножает на %-бонусы уже усечённое значение. Thoughtbop Lv.60 P5 даёт
+     ровно 48 × 14.87 = 713.76, а в игре в панели стоит 713 (не 714 — значит
+     усечение, а не округление). Без floor эти 0.76 проходят через ×2.11 от
+     дисков и дают лишние 2.5 ATK в итоге.
+     Вторичный стат не усекается: он идёт в ratio/flat-бакеты, а не в базу, и
+     там игра дробную часть сохраняет — Energy Regen у той же Sunna сходится
+     до десятой без всякого floor. */
+  if (main) out.push({ id: main.PropertyId, value: Math.floor(main.PropertyValue * (1 + (enhanceRate + starRate) / 10000)) });
   const sec = weaponDef.SecondaryStat;
   if (sec) out.push({ id: sec.PropertyId, value: sec.PropertyValue * (1 + randRate / 10000) });
   return out;
@@ -8467,7 +8475,17 @@ async function buildEnkaAgentStatSheet(avatarRaw) {
     families[fam] = families[fam] || { base: 0, flat: 0, ratio: 0 };
     families[fam][bucket] += val;
   };
-  Object.entries(charBase).forEach(([id, v]) => noteFam(id, 'base', v));
+  /* Бакет ОБЯЗАТЕЛЬНО через enkaPropBucket(), а не жёстко 'base': computeEnkaCharacterBase()
+     складывает BaseProps + GrowthProps + PromotionProps + CoreEnhancementProps, и последний
+     содержит не только базовые id ('…01'), но и процентные ('…02').
+     Раньше здесь стояло 'base', и процент попадал в базу как плоская добавка — сразу двумя
+     ошибками: он не умножался на %-бонусы дисков и раздувал базу на своё сырое значение.
+     У Sunna (1491) Core Skill Enhancement F даёт 12102 = 2100, то есть ATK% +21%: база ATK
+     выходила 750 + 2100 + 713.76 = 3563.8 вместо 1463.8, а итог — 7220.1 вместо 3535.
+     Задеты ровно три агента (проверено по всему avatars.json): sunna — 12102 (ATK% до +21%),
+     zhao (1341) и manato (1441) — 11102 (HP% до +18%). Остальным 55 правка ничего не меняет,
+     у них в charBase только '…01'. */
+  Object.entries(charBase).forEach(([id, v]) => noteFam(id, enkaPropBucket(id), v));
 
   if (avatarRaw.Weapon) {
     computeEnkaWeaponContribs(weaponDef, avatarRaw.Weapon.Level, avatarRaw.Weapon.BreakLevel)
@@ -8608,7 +8626,17 @@ async function buildManualAgentStatSheet(agentKey, wengineKey, discEntries) {
     families[fam] = families[fam] || { base: 0, flat: 0, ratio: 0 };
     families[fam][bucket] += val;
   };
-  Object.entries(charBase).forEach(([id, v]) => noteFam(id, 'base', v));
+  /* Бакет ОБЯЗАТЕЛЬНО через enkaPropBucket(), а не жёстко 'base': computeEnkaCharacterBase()
+     складывает BaseProps + GrowthProps + PromotionProps + CoreEnhancementProps, и последний
+     содержит не только базовые id ('…01'), но и процентные ('…02').
+     Раньше здесь стояло 'base', и процент попадал в базу как плоская добавка — сразу двумя
+     ошибками: он не умножался на %-бонусы дисков и раздувал базу на своё сырое значение.
+     У Sunna (1491) Core Skill Enhancement F даёт 12102 = 2100, то есть ATK% +21%: база ATK
+     выходила 750 + 2100 + 713.76 = 3563.8 вместо 1463.8, а итог — 7220.1 вместо 3535.
+     Задеты ровно три агента (проверено по всему avatars.json): sunna — 12102 (ATK% до +21%),
+     zhao (1341) и manato (1441) — 11102 (HP% до +18%). Остальным 55 правка ничего не меняет,
+     у них в charBase только '…01'. */
+  Object.entries(charBase).forEach(([id, v]) => noteFam(id, enkaPropBucket(id), v));
 
   if (wengineKey) {
     const wEnkaId = SLUG_TO_ENKA_WENGINE_ID[wengineKey];
