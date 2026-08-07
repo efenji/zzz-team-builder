@@ -389,21 +389,6 @@ header {
 .tc-boo { display: flex; align-items: center; gap: 5px; }
 .tc-boo img { width: 20px; height: 20px; border-radius: 4px; object-fit: cover; }
 .tc-boo-name { font-size: 10px; color: var(--text-dim); font-family: 'Share Tech Mono', monospace; }
-.tc-actions { margin-left: auto; display: flex; align-items: center; gap: 2px; }
-.tc-dup {
-  background: none; border: none;
-  color: var(--text-dim); cursor: pointer; font-size: 13px;
-  padding: 3px 6px; border-radius: 4px; line-height: 1;
-  transition: color .15s, background .15s;
-}
-.tc-dup:hover { color: var(--accent); background: var(--accent-d); }
-.tc-del {
-  background: none; border: none;
-  color: var(--text-dim); cursor: pointer; font-size: 13px;
-  padding: 3px 6px; border-radius: 4px; line-height: 1;
-  transition: color .15s, background .15s;
-}
-.tc-del:hover { color: var(--red); background: rgba(239,68,68,.1); }
 
 /* empty */
 .empty-state {
@@ -522,11 +507,6 @@ select {
   gap: 6px;
   margin-bottom: 6px;
 }
-/* each agent = column of 3 cards */
-.agent-col {
-  display: flex; flex-direction: column; gap: 6px;
-}
-
 /* ── CARD BASE ── */
 .ag-card {
   background: var(--bg3);
@@ -1112,8 +1092,6 @@ select {
   font-family: 'Share Tech Mono', monospace; font-size: 10px; font-weight: 400;
   color: var(--text-dim); letter-spacing: .1em; text-transform: uppercase; margin-left: 8px;
 }
-.enka-stats-box.hidden { display: none; }
-
 /* ── PROFILE TAB (character showcase by UID) — functional layout for now,
    visual pass comes later. Reuses .disc-detail-row / lib-pill-btn etc. ── */
 
@@ -1171,7 +1149,6 @@ select {
 /* UID ownership verification (Profile tab) */
 .uid-verify-panel.hidden { display: none; }
 .uid-verify-box { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 14px; margin-bottom: 14px; }
-.uid-verify-badge { background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.35); color: #22c55e; border-radius: var(--r-sm); padding: 8px 12px; margin-bottom: 14px; font-size: 12px; font-weight: 700; }
 .uid-verify-title { font-weight: 700; font-size: 13px; margin-bottom: 8px; }
 .uid-verify-steps { font-size: 12px; color: var(--text-mid); line-height: 1.6; margin-bottom: 10px; }
 .uid-verify-code { color: var(--accent); font-family: monospace; font-size: 16px; letter-spacing: 2px; }
@@ -1283,12 +1260,6 @@ select {
 .profile-agent-card.selected { border-color: var(--accent); background: var(--accent-d); }
 .profile-agent-card .pac-name { font-weight: 700; }
 .profile-agent-card .pac-sub { color: var(--text-dim); font-size: 11px; margin-top: 2px; }
-.profile-agent-card.preset-list-back { color: var(--text-mid); }
-.profile-agent-card.preset-list-back .pac-name { font-weight: 500; }
-.profile-agent-card.preset-list-add {
-  border-style: dashed; text-align: center; color: var(--text-mid); font-weight: 700;
-}
-.profile-agent-card.preset-list-add:hover { border-color: var(--accent); color: var(--accent); }
 .profile-agent-card.broken { border-color: #b45309; }
 .profile-detail { flex: 1; min-width: 0; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
 .profile-detail-empty { color: var(--text-dim); font-size: 13px; text-align: center; padding: 60px 0; }
@@ -1451,7 +1422,6 @@ select {
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
 }
-.pd-presets-header-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .pd-preset-actions-inline { display: flex; gap: 8px; flex-wrap: wrap; }
 .pd-preset-actions { display: flex; gap: 8px; margin-top: 14px; }
 .lib-pill-btn.danger { color: var(--red); }
@@ -1608,10 +1578,6 @@ select {
   overflow: hidden;
 }
 .disc-manual-modal-box .modal-hd { flex-wrap: wrap; }
-.disc-manual-hd {
-  font-family: 'Barlow Condensed', 'Oswald', sans-serif; font-size: 13px; font-weight: 700;
-  letter-spacing: .02em;
-}
 .disc-manual-row { display: flex; gap: 10px; flex-wrap: wrap; }
 .disc-manual-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 150px; }
 .disc-manual-field label {
@@ -2079,19 +2045,6 @@ select {
 </div>
 
 <!-- ADVANCED MODE: LIBRARY MODAL (visual only for now) -->
-<div class="modal-bg hidden" id="libModalBg" onclick="libBgClick(event)">
-  <div class="modal-box">
-    <div class="modal-hd">
-      <div class="modal-ttl" id="libModalTitle">Library</div>
-      <button class="modal-x" onclick="closeLibModal()">✕</button>
-    </div>
-    <div class="modal-srch">
-      <input type="text" id="libModalSearch" placeholder="Search..." oninput="filterLibModal()">
-    </div>
-    <div class="modal-grid" id="libModalGrid"></div>
-  </div>
-</div>
-
 <!-- ADVANCED MODE: AGENT LIBRARY (full management view) -->
 <div class="lib-modal-bg hidden" id="agentLibBg" onclick="agentLibBgClick(event)">
   <div class="lib-modal-box">
@@ -7238,26 +7191,17 @@ function toggleDiscAdvancedMode() {
 /* ── ADVANCED MODE: LIBRARY MODALS ──
    "agent" opens the dedicated Manage Agents view below. The others are still
    a visual placeholder to be designed next. */
-const LIB_TITLES = { disc: 'Drive Disc Library' };
+/* Единственная точка входа во все четыре библиотеки — из ⚙-меню в шапке.
+   Раньше здесь была ещё ветка-заглушка «Coming soon…» с собственной модалкой
+   (#libModalBg + LIB_TITLES + closeLibModal/libBgClick/filterLibModal), но все
+   четыре типа перехватываются выше, а других вызовов openLibraryModal() в
+   проекте нет — до заглушки было не добраться. Убрано вместе с разметкой. */
 function openLibraryModal(type) {
-  if (type === 'agent') { openAgentLibrary(); return; }
-  if (type === 'wengine') { openWengineLibrary(); return; }
-  if (type === 'bangboo') { openBangbooLibrary(); return; }
-  if (type === 'disc') { openDriveDiscLibrary(); return; }
-  document.getElementById('libModalTitle').textContent = LIB_TITLES[type] || 'Library';
-  document.getElementById('libModalSearch').value = '';
-  document.getElementById('libModalGrid').innerHTML =
-    `<div style="grid-column:1/-1;text-align:center;color:var(--text-dim);font-size:12px;padding:32px 0">Coming soon…</div>`;
-  document.getElementById('libModalBg').classList.remove('hidden');
-  document.getElementById('libModalSearch').focus();
-  document.body.style.overflow = 'hidden';
+  if (type === 'agent') return openAgentLibrary();
+  if (type === 'wengine') return openWengineLibrary();
+  if (type === 'bangboo') return openBangbooLibrary();
+  if (type === 'disc') return openDriveDiscLibrary();
 }
-function closeLibModal() {
-  document.getElementById('libModalBg').classList.add('hidden');
-  document.body.style.overflow = '';
-}
-function libBgClick(e) { if (e.target === document.getElementById('libModalBg')) closeLibModal(); }
-function filterLibModal() { /* to be implemented once library contents are defined */ }
 
 /* ── ADVANCED MODE: AGENT LIBRARY ──
    Per-agent state: { enabled, level, mindscape }. Enabled agents are the pool
@@ -8411,7 +8355,6 @@ function enkaPropBucket(id) {
   const last = String(id).slice(-1);
   return last === '1' ? 'base' : last === '2' ? 'ratio' : 'flat';
 }
-function isEnkaRatioProp(id) { return enkaPropBucket(id) === 'ratio'; }
 function enkaStatFamily(id) { return String(id).slice(0, 3); }
 
 // postDivide converts the raw combined value into the unit this tool (and
@@ -8776,10 +8719,6 @@ function formatEnkaStatValue(v, isPercent, fam) {
 }
 
 function enkaPropName(id) { return ENKA_PROPERTY_MAP[id] || String(id); }
-function enkaPropValue(id, raw) {
-  return ENKA_PERCENT_PROPS.has(id) ? Math.round((raw / 100) * 10) / 10 : Math.round(raw);
-}
-
 // Converts one Equipment (from EquippedList[i].Equipment) into this tool's
 // drive-disc-library shape (same shape normalizeDiscEntry() produces).
 /* ── PROFILE TAB ──────────────────────────────────────────────────────────
@@ -9515,7 +9454,11 @@ async function renderAgentPresetView() {
     const missing = p.source ? [] : evaluatePresetApplicability(p, null).missing;
     const broken = missing.length > 0;
     const cat = presetCategory(p);
-    const catLabel = cat === 'verified' ? 'Verified — pulled from your stand' : cat === 'imported' ? `Imported${p.source && p.source.nickname ? ' — from ' + p.source.nickname + "'s showcase" : ' — from another showcase'}` : '';
+    // Никнейм приходит со стенда чужого аккаунта, то есть это НЕ доверенная
+    // строка, а catLabel уходит в title="${it.title}" внутри innerHTML, где в
+    // том же теге стоит onerror. Кавычка в никнейме закрыла бы атрибут, поэтому
+    // экранируется здесь — ровно один раз, как и p.name ниже.
+    const catLabel = cat === 'verified' ? 'Verified — pulled from your stand' : cat === 'imported' ? `Imported${p.source && p.source.nickname ? ' — from ' + escapeHtml(p.source.nickname) + "'s showcase" : ' — from another showcase'}` : '';
     return {
       id: p.id,
       name: p.name,
@@ -9911,7 +9854,7 @@ function countUsefulProcs(discEntries, useful) {
 function usefulSetsTitle(useful) {
   const m = [...useful.main].join(', ') || '—';
   const f = [...useful.flat].join(', ') || '—';
-  return `Основной зачёт: ${m}\nПлоский зачёт: ${f}\nPEN считается всегда и отдельно`;
+  return `Useful: ${m}\nFlat: ${f}\nPEN always counts, and always separately`;
 }
 
 // Строка-итог над таблицей сумм сабстатов.
@@ -11294,7 +11237,7 @@ function renderTeams() {
     const selCls = selectedTeamIds.has(t.id) ? ' selected' : '';
     return `<div class="team-card${selCls}" draggable="true" data-id="${t.id}" onclick="if(!window.__justDragged) selectTeam('${t.id}', event.shiftKey)">
       <div class="tc-bar${displayOptions.name ? '' : ' tc-bar-noname'}">
-        ${displayOptions.name ? `<div class="tc-name">${t.name}</div>` : ''}
+        ${displayOptions.name ? `<div class="tc-name">${escapeHtml(t.name || '')}</div>` : ''}
         <div class="tc-tag">${tag}</div>
         <div class="tc-time"><b>${timer}</b></div>
         ${(displayOptions.shiyu && t.shiyu) ? `<div class="tc-shiyu">S${t.shiyu}</div>` : ''}
@@ -13240,22 +13183,37 @@ async function handlePostDeepLink() {
 
 async function castVote(postId) {
   if (!currentUser) { showToast('Sign in with Discord to vote.', 'error'); return; }
-  const current = feedUserVotes[postId] || 0;
-  if (current === 1) {
-    await sb.from('votes').delete().eq('post_id', postId).eq('user_id', currentUser.id);
-    feedUserVotes[postId] = 0;
-  } else {
-    await sb.from('votes').upsert({ post_id: postId, user_id: currentUser.id, value: 1 });
-    feedUserVotes[postId] = 1;
-  }
+  const removing = (feedUserVotes[postId] || 0) === 1;
+  // Раньше результат запроса игнорировался, а счёт всё равно менялся локально:
+  // при отказе RLS или обрыве сети пользователь видел неправильное число до
+  // перезагрузки страницы. Теперь локальное состояние двигается только после
+  // подтверждённой записи.
+  const { error } = removing
+    ? await sb.from('votes').delete().eq('post_id', postId).eq('user_id', currentUser.id)
+    : await sb.from('votes').upsert({ post_id: postId, user_id: currentUser.id, value: 1 });
+  if (error) { showToast('Vote failed: ' + error.message, 'error'); return; }
+
+  feedUserVotes[postId] = removing ? 0 : 1;
   const post = feedPosts.find(p => p.id === postId);
-  if (post) post.score = (post.score || 0) + (current === 1 ? -1 : 1);
-  document.getElementById('feedList').innerHTML = feedPosts.map(feedPostHtml).join('');
+  if (post) post.score = (post.score || 0) + (removing ? -1 : 1);
+
+  // Перерисовывается ТОЛЬКО блок голосования этого поста. Полная пересборка
+  // feedList.innerHTML сворачивала все раскрытые ветки комментариев на
+  // странице — голос за один пост закрывал обсуждение под всеми остальными.
+  const voteBox = document.querySelector(`#feedList .feed-post[data-post-id="${postId}"] .feed-post-vote`);
+  if (voteBox) {
+    voteBox.innerHTML = `<button class="vote-btn${removing ? '' : ' active'}" onclick="castVote(${postId})">▲</button>
+      <div class="vote-score">${post ? post.score : 0}</div>`;
+  }
 }
 
 async function deletePost(postId) {
   if (!(await customConfirm('Delete this post from the feed?'))) return;
-  await sb.from('posts').delete().eq('id', postId);
+  // Без проверки error заблокированное RLS удаление выглядело как успешное:
+  // список перерисовывался, пост оставался на месте, объяснений не было.
+  const { error } = await sb.from('posts').delete().eq('id', postId);
+  if (error) { showToast('Failed to delete post: ' + error.message, 'error'); return; }
+  showToast('Post deleted.', 'success');
   showFeedTab(feedActiveTab);
 }
 
