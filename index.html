@@ -11302,9 +11302,59 @@ function avatarImgHtml(url, cls) {
   return `<img${cls ? ` class="${cls}"` : ''} src="${safe}" onerror="this.style.display='none'">`;
 }
 
-// List of known Shiyu Defense season numbers, newest first. A new season
-// drops roughly every 2 weeks — just prepend the new number here when it does.
-const SHIYU_SEASONS = ['53', '52'];
+/* Known Shiyu Defense seasons with their live periods (ISO, inclusive start /
+   exclusive-ish end — ровно как в игровом списке сезонов, где событие сезона N
+   имеет ID 620NN). Новый сезон выходит примерно раз в 2 недели: добавляем одну
+   строку сверху, номер + даты, и всё остальное (селекты, тултипы, фильтры)
+   подхватывается само.
+   Единственный источник истины по сезонам — этот объект; SHIYU_SEASONS ниже
+   выводится из него, чтобы номер и даты физически не могли разъехаться. */
+const SHIYU_SEASON_DATES = {
+  '56': { start: '2026-09-04', end: '2026-09-18' }, // 3.1 v3
+  '55': { start: '2026-08-21', end: '2026-09-04' }, // 3.1 v2
+  '54': { start: '2026-08-07', end: '2026-08-21' }, // 3.1 v1
+  '53': { start: '2026-07-24', end: '2026-08-07' }, // 3.0 v3
+  '52': { start: '2026-07-10', end: '2026-07-24' }, // 3.0 v2
+};
+
+// Newest first. Сортируем численно, а не по порядку ключей: при добавлении
+// сезона задним числом (или через Object.assign) порядок ключей не гарантирован.
+const SHIYU_SEASONS = Object.keys(SHIYU_SEASON_DATES)
+  .sort((a, b) => (parseInt(b, 10) || 0) - (parseInt(a, 10) || 0));
+
+const SHIYU_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+/* Компактный период для подписи в <select>: "Aug 7–21", а через границу месяца
+   "Aug 21 – Sep 4". Без года — иначе опции в тулбаре разъезжаются по ширине;
+   полная дата с годом есть в тултипе (shiyuSeasonTooltip). */
+function shiyuSeasonPeriod(season) {
+  const info = SHIYU_SEASON_DATES[String(season)];
+  if (!info) return '';
+  const [ys, ms, ds] = info.start.split('-').map(Number);
+  const [ye, me, de] = info.end.split('-').map(Number);
+  if (!ms || !me) return '';
+  const sameMonth = (ms === me && ys === ye);
+  const from = `${SHIYU_MONTHS[ms - 1]} ${ds}`;
+  const to = sameMonth ? `${de}` : `${SHIYU_MONTHS[me - 1]} ${de}`;
+  // "Aug 7–21" внутри месяца и "Aug 21 – Sep 4" через границу: без пробелов
+  // второй вариант читается как одна склеенная дата.
+  return sameMonth ? `${from}\u2013${to}` : `${from} \u2013 ${to}`;
+}
+
+// Подпись сезона для селектов: "54 · Aug 7–21". У сезонов, которых нет в
+// SHIYU_SEASON_DATES (старые команды, импорт), остаётся чистый номер.
+function shiyuSeasonLabel(season, prefix) {
+  const p = shiyuSeasonPeriod(season);
+  const base = `${prefix || ''}${season}`;
+  return p ? `${base} \u00b7 ${p}` : base;
+}
+
+// Полный период для title= на карточке: тот же формат, что в игре.
+function shiyuSeasonTooltip(season) {
+  const info = SHIYU_SEASON_DATES[String(season)];
+  if (!info) return `Shiyu Defense S${season}`;
+  return `Shiyu Defense S${season} \u2014 ${info.start} ~ ${info.end}`;
+}
 
 /* Это список АКТУАЛЬНЫХ сезонов: новый в него дописывается, старые из него
    уходят. А вот у сохранённой команды сезон остаётся навсегда — поэтому строить
@@ -11328,7 +11378,7 @@ function knownShiyuSeasons() {
 function populateShiyuSelect() {
   const sel = document.getElementById('sdShiyu');
   if (!sel) return;
-  sel.innerHTML = '<option value="">—</option>' + knownShiyuSeasons().map(s => `<option value="${s}">${s}</option>`).join('');
+  sel.innerHTML = '<option value="">—</option>' + knownShiyuSeasons().map(s => `<option value="${s}" title="${escapeHtml(shiyuSeasonTooltip(s))}">${escapeHtml(shiyuSeasonLabel(s))}</option>`).join('');
 }
 
 function newTeam() {
@@ -11411,7 +11461,7 @@ function renderTeams() {
         ${displayOptions.name ? `<div class="tc-name">${escapeHtml(t.name || '')}</div>` : ''}
         <div class="tc-tag">${tag}</div>
         <div class="tc-time"><b>${timer}</b></div>
-        ${(displayOptions.shiyu && t.shiyu) ? `<div class="tc-shiyu">S${t.shiyu}</div>` : ''}
+        ${(displayOptions.shiyu && t.shiyu) ? `<div class="tc-shiyu" title="${escapeHtml(shiyuSeasonTooltip(t.shiyu))}">S${escapeHtml(String(t.shiyu))}</div>` : ''}
       </div>
       <div class="tc-strip">${cells}</div>
       ${displayOptions.boo ? `<div class="tc-foot">${booHtml}</div>` : ''}
@@ -11433,7 +11483,7 @@ function populateShiyuFilterSelect() {
   // а shiyuFilter при этом продолжал бы фильтровать — сетка пустая, причина не
   // видна. Держим такой сезон в списке, чтобы состояние всегда было на экране.
   if (shiyuFilter && !seasons.includes(shiyuFilter)) seasons.unshift(shiyuFilter);
-  sel.innerHTML = '<option value="">All Shiyu</option>' + seasons.map(s => `<option value="${s}">S${s} only</option>`).join('');
+  sel.innerHTML = '<option value="">All Shiyu</option>' + seasons.map(s => `<option value="${s}" title="${escapeHtml(shiyuSeasonTooltip(s))}">${escapeHtml(shiyuSeasonLabel(s, 'S'))}</option>`).join('');
   sel.value = shiyuFilter;
 }
 function setShiyuFilter(val) {
@@ -13171,7 +13221,7 @@ function populateFeedFilterOptions() {
   const floorSel = document.getElementById('feedFilterFloor');
   const roomSel = document.getElementById('feedFilterRoom');
   if (!seasonSel || seasonSel.dataset.populated) return;
-  seasonSel.innerHTML = '<option value="">All seasons</option>' + SHIYU_SEASONS.map(s => `<option value="${s}">S${s}</option>`).join('');
+  seasonSel.innerHTML = '<option value="">All seasons</option>' + SHIYU_SEASONS.map(s => `<option value="${s}" title="${escapeHtml(shiyuSeasonTooltip(s))}">${escapeHtml(shiyuSeasonLabel(s, 'S'))}</option>`).join('');
   // 1–5, ровно как в #sdFloor редактора. Раньше здесь был ещё 6 — опция, под
   // которую невозможно опубликовать ни один пост.
   floorSel.innerHTML = '<option value="">Any floor</option>' + [1,2,3,4,5].map(f => `<option value="${f}">${f}F</option>`).join('');
@@ -13294,7 +13344,7 @@ function feedTeamPreviewHtml(t) {
       <div class="tc-name">${escapeHtml(t.name || '')}</div>
       <div class="tc-tag">${tag}</div>
       <div class="tc-time"><b>${timer}</b></div>
-      ${t.shiyu ? `<div class="tc-shiyu">S${escapeHtml(String(t.shiyu))}</div>` : ''}
+      ${t.shiyu ? `<div class="tc-shiyu" title="${escapeHtml(shiyuSeasonTooltip(t.shiyu))}">S${escapeHtml(String(t.shiyu))}</div>` : ''}
     </div>
     <div class="tc-strip">${cells}</div>
     <div class="tc-foot">${booHtml}</div>
