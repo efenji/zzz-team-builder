@@ -9857,15 +9857,31 @@ function usefulSetsTitle(useful) {
   return `Useful: ${m}\nFlat: ${f}\nPEN always counts, and always separately`;
 }
 
+/* Сегменты строки-сводки проков. Нулевые зачёты не печатаются ВООБЩЕ: «+0 flat
+   +0 PEN» занимало место в строке, но не сообщало ничего — отсутствие сегмента
+   и означает, что проков в этом зачёте нет. Если пусты все три, возвращается
+   пустой массив, и вызывающий прячет строку целиком.
+   boldAll различает две площадки: в сводке над таблицей сумм жирные все три
+   числа, а в строке под отдельным диском — только main. */
+function usefulProcSegments(row, boldAll) {
+  const n = (v) => boldAll ? `<b>${v}</b>` : v;
+  const out = [];
+  if (row.main > 0) out.push(`<span class="up-main"><b>${row.main}</b> useful</span>`);
+  if (row.flat > 0) out.push(`<span class="up-flat">${n('+' + row.flat)} flat</span>`);
+  if (row.pen  > 0) out.push(`<span class="up-pen">${n('+' + row.pen)} PEN</span>`);
+  return out;
+}
+
 // Строка-итог над таблицей сумм сабстатов.
 function usefulProcsSummaryHtml(counts, useful) {
   if (!useful.rule) return '';
-  const t = counts.total;
+  const segs = usefulProcSegments(counts.total, true);
+  // Ни одного полезного прока во всей сборке — «of N procs» в одиночку смысла
+  // не имеет, поэтому строки нет вовсе.
+  if (!segs.length) return '';
   return `<div class="up-summary" title="${escapeHtml(usefulSetsTitle(useful))}">
-    <span class="up-main"><b>${t.main}</b> useful</span>
-    <span class="up-flat"><b>+${t.flat}</b> flat</span>
-    <span class="up-pen"><b>+${t.pen}</b> PEN</span>
-    <span class="up-of">of ${t.all} procs</span>
+    ${segs.join('\n    ')}
+    <span class="up-of">of ${counts.total.all} procs</span>
   </div>`;
 }
 
@@ -10693,11 +10709,12 @@ function discDetailBlockHtml(d, opts = {}) {
       <div class="disc-detail-row-val">${s.value}</div>
     </div>`;
   }).join('');
-  const usefulLine = useful && useful.rule
+  // Строка прячется целиком, когда у диска нет ни одного прока ни в одном
+  // зачёте — пустой .dd-useful оставлял бы margin-top на ровном месте.
+  const usefulSegs = (useful && useful.rule) ? usefulProcSegments(row, false) : [];
+  const usefulLine = usefulSegs.length
     ? `<div class="dd-useful" title="${escapeHtml(usefulSetsTitle(useful))}">
-        <span class="up-main"><b>${row.main}</b> useful</span>
-        <span class="up-flat">+${row.flat} flat</span>
-        <span class="up-pen">+${row.pen} PEN</span>
+        ${usefulSegs.join('\n        ')}
       </div>`
     : '';
   const deleteBtn = opts.showDelete
