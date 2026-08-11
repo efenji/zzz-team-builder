@@ -11621,6 +11621,16 @@ const SHIYU_SEASONS = Object.keys(SHIYU_SEASON_DATES)
 // одинаково.
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+/* Сегодня в том же виде, в котором лежат даты в SHIYU_SEASON_DATES и
+   DA_PHASE_DATES — тогда сравнение периодов это обычное сравнение строк.
+   Собираем из локальных компонентов, а не через toISOString(): последний
+   переводит в UTC, и для часовых поясов восточнее Гринвича вечером отдавал бы
+   уже следующий день — сезон переключался бы на несколько часов раньше срока. */
+function todayIso(today) {
+  const d = today || new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 /* Компактный период для подписи в <select>: "Aug 7–21", а через границу месяца
    "Aug 21 – Sep 4". Без года — иначе опции в тулбаре разъезжаются по ширине;
    полная дата с годом есть в тултипе (shiyuSeasonTooltip). */
@@ -11638,12 +11648,27 @@ function shiyuSeasonPeriod(season) {
   return sameMonth ? `${from}\u2013${to}` : `${from} \u2013 ${to}`;
 }
 
-// Подпись сезона для селектов: "54 · Aug 7–21". У сезонов, которых нет в
+/* Какой сезон идёт прямо сейчас. Границы трактуются как [start, end): день
+   окончания одного сезона — это день начала следующего (см. SHIYU_SEASON_DATES),
+   так что включать его в оба было бы неверно. Ровно та же логика, что у
+   currentDaPhase() — режимы отличаются только таблицей. */
+function currentShiyuSeason(today) {
+  const iso = todayIso(today);
+  return SHIYU_SEASONS.find(s => {
+    const info = SHIYU_SEASON_DATES[s];
+    return info && iso >= info.start && iso < info.end;
+  }) || '';
+}
+
+// Подпись сезона для селектов: "54 · Aug 7–21", у текущего сезона ещё и пометка
+// LIVE — чтобы не сверять даты с календарём при каждом сохранении (так же
+// подписываются фазы Deadly Assault, см. daPhaseLabel). У сезонов, которых нет в
 // SHIYU_SEASON_DATES (старые команды, импорт), остаётся чистый номер.
 function shiyuSeasonLabel(season, prefix) {
   const p = shiyuSeasonPeriod(season);
   const base = `${prefix || ''}${season}`;
-  return p ? `${base} \u00b7 ${p}` : base;
+  const live = (season && String(season) === currentShiyuSeason()) ? ' \u00b7 LIVE' : '';
+  return (p ? `${base} \u00b7 ${p}` : base) + live;
 }
 
 // Полный период для title= на карточке: тот же формат, что в игре.
@@ -11696,9 +11721,10 @@ function populateShiyuSelect() {
      · после 9★ открывается Adversity — один усиливающийся по ходу боя
        противник, там ведётся свой лучший общий счёт. Он здесь четвёртой
        стадией, потому что по смыслу это такой же одиночный забег.
-   Порогов очков в звёзды в коде НЕТ намеренно: они менялись от патча к
-   патчу (в 1.x были 6000/14000/20000, сейчас топовые забеги дают 30–45k), и
-   зашитая таблица врала бы молча. Звёзды ставятся руками. */
+   Звёзды считаются из очка, а не вводятся руками (см. DA_STAR_THRESHOLDS
+   ниже). Пороги при этом привязаны к ФАЗЕ и честно помечены как непроверенные,
+   когда для фазы их нет: раньше здесь стоял единственный зашитый набор, и он
+   мог молча врать после смены патча. */
 /* Периоды фаз — ровно тот же принцип, что у SHIYU_SEASON_DATES. Даты сверены
    по списку сезонов и заканчиваются на 2026-09-11: дальше расписание ещё не
    опубликовано, дописывать сюда по мере выхода.
@@ -11745,8 +11771,7 @@ function daPhasePeriod(phase) {
    окончания одной фазы — это день начала следующей (см. таблицу выше), так
    что включать его в обе было бы неверно. */
 function currentDaPhase(today) {
-  const d = today || new Date();
-  const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const iso = todayIso(today);
   return Object.keys(DA_PHASE_DATES).find(ph => {
     const info = DA_PHASE_DATES[ph];
     return iso >= info.start && iso < info.end;
@@ -11832,32 +11857,67 @@ function daBuffTooltip(key) {
   return `${b.name}\n\n` + b.lines.map(l => '\u00b7 ' + l).join('\n\n');
 }
 
-/* Рейтинг руками не выставляется: звёзды — функция от очка. Пороги у обычных
-   боссовых стадий и у Adversity разные (там шаг ровно 10k), потолок очка общий
-   для любого режима. */
+/* Рейтинг руками не выставляется: звёзды — функция от очка. Потолок очка общий
+   для любого режима, а вот пороги — нет, поэтому их две таблицы, ровно тем же
+   приёмом, что DA_BUFFS / DA_PHASE_BUFFS:
+
+     · DA_PHASE_STAR_THRESHOLDS — проверенные пороги КОНКРЕТНОЙ фазы;
+     · DA_STAR_THRESHOLDS_DEFAULT — то, чем пользуемся, пока фазу не сверили.
+
+   Зачем так: пороги менялись от патча к патчу (в 1.x были 6000/14000/20000), и
+   единственный зашитый набор после очередного обновления начинал молча врать —
+   карточка бодро показывала 3★ там, где игра дала 2★. Теперь у непроверенной
+   фазы в подсказке прямо написано, что цифры ориентировочные (см. daStarsHint),
+   так что ошибка видна, а не спрятана.
+
+   Внутри фазы пороги всё равно разные у боссовых стадий и у Adversity — там
+   шаг ровно 10k, — поэтому у каждой записи два набора. Можно указать только
+   один: второй возьмётся из дефолта.
+
+   ЗАПОЛНЯТЬ ПО МЕРЕ СВЕРКИ: одна строка на фазу, ключ — как в DA_PHASE_DATES. */
 const DA_SCORE_MAX = 65000;
-const DA_STAR_THRESHOLDS = {
+const DA_STAR_THRESHOLDS_DEFAULT = {
   normal: [7000, 14000, 20000],
   adv:    [10000, 20000, 30000],
 };
+const DA_PHASE_STAR_THRESHOLDS = {
+  // '3.1.1': { normal: [7000, 14000, 20000], adv: [10000, 20000, 30000] },
+};
 
-function daStarThresholds(stage) {
-  return String(stage) === 'adv' ? DA_STAR_THRESHOLDS.adv : DA_STAR_THRESHOLDS.normal;
+// Сверены ли пороги для этой фазы. Нужно и для подсказки, и чтобы не выдавать
+// ориентировочные цифры за точные.
+function daThresholdsVerified(phase) {
+  return Object.prototype.hasOwnProperty.call(DA_PHASE_STAR_THRESHOLDS, String(phase));
+}
+
+/* Пороги стадии в рамках фазы. Фаза может переопределить только один набор из
+   двух (например, у Adversity шаг изменился, а у боссов нет), поэтому падаем в
+   дефолт по каждому ключу отдельно, а не по записи целиком. */
+function daStarThresholds(stage, phase) {
+  const key = String(stage) === 'adv' ? 'adv' : 'normal';
+  const over = DA_PHASE_STAR_THRESHOLDS[String(phase)];
+  const list = (over && over[key]) || DA_STAR_THRESHOLDS_DEFAULT[key];
+  return list;
 }
 // Сколько звёзд даёт это очко на этой стадии. Больше трёх не бывает.
-function daStarsForScore(score, stage) {
+function daStarsForScore(score, stage, phase) {
   const v = Number(score) || 0;
-  return daStarThresholds(stage).filter(th => v >= th).length;
+  return daStarThresholds(stage, phase).filter(th => v >= th).length;
 }
-// Подсказка к рейтингу: пороги стадии и сколько не хватает до следующей звезды.
-function daStarsHint(score, stage) {
-  const ths = daStarThresholds(stage);
+// Подсказка к рейтингу: пороги стадии, сколько не хватает до следующей звезды и
+// — если фаза не сверена — предупреждение, что пороги ориентировочные.
+function daStarsHint(score, stage, phase) {
+  const ths = daStarThresholds(stage, phase);
   const v = Number(score) || 0;
   const list = ths.map((th, i) => `${i + 1}\u2605 \u2014 ${th.toLocaleString('en-US')}`).join('\n');
   const next = ths.find(th => v < th);
-  return next
-    ? `${list}\n\n+${(next - v).toLocaleString('en-US')} to the next star`
-    : `${list}\n\nMax rating reached`;
+  const tail = next
+    ? `+${(next - v).toLocaleString('en-US')} to the next star`
+    : 'Max rating reached';
+  const note = daThresholdsVerified(phase)
+    ? ''
+    : '\n\nApproximate thresholds \u2014 not verified for this phase.';
+  return `${list}\n\n${tail}${note}`;
 }
 
 const DA_STAGE_LABELS = { '1': 'Boss 1', '2': 'Boss 2', '3': 'Boss 3', 'adv': 'Adversity' };
@@ -11936,11 +11996,18 @@ function newTeam(mode = 'shiyu') {
       daBoss: '',
       daBuff: '',
       daScore: 0,
-      daStars: 0,
+      // daStars здесь намеренно НЕТ: рейтинг — производное от очка, стадии и
+      // фазы, считается на месте (daStarsForScore). См. renderDaStarsView().
     });
   }
+  // Сезон по умолчанию — идущий прямо сейчас, ровно по той же причине и с тем
+  // же фолбэком, что фаза у Deadly Assault выше: самый новый ключ в таблице
+  // брать нельзя, там уже лежат будущие сезоны. Если сегодня не попадает ни в
+  // один известный период — расписание кончилось, берём самый свежий известный.
+  // Пустая строка остаётся возможной: это валидное «сезон не указан», и селект
+  // редактора такую опцию («—») по-прежнему предлагает.
   return Object.assign(base, {
-    shiyu: '',
+    shiyu: currentShiyuSeason() || knownShiyuSeasons()[0] || '',
     floor:'1', tier:'4', side:'A',
     timerMin:0, timerSec:0,
   });
@@ -11999,7 +12066,7 @@ function renderTeamGrid(mode) {
       ? `<div class="tc-tag" title="${escapeHtml(daStageLabel(t.daStage) + (daBoss ? ' \u2014 ' + daBoss : ''))}">${escapeHtml(daStageShort(t.daStage))}</div>`
       : `<div class="tc-tag">${t.floor}F · Room ${t.side==='A'?'1':t.side==='B'?'2':'3'}</div>`;
     const resultHtml = isDa
-      ? `<div class="tc-score" title="${escapeHtml(daStarsHint(t.daScore, t.daStage))}">${daStarsHtml(daStarsForScore(t.daScore, t.daStage))}<b>${escapeHtml(formatDaScore(t.daScore))}</b></div>`
+      ? `<div class="tc-score" title="${escapeHtml(daStarsHint(t.daScore, t.daStage, t.daPhase))}">${daStarsHtml(daStarsForScore(t.daScore, t.daStage, t.daPhase))}<b>${escapeHtml(formatDaScore(t.daScore))}</b></div>`
       : `<div class="tc-time"><b>${String(t.timerMin).padStart(2,'0')}:${String(t.timerSec).padStart(2,'0')}</b></div>`;
     const seasonHtml = isDa
       ? ((displayOptions.daphase && t.daPhase) ? `<div class="tc-shiyu" title="${escapeHtml(daPhaseTooltip(t.daPhase))}">${escapeHtml(String(t.daPhase))}</div>` : '')
@@ -12268,7 +12335,11 @@ function editTeam(id) {
     if (currentTeam.daBoss  === undefined) currentTeam.daBoss  = '';
     if (currentTeam.daBuff  === undefined) currentTeam.daBuff  = '';
     if (currentTeam.daScore === undefined) currentTeam.daScore = 0;
-    if (currentTeam.daStars === undefined) currentTeam.daStars = 0;
+    // Команды, сохранённые пока рейтинг был отдельным полем, несут daStars.
+    // Не переносим его, а выбрасываем: значение могло быть посчитано по старым
+    // порогам, а считать звёзды теперь всегда из очка. Сохранение этой команды
+    // заодно уберёт поле и из localStorage.
+    delete currentTeam.daStars;
   } else if (currentTeam.shiyu === undefined) {
     currentTeam.shiyu = '';
   }
@@ -12327,6 +12398,10 @@ function onDaPhaseChange() {
   // фазы молча стирала бы выбор.
   populateDaBuffSelect();
   renderDaBuffDesc();
+  // Пороги звёзд привязаны к фазе (DA_PHASE_STAR_THRESHOLDS), поэтому смена
+  // фазы способна изменить рейтинг при том же очке — и в подсказке появиться
+  // или исчезнуть пометка о непроверенных порогах.
+  renderDaStarsView();
 }
 function onDaStageChange() {
   currentTeam.daStage = document.getElementById('daStage').value;
@@ -12366,17 +12441,22 @@ function renderDaBuffDesc() {
     b.lines.map(l => `<div class="da-buff-desc-line">${escapeHtml(l)}</div>`).join('');
 }
 
-/* Рейтинг пересчитывается из очка при каждом изменении очка или стадии — руками
-   он больше не ставится. Поля daStars в currentTeam мы при этом не трогаем:
-   единственный источник правды — очко, а daStars записывается один раз в
-   saveTeam() как производное значение. */
+/* Рейтинг пересчитывается из очка при каждом изменении очка, стадии или фазы —
+   руками он не ставится и НИКУДА НЕ СОХРАНЯЕТСЯ. Единственный источник правды —
+   очко: звёзды выводятся из него на месте, и там, где они показываются
+   (карточка, редактор), считаются заново. Хранить их отдельным полем нельзя как
+   раз потому, что пороги теперь зависят от фазы: записанное число разошлось бы
+   с истиной ровно в тот момент, когда фазу сверят и пороги уточнят.
+   Значения берём из живых контролов, а не из currentTeam: обработчики полей
+   вызывают эту функцию до того, как сохранят своё значение в модель. */
 function renderDaStarsView() {
   const el = document.getElementById('daStarsView');
   if (!el) return;
   const score = Math.max(0, Math.min(DA_SCORE_MAX, parseInt(document.getElementById('daScore').value, 10) || 0));
   const stage = document.getElementById('daStage').value;
-  const v = daStarsForScore(score, stage);
-  el.title = daStarsHint(score, stage);
+  const phase = document.getElementById('daPhase').value;
+  const v = daStarsForScore(score, stage, phase);
+  el.title = daStarsHint(score, stage, phase);
   el.innerHTML = [1,2,3].map(i => daStarSvg(i <= v)).join('');
 }
 function onDaScoreInput() { renderDaStarsView(); }
@@ -12398,10 +12478,9 @@ function saveTeam() {
     currentTeam.daBuff  = document.getElementById('daBuff').value;
     // Очко режется в 0…65000 — это игровой потолок для любого режима.
     currentTeam.daScore = Math.max(0, Math.min(DA_SCORE_MAX, parseInt(document.getElementById('daScore').value, 10) || 0));
-    // Производное от очка и стадии, а не отдельное поле для ввода. Хранится,
-    // чтобы карточка и возможные будущие сортировки не пересчитывали его
-    // каждый раз, но правду задаёт только очко.
-    currentTeam.daStars = daStarsForScore(currentTeam.daScore, currentTeam.daStage);
+    // Рейтинг НЕ сохраняем — он производное от очка/стадии/фазы и считается там,
+    // где показывается. Иначе уточнение порогов оставляло бы в базе устаревшие
+    // звёзды, которые уже нечем отличить от верных.
   } else {
     currentTeam.shiyu    = document.getElementById('sdShiyu').value;
     currentTeam.floor    = document.getElementById('sdFloor').value;
@@ -13322,23 +13401,34 @@ function initTeamGridDnD(gridId) {
     card.classList.remove('dragging');
 
     if (dropZone && dropZone.element !== card) {
-      const beforeIds = teams.map(t => t.id);
+      /* Снимок берём с САМОЙ СЕТКИ и до перемещения — раньше здесь стоял
+         teams.map(...), то есть порядок всего массива целиком. Сравнивать его
+         поэлементно с orderedIds (а это только видимые карточки одного режима,
+         да ещё и после фильтра) бессмысленно: расхождение находилось почти
+         всегда, и pushUndo() съедал шаг истории даже когда порядок не менялся —
+         например, при свопе карточки с собственным соседом обратно на место. */
+      const beforeIds = [...grid.querySelectorAll('.team-card')].map(c => c.dataset.id);
       if (dropZone.mode === 'swap') swapNodes(card, dropZone.element);
       else if (dropZone.mode === 'before') grid.insertBefore(card, dropZone.element);
       else if (dropZone.mode === 'after') grid.insertBefore(card, dropZone.element.nextElementSibling);
 
       const orderedIds = [...grid.querySelectorAll('.team-card')].map(c => c.dataset.id);
       const changed = orderedIds.some((id, i) => id !== beforeIds[i]);
-      if (changed) pushUndo();
-      // Reorder only the slots that belong to the currently-visible (filtered)
-      // teams; teams hidden by the Shiyu filter keep their original array
-      // position so filtering never scrambles the full saved order.
-      const visibleSet = new Set(orderedIds);
-      const byId = new Map(teams.map(t => [t.id, t]));
-      const slots = [];
-      teams.forEach((t, i) => { if (visibleSet.has(t.id)) slots.push(i); });
-      slots.forEach((slotIdx, k) => { teams[slotIdx] = byId.get(orderedIds[k]); });
-      localStorage.setItem('zzz_teams', JSON.stringify(teams));
+      // Ничего не сдвинулось — не пишем ни в историю, ни в localStorage:
+      // перезапись массива теми же объектами в тех же позициях всё равно ничего
+      // не даёт, а лишний шаг undo только сбивает.
+      if (changed) {
+        pushUndo();
+        // Reorder only the slots that belong to the currently-visible (filtered)
+        // teams; teams hidden by the Shiyu filter keep their original array
+        // position so filtering never scrambles the full saved order.
+        const visibleSet = new Set(orderedIds);
+        const byId = new Map(teams.map(t => [t.id, t]));
+        const slots = [];
+        teams.forEach((t, i) => { if (visibleSet.has(t.id)) slots.push(i); });
+        slots.forEach((slotIdx, k) => { teams[slotIdx] = byId.get(orderedIds[k]); });
+        localStorage.setItem('zzz_teams', JSON.stringify(teams));
+      }
     }
 
     dropZone = null;
