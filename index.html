@@ -229,7 +229,7 @@ header {
    one cluster. Hidden entirely when the panel isn't showing a preset. */
 .tb-preset-tabs { gap: 5px; flex-wrap: wrap; }
 .tb-preset-chip {
-  position: relative; /* anchors the absolute ✅/📥 corner badges to the chip */
+  position: relative; /* anchors the absolute .preset-chip-badge corner icon */
   display: flex; align-items: center; gap: 6px;
   height: 34px; box-sizing: border-box; padding: 0 10px 0 6px;
   background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
@@ -756,19 +756,27 @@ select {
   display: flex; align-items: center; justify-content: center; line-height: 1;
   box-shadow: 0 0 0 2px var(--bg3);
 }
-.preset-chip-imported {
+/* Угловой значок категории на чипе пресета. Раньше это были два класса
+   (.preset-chip-imported / .preset-chip-verified) с побайтово одинаковыми
+   правилами — разница была только в эмодзи внутри. Теперь внутри SVG, так что
+   класс один. */
+.preset-chip-badge {
   position: absolute; top: -3px; right: -3px;
-  width: 13px; height: 13px; border-radius: 50%;
-  background: var(--bg4); font-size: 8px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--bg4); color: var(--text-mid);
   display: flex; align-items: center; justify-content: center; line-height: 1;
   box-shadow: 0 0 0 2px var(--bg3);
 }
-.preset-chip-verified {
-  position: absolute; top: -3px; right: -3px;
-  width: 13px; height: 13px; border-radius: 50%;
-  background: var(--bg4); font-size: 8px;
-  display: flex; align-items: center; justify-content: center; line-height: 1;
-  box-shadow: 0 0 0 2px var(--bg3);
+.preset-chip-badge .pcat-ico { width: 9px; height: 9px; stroke-width: 2.6; }
+
+/* Иконки категорий пресетов. Размер в em — значок сам подстраивается под
+   кегль строки, в которую попал (11px в списке агентов, 12px на чипе в
+   тулбаре), и никогда не разъезжается с текстом. Цвет — currentColor. */
+.pcat-ico {
+  width: 1.05em; height: 1.05em; flex-shrink: 0;
+  fill: none; stroke: currentColor; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+  vertical-align: -0.14em;
 }
 .pd-preset-warn {
   font-size: 12px; color: #f0b429; background: rgba(180,83,9,.12);
@@ -1270,6 +1278,13 @@ select {
 .profile-agent-card.selected { border-color: var(--accent); background: var(--accent-d); }
 .profile-agent-card .pac-name { font-weight: 700; }
 .profile-agent-card .pac-sub { color: var(--text-dim); font-size: 11px; margin-top: 2px; }
+/* Два счётчика в одной строке: flex вместо разделителя «·» — точка между
+   иконками читалась как часть значка. Отдельный класс, потому что .pac-sub
+   используется ещё и под обычный текст (Lv./M, «N published»). */
+.profile-agent-card .pac-sub.pac-counts { display: flex; align-items: center; gap: 9px; }
+.profile-agent-card .pac-sub.pac-counts span { display: inline-flex; align-items: center; gap: 3px; }
+/* Verified — то, что подтверждено системой, поэтому чуть ярче ручных сборок. */
+.profile-agent-card .pac-sub.pac-counts span:first-child { color: var(--text-mid); }
 .profile-agent-card.broken { border-color: #b45309; }
 .profile-detail { flex: 1; min-width: 0; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
 .profile-detail-empty { color: var(--text-dim); font-size: 13px; text-align: center; padding: 60px 0; }
@@ -7904,6 +7919,28 @@ function getPresetById(agentKey, presetId) { return getAgentPresets(agentKey).fi
 // именно так они и создавались раньше (единственный тогдашний способ).
 function presetCategory(p) { return p.category || 'manual'; }
 
+/* ── ЗНАЧКИ КАТЕГОРИЙ ПРЕСЕТОВ ──
+   Монохромные SVG вместо эмодзи (были ✅ / 🛠 / 📥). Эмодзи рисует сама
+   система — на маке они цветные и объёмные, на винде другой формы, в размер
+   11px превращаются в кашу и тянут за собой цвет, который не подчиняется теме.
+   Здесь линейные иконки на currentColor: цвет наследуется от текста рядом,
+   размер задаётся в em, то есть значок всегда ровно по кегль строки.
+     verified — щит с галкой: снято с собственного подтверждённого стенда,
+                источник доверенный, править нельзя;
+     manual   — карандаш: собрано руками в конструкторе;
+     imported — стрелка в лоток: затянуто с чужого стенда, только для справки.
+   Щит и карандаш противопоставлены намеренно: «выдано» против «сделано».
+   Форма (а не цвет) несёт смысл — так значок читается и в ч/б, и дальтоником. */
+const PRESET_CAT_ICON_PATHS = {
+  verified: '<path d="M12 21.5c5-2.4 7.5-6 7.5-10.5V4.8L12 2.2 4.5 4.8v6.2c0 4.5 2.5 8.1 7.5 10.5Z"/><path d="m8.6 11.7 2.5 2.5 4.3-4.6"/>',
+  manual:   '<path d="M4 20h4.5L20 8.5a2.5 2.5 0 0 0-3.5-3.5L5 16.5V20Z"/><path d="m14.5 6.5 3 3"/>',
+  imported: '<path d="M12 3.5v10"/><path d="m7.5 9 4.5 4.5L16.5 9"/><path d="M4.5 20h15"/>',
+};
+function presetCatIconSvg(cat, title) {
+  const d = PRESET_CAT_ICON_PATHS[cat] || PRESET_CAT_ICON_PATHS.manual;
+  return `<svg class="pcat-ico" viewBox="0 0 24 24" aria-hidden="true"${title ? ` title="${escapeHtml(title)}"` : ''}>${d}</svg>`;
+}
+
 function presetCategoryCounts(agentKey) {
   const list = getAgentPresets(agentKey);
   const verified = list.filter(p => presetCategory(p) === 'verified').length;
@@ -9506,8 +9543,8 @@ async function renderAgentPresetView() {
       title: broken
         ? `${escapeHtml(p.name)} — ${missing.length} disc(s) no longer match anything in your Drive Disc Library`
         : catLabel ? `${escapeHtml(p.name)} — ${catLabel}` : escapeHtml(p.name),
-      badge: cat === 'verified' ? '<span class="preset-chip-verified" title="Verified">✅</span>'
-           : cat === 'imported' ? '<span class="preset-chip-imported" title="Imported build — reference only">📥</span>' : '',
+      badge: cat === 'verified' ? `<span class="preset-chip-badge" title="Verified">${presetCatIconSvg('verified')}</span>`
+           : cat === 'imported' ? `<span class="preset-chip-badge" title="Imported build — reference only">${presetCatIconSvg('imported')}</span>` : '',
       handler: `selectAgentPresetTab('${p.id}')`,
     };
   }));
@@ -9535,7 +9572,10 @@ async function renderProfileLeftExtra() {
       const counts = presetCategoryCounts(k);
       return `<div class="profile-agent-card${k === profilePresetViewAgentKey ? ' selected' : ''}" onclick="openAgentPresetView('${k}')">
       <div class="pac-name">${escapeHtml(cardName(k))}</div>
-      <div class="pac-sub">✅${counts.verified}/${PRESET_LIMIT} · 🛠${counts.other}/${PRESET_LIMIT}</div>
+      <div class="pac-sub pac-counts">
+        <span title="Verified presets — pulled from your own stand">${presetCatIconSvg('verified')}${counts.verified}/${PRESET_LIMIT}</span>
+        <span title="Regular presets — built by hand or imported">${presetCatIconSvg('manual')}${counts.other}/${PRESET_LIMIT}</span>
+      </div>
     </div>`;
     }).join('');
     return;
@@ -10535,7 +10575,9 @@ async function renderOwnerPresetView() {
     wengine: r.wengine,
     selected: String(r.id) === ownerPresetViewPresetId,
     title: `${escapeHtml(r.name)} — published build, read-only`,
-    badge: '<span class="preset-chip-imported" title="Published by this player — read-only">⇪</span>',
+    // Чужая публикация — тот же «пришло извне», что и imported: для меня это
+    // снимок, который я могу только смотреть и копировать себе.
+    badge: `<span class="preset-chip-badge" title="Published by this player — read-only">${presetCatIconSvg('imported')}</span>`,
     handler: `selectOwnerPresetTab('${r.id}')`,
   })));
 
