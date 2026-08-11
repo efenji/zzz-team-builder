@@ -322,6 +322,18 @@ header {
   font-size: 11px; font-family: 'Share Tech Mono', monospace;
   color: var(--accent);
 }
+/* Deadly Assault: та же плашка, но в два ряда — имя боссa не делит строку с
+   названием команды. */
+.tc-bar-da { flex-direction: column; align-items: stretch; gap: 6px; }
+.tc-bar-da.tc-bar-noname { justify-content: flex-start; }
+.tc-bar-da .tc-name { flex: none; }
+.tc-bar-da .tc-bar-row2 { display: flex; align-items: center; gap: 8px; }
+/* Босс занимает всю свободную ширину и отжимает очко с фазой вправо; на очень
+   длинном имени обрезается многоточием, а не выдавливает их за край. */
+.tc-bar-da .tc-tag {
+  flex: 1; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .tc-time {
   font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-mid);
   background: var(--accent-d);
@@ -11850,14 +11862,31 @@ function renderTeamGrid(mode) {
       ? `<div class="tc-boo"><img src="${bangbooUrl(t.bangboo)}" onerror="this.style.opacity=.2"><span class="tc-boo-name">M${t.booMindscape||0} · ${prettyName(t.bangboo)}</span></div>`
       : `<div class="tc-boo"><span style="opacity:.2;font-size:16px">🤖</span></div>`;
 
-    const selCls = selectedTeamIds.has(t.id) ? ' selected' : '';
-    return `<div class="team-card${selCls}" draggable="true" data-id="${t.id}" onclick="if(!window.__justDragged) selectTeam('${t.id}', event.shiftKey)">
-      <div class="tc-bar${displayOptions.name ? '' : ' tc-bar-noname'}">
-        ${displayOptions.name ? `<div class="tc-name">${escapeHtml(t.name || '')}</div>` : ''}
+    const nameHtml = displayOptions.name ? `<div class="tc-name">${escapeHtml(t.name || '')}</div>` : '';
+    /* У Шию плашка одной строкой: название, «5F · Room 2», время, сезон — всё
+       короткое и в строку влезает. У Deadly Assault в этой же строке живёт имя
+       боссa, которое длиннее всего остального вместе взятого, поэтому здесь
+       плашка в две строки: сверху название команды, снизу босс по левому краю,
+       а очко со звёздами и фаза остаются на своих местах справа. */
+    const barHtml = isDa
+      ? `<div class="tc-bar tc-bar-da${displayOptions.name ? '' : ' tc-bar-noname'}">
+        ${nameHtml}
+        <div class="tc-bar-row2">
+          <div class="tc-tag">${tag}</div>
+          ${resultHtml}
+          ${seasonHtml}
+        </div>
+      </div>`
+      : `<div class="tc-bar${displayOptions.name ? '' : ' tc-bar-noname'}">
+        ${nameHtml}
         <div class="tc-tag">${tag}</div>
         ${resultHtml}
         ${seasonHtml}
-      </div>
+      </div>`;
+
+    const selCls = selectedTeamIds.has(t.id) ? ' selected' : '';
+    return `<div class="team-card${selCls}" draggable="true" data-id="${t.id}" onclick="if(!window.__justDragged) selectTeam('${t.id}', event.shiftKey)">
+      ${barHtml}
       <div class="tc-strip">${cells}</div>
       ${displayOptions.boo ? `<div class="tc-foot">${booHtml}</div>` : ''}
     </div>`;
