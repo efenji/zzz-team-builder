@@ -496,11 +496,6 @@ header {
   margin-bottom: 6px;
 }
 .shiyu-bar.hidden { display: none; }
-.shiyu-label {
-  font-family: 'Share Tech Mono', monospace; font-size: 10px;
-  color: var(--accent); letter-spacing: .15em; text-transform: uppercase;
-  align-self: center; margin-right: 4px;
-}
 .fld { display: flex; flex-direction: column; gap: 4px; }
 .fld label {
   font-size: 10px; color: var(--text-dim);
@@ -1359,6 +1354,16 @@ select {
 .profile-agent-card {
   background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
   padding: 8px 10px; cursor: pointer; font-size: 13px;
+  display: flex; align-items: center; gap: 10px;
+}
+/* Текст занимает всё свободное место и жмёт портрет к правому краю. min-width:0
+   обязателен: без него длинное имя не даст флекс-элементу сжаться и выпихнет
+   картинку за границу карточки. */
+.profile-agent-card .pac-text { flex: 1; min-width: 0; }
+.profile-agent-card .pac-art {
+  width: 38px; height: 38px; flex-shrink: 0;
+  border-radius: 6px; object-fit: cover;
+  background: var(--bg3);
 }
 .profile-agent-card:hover { border-color: var(--border2); }
 .profile-agent-card.selected { border-color: var(--accent); background: var(--accent-d); }
@@ -2120,7 +2125,6 @@ select {
     </div>
     <div class="ed-body">
       <div class="shiyu-bar" id="shiyuBar">
-        <div class="shiyu-label">SHIYU<br>DEFENSE</div>
         <div class="fld">
           <label>Season</label>
           <select id="sdShiyu"></select>
@@ -9632,14 +9636,25 @@ async function reloadMyShowcase() {
   }
 }
 
+/* Портрет справа в карточке агента. onerror убирает картинку целиком, а не
+   оставляет битую иконку: арт есть не у всех агентов, и это нормальное
+   состояние, а не ошибка. */
+function agentCardArtHtml(agentKey) {
+  if (!agentKey) return '';
+  return `<img class="pac-art" src="${agentSquareUrl(agentKey)}" alt="" loading="lazy" onerror="this.remove()">`;
+}
+
 function renderProfileAgentList() {
   const list = document.getElementById('profileAgentList');
   list.innerHTML = profileLastAvatars.map((a, i) => {
     const slug = ENKA_AGENT_MAP[a.Id];
     const name = slug ? cardName(slug) : `Unknown (Id ${a.Id})`;
     return `<div class="profile-agent-card${i === profileSelectedIndex ? ' selected' : ''}" onclick="selectProfileAgent(${i})">
-      <div class="pac-name">${escapeHtml(name)}</div>
-      <div class="pac-sub">Lv.${a.Level} · M${a.TalentLevel || 0}</div>
+      <div class="pac-text">
+        <div class="pac-name">${escapeHtml(name)}</div>
+        <div class="pac-sub">Lv.${a.Level} · M${a.TalentLevel || 0}</div>
+      </div>
+      ${agentCardArtHtml(slug)}
     </div>`;
   }).join('');
 }
@@ -9763,11 +9778,14 @@ async function renderProfileLeftExtra() {
     el.innerHTML = sortAgentsByRarity(agentsWithPresets).map(k => {
       const counts = presetCategoryCounts(k);
       return `<div class="profile-agent-card${k === profilePresetViewAgentKey ? ' selected' : ''}" onclick="openAgentPresetView('${k}')">
-      <div class="pac-name">${escapeHtml(cardName(k))}</div>
-      <div class="pac-sub pac-counts">
-        <span title="Verified presets — pulled from your own stand">${presetCatIconSvg('verified')}${counts.verified}/${PRESET_LIMIT}</span>
-        <span title="Regular presets — built by hand or imported">${presetCatIconSvg('manual')}${counts.other}/${PRESET_LIMIT}</span>
+      <div class="pac-text">
+        <div class="pac-name">${escapeHtml(cardName(k))}</div>
+        <div class="pac-sub pac-counts">
+          <span title="Verified presets — pulled from your own stand">${presetCatIconSvg('verified')}${counts.verified}/${PRESET_LIMIT}</span>
+          <span title="Regular presets — built by hand or imported">${presetCatIconSvg('manual')}${counts.other}/${PRESET_LIMIT}</span>
+        </div>
       </div>
+      ${agentCardArtHtml(k)}
     </div>`;
     }).join('');
     return;
@@ -9785,8 +9803,11 @@ async function renderProfileLeftExtra() {
   el.innerHTML = sortAgentsByRarity(agentKeys).map(k => {
     const count = rows.filter(r => r.agent_key === k).length;
     return `<div class="profile-agent-card${k === ownerPresetViewAgentKey ? ' selected' : ''}" onclick="openOwnerPresetView('${k}')">
-    <div class="pac-name">${escapeHtml(cardName(k))}</div>
-    <div class="pac-sub">⇪ ${count} published</div>
+    <div class="pac-text">
+      <div class="pac-name">${escapeHtml(cardName(k))}</div>
+      <div class="pac-sub">⇪ ${count} published</div>
+    </div>
+    ${agentCardArtHtml(k)}
   </div>`;
   }).join('');
 }
@@ -10620,8 +10641,11 @@ async function openPublicPresetsViewer(userId, encodedUsername) {
   document.getElementById('publicPresetsAgentList').innerHTML = sortAgentsByRarity(agentKeys).map(k => {
     const count = publicPresetsCache.filter(r => r.agent_key === k).length;
     return `<div class="profile-agent-card" onclick="showPublicAgentPresets('${k}')">
-      <div class="pac-name">${escapeHtml(cardName(k))}</div>
-      <div class="pac-sub">${count} preset${count === 1 ? '' : 's'}</div>
+      <div class="pac-text">
+        <div class="pac-name">${escapeHtml(cardName(k))}</div>
+        <div class="pac-sub">${count} preset${count === 1 ? '' : 's'}</div>
+      </div>
+      ${agentCardArtHtml(k)}
     </div>`;
   }).join('');
 }
@@ -11419,6 +11443,13 @@ function assetSlug(key) {
 // Арт агента для карточки команды. Лежит внутри папки агента вместе с
 // портретами и скинами — см. assets/agents/<slug>/ в репозитории.
 const agentUrl  = k => `${BASE}/agents/${assetSlug(k)}/card.webp`;
+/* Мелкий портрет из папки агента — тот, что в дампе называется
+   IconRoleGeneral<номер>. Номер в имени файла НЕ используется: он из отдельной
+   внутренней нумерации игры (у Alice, например, Enka-id 1401, а файлы —
+   IconRole46), связи с известными нам id нет, а поддерживать таблицу из 58
+   номеров пришлось бы вручную при каждом новом агенте. Поэтому файл в каждой
+   папке называется одинаково, и адрес собирается из одного slug'а. */
+const agentSquareUrl = k => `${BASE}/agents/${assetSlug(k)}/square.webp`;
 const wengineUrl= k => `${BASE}/w-engines/${assetSlug(k)}.webp`;
 const discUrl   = k => `${BASE}/disc-sets/${assetSlug(k)}.webp`;
 const bangbooUrl= k => `${BASE}/bangboo/${assetSlug(k)}.webp`;
