@@ -521,8 +521,7 @@ select {
 .timer-wrap { display: flex; align-items: center; gap: 4px; }
 .timer-wrap input { width: 50px; text-align: center; }
 .timer-colon { color: var(--text-dim); font-size: 15px; font-weight: 700; }
-.da-boss-fld input { width: 230px; }
-.da-score-input { width: 96px; text-align: center; font-family: 'Share Tech Mono', monospace; }
+.da-score-input { text-align: center; font-family: 'Share Tech Mono', monospace; }
 /* Штатные стрелки прибавляют/убавляют по единице — на числах вроде 43000 это
    бессмысленно (до соседнего осмысленного значения тысячи кликов), а места
    занимают половину поля и ломают центрирование. Ввод только руками; min/max
@@ -530,25 +529,42 @@ select {
 .da-score-input::-webkit-outer-spin-button,
 .da-score-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .da-score-input { -moz-appearance: textfield; appearance: textfield; }
+/* Панель Deadly Assault — не flex-wrap, как шиюйская, а сетка из трёх колонок
+   плюс колонка под подпись режима. Причина: полей здесь шесть, они ложатся в
+   два ряда, и при flex-wrap ряды жили каждый своей жизнью — ширина поля
+   определялась его содержимым, поэтому правый край первого ряда не совпадал со
+   вторым, а между «Stage» и «Rating» зияла дыра. На сетке колонки общие для
+   обоих рядов: Phase над Boss, Stage над Score, Rating над Buff, все края
+   выровнены по вертикали.
+   Пропорции колонок (2 / 1 / 1.3) подобраны под содержимое: подпись фазы с
+   периодом — самая длинная строка в панели, очку хватает узкой колонки. */
+/* Подписи режима («DEADLY ASSAULT») здесь нет намеренно: вкладка и так так
+   называется, а без неё сетка — ровно три колонки от края до края панели. */
+.da-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.3fr);
+  column-gap: 10px; row-gap: 10px;
+  align-items: end;
+}
+/* Поля тянутся на всю ширину своей колонки — только так края совпадают. */
+.da-bar .fld select,
+.da-bar .fld input { width: 100%; }
+
 /* Рейтинг только показывается — щёлкать по нему нечего, значение считается по
-   очку. height как у соседних полей ввода, чтобы звёзды стояли на одной линии
-   с селектами, а не «плавали» по своей строке. */
+   очку. height как у полей ввода, чтобы звёзды стояли на одной линии с
+   селектами, а не «плавали» по своей строке. */
 .da-stars-view {
-  display: flex; align-items: center; gap: 3px; height: 32px;
+  display: flex; align-items: center; justify-content: center; gap: 6px; height: 32px;
   color: var(--accent); cursor: help;
 }
 .da-stars-view svg { width: 19px; height: 19px; }
 .da-stars-view svg.off { color: var(--text-dim); opacity: .35; }
-/* Рейтинг уезжает в правый край первого ряда, за ним — принудительный перенос
-   строки (flex-basis:100% при нулевой высоте): иначе перенос зависел бы от
-   того, насколько длинной вышла подпись фазы. */
-.da-rating-fld { margin-left: auto; }
-.da-row-break { flex: 0 0 100%; height: 0; margin: 0; }
-.da-buff-fld select { min-width: 170px; }
-/* flex-basis:100% — строка описания разрывает поток панели и занимает её
-   целиком под селектами. */
+/* Единственная ячейка без рамки, поэтому подпись к ней центрируется по
+   звёздам — иначе «RATING» висело бы у левого края пустого места. */
+.da-rating-fld > label { text-align: center; }
+/* Третий ряд сетки во всю ширину — под обоими рядами полей. */
 .da-buff-desc {
-  flex: 0 0 100%; margin-top: 2px;
+  grid-column: 1 / -1; margin-top: 2px;
   display: flex; flex-direction: column; gap: 5px;
   background: var(--bg); border: 1px solid var(--border);
   border-radius: var(--r-sm); padding: 9px 11px;
@@ -2147,7 +2163,6 @@ select {
            bought. Only one of the two bars is ever visible — showEditor()
            picks by currentTeam.mode. -->
       <div class="shiyu-bar da-bar hidden" id="daBar">
-        <div class="shiyu-label">DEADLY<br>ASSAULT</div>
         <div class="fld">
           <label>Phase</label>
           <select id="daPhase" onchange="onDaPhaseChange()"></select>
@@ -2168,7 +2183,6 @@ select {
           <label>Rating</label>
           <div class="da-stars-view" id="daStarsView"></div>
         </div>
-        <div class="da-row-break"></div>
         <div class="fld da-boss-fld">
           <label>Boss</label>
           <input type="text" id="daBoss" maxlength="48" placeholder="—" autocomplete="off">
