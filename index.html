@@ -263,16 +263,6 @@ header {
   gap: 8px;
   margin-bottom: 28px;
 }
-/* Deadly Assault: карточки шире, три в ряд вместо четырёх. Верхняя плашка
-   здесь несёт больше текста — стадия ПЛЮС имя боссa ("B2 · Notorious: Dead
-   End Butcher"), — и на 340px оно упиралось в очко со звёздами.
-   Меняется только нижняя граница колонки (340 → 440), а не число колонок
-   жёстко: сетка по-прежнему auto-fill, поэтому на узком окне она сама
-   свернётся в две колонки и в одну, а не будет сплющивать три. При ширине
-   страницы по максимуму (1600px) карточка выходит ~517px против 380px. */
-#deadlyGrid {
-  grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
-}
 
 /* ── TEAM CARD ── */
 .team-card {
@@ -321,18 +311,6 @@ header {
 .tc-tag {
   font-size: 11px; font-family: 'Share Tech Mono', monospace;
   color: var(--accent);
-}
-/* Deadly Assault: та же плашка, но в два ряда — имя боссa не делит строку с
-   названием команды. */
-.tc-bar-da { flex-direction: column; align-items: stretch; gap: 6px; }
-.tc-bar-da.tc-bar-noname { justify-content: flex-start; }
-.tc-bar-da .tc-name { flex: none; }
-.tc-bar-da .tc-bar-row2 { display: flex; align-items: center; gap: 8px; }
-/* Босс занимает всю свободную ширину и отжимает очко с фазой вправо; на очень
-   длинном имени обрезается многоточием, а не выдавливает их за край. */
-.tc-bar-da .tc-tag {
-  flex: 1; min-width: 0;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .tc-time {
   font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-mid);
@@ -11920,12 +11898,17 @@ function renderTeamGrid(mode) {
   }
   grid.innerHTML = list.map(t => {
     const isDa = teamMode(t) === 'da';
-    // Верхняя плашка — единственное, что отличается между режимами: слева
-    // «где это было», справа «чем кончилось». У шию это этаж/комната и время,
-    // у DA — стадия и очко со звёздами.
-    const tag = isDa
-      ? `${daStageShort(t.daStage)}${(() => { const b = t.daBoss || daBossName(t.daPhase, t.daStage); return b ? ' · ' + escapeHtml(b) : ''; })()}`
-      : `${t.floor}F · Room ${t.side==='A'?'1':t.side==='B'?'2':'3'}`;
+    /* Верхняя плашка — единственное, что отличается между режимами: слева
+       «где это было», справа «чем кончилось». У Шию это этаж/комната и время,
+       у DA — стадия и очко со звёздами.
+       Метка стадии предельно короткая (B1/B2/B3/ADV): имя боссa в строку не
+       помещается, а карточка здесь той же ширины, что у Шию. Само имя не
+       теряется — уходит в подсказку при наведении вместе с полным названием
+       стадии. */
+    const daBoss = isDa ? (t.daBoss || daBossName(t.daPhase, t.daStage)) : '';
+    const tagHtml = isDa
+      ? `<div class="tc-tag" title="${escapeHtml(daStageLabel(t.daStage) + (daBoss ? ' \u2014 ' + daBoss : ''))}">${escapeHtml(daStageShort(t.daStage))}</div>`
+      : `<div class="tc-tag">${t.floor}F · Room ${t.side==='A'?'1':t.side==='B'?'2':'3'}</div>`;
     const resultHtml = isDa
       ? `<div class="tc-score">${daStarsHtml(t.daStars)} <b>${escapeHtml(formatDaScore(t.daScore))}</b></div>`
       : `<div class="tc-time"><b>${String(t.timerMin).padStart(2,'0')}:${String(t.timerSec).padStart(2,'0')}</b></div>`;
@@ -11965,28 +11948,6 @@ function renderTeamGrid(mode) {
       ? `<div class="tc-boo"><img src="${bangbooUrl(t.bangboo)}" onerror="this.style.opacity=.2"><span class="tc-boo-name">M${t.booMindscape||0} · ${prettyName(t.bangboo)}</span></div>`
       : `<div class="tc-boo"><span style="opacity:.2;font-size:16px">🤖</span></div>`;
 
-    const nameHtml = displayOptions.name ? `<div class="tc-name">${escapeHtml(t.name || '')}</div>` : '';
-    /* У Шию плашка одной строкой: название, «5F · Room 2», время, сезон — всё
-       короткое и в строку влезает. У Deadly Assault в этой же строке живёт имя
-       боссa, которое длиннее всего остального вместе взятого, поэтому здесь
-       плашка в две строки: сверху название команды, снизу босс по левому краю,
-       а очко со звёздами и фаза остаются на своих местах справа. */
-    const barHtml = isDa
-      ? `<div class="tc-bar tc-bar-da${displayOptions.name ? '' : ' tc-bar-noname'}">
-        ${nameHtml}
-        <div class="tc-bar-row2">
-          <div class="tc-tag">${tag}</div>
-          ${resultHtml}
-          ${seasonHtml}
-        </div>
-      </div>`
-      : `<div class="tc-bar${displayOptions.name ? '' : ' tc-bar-noname'}">
-        ${nameHtml}
-        <div class="tc-tag">${tag}</div>
-        ${resultHtml}
-        ${seasonHtml}
-      </div>`;
-
     /* Нижний ряд: бангбу слева, бафф справа. Показывается, если есть хоть
        одно из двух — иначе выключенный тумблер Bangboo прятал бы и бафф. */
     const buff = isDa && displayOptions.dabuff && t.daBuff && DA_BUFFS[t.daBuff] ? DA_BUFFS[t.daBuff] : null;
@@ -12002,7 +11963,12 @@ function renderTeamGrid(mode) {
 
     const selCls = selectedTeamIds.has(t.id) ? ' selected' : '';
     return `<div class="team-card${selCls}" draggable="true" data-id="${t.id}" onclick="if(!window.__justDragged) selectTeam('${t.id}', event.shiftKey)">
-      ${barHtml}
+      <div class="tc-bar${displayOptions.name ? '' : ' tc-bar-noname'}">
+        ${displayOptions.name ? `<div class="tc-name">${escapeHtml(t.name || '')}</div>` : ''}
+        ${tagHtml}
+        ${resultHtml}
+        ${seasonHtml}
+      </div>
       <div class="tc-strip">${cells}</div>
       ${footHtml}
     </div>`;
