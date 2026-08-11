@@ -530,13 +530,20 @@ select {
 .da-score-input::-webkit-outer-spin-button,
 .da-score-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .da-score-input { -moz-appearance: textfield; appearance: textfield; }
-/* Три кнопки-звезды вместо <select> с числом: рейтинг в игре и показывается
-   звёздами, так что попадание один-в-один. Клик по уже последней зажжённой
-   звезде гасит её — иначе с 1★ нельзя было бы вернуться на 0. */
-.da-stars-pick { display: flex; align-items: center; gap: 2px; height: 32px; }
-/* Бафф — последний элемент строки, поэтому уезжает вправо: слева остаются
-   поля «где и с каким результатом», справа «с чем шли». */
-.da-buff-fld { margin-left: auto; }
+/* Рейтинг только показывается — щёлкать по нему нечего, значение считается по
+   очку. height как у соседних полей ввода, чтобы звёзды стояли на одной линии
+   с селектами, а не «плавали» по своей строке. */
+.da-stars-view {
+  display: flex; align-items: center; gap: 3px; height: 32px;
+  color: var(--accent); cursor: help;
+}
+.da-stars-view svg { width: 19px; height: 19px; }
+.da-stars-view svg.off { color: var(--text-dim); opacity: .35; }
+/* Рейтинг уезжает в правый край первого ряда, за ним — принудительный перенос
+   строки (flex-basis:100% при нулевой высоте): иначе перенос зависел бы от
+   того, насколько длинной вышла подпись фазы. */
+.da-rating-fld { margin-left: auto; }
+.da-row-break { flex: 0 0 100%; height: 0; margin: 0; }
 .da-buff-fld select { min-width: 170px; }
 /* flex-basis:100% — строка описания разрывает поток панели и занимает её
    целиком под селектами. */
@@ -555,13 +562,6 @@ select {
    из данных как чистый текст, и точка не должна в них жить. */
 .da-buff-desc-line { position: relative; padding-left: 12px; }
 .da-buff-desc-line::before { content: '\00b7'; position: absolute; left: 3px; color: var(--accent); font-weight: 700; }
-.da-star-btn {
-  background: none; border: none; padding: 2px; cursor: pointer; line-height: 0;
-  color: var(--text-dim); transition: color .15s, transform .1s;
-}
-.da-star-btn:hover { transform: scale(1.12); }
-.da-star-btn.on { color: var(--accent); }
-.da-star-btn svg { width: 19px; height: 19px; }
 
 .total-sec {
   background: var(--bg); border: 1px solid var(--border);
@@ -2161,17 +2161,21 @@ select {
             <option value="adv">Adversity</option>
           </select>
         </div>
+        <!-- Рейтинг стоит в одном ряду со стадией, потому что именно от стадии
+             зависят пороги очка, и прижат к правому краю. Он ничего не
+             принимает от пользователя — только показывает результат подсчёта. -->
+        <div class="fld da-rating-fld">
+          <label>Rating</label>
+          <div class="da-stars-view" id="daStarsView"></div>
+        </div>
+        <div class="da-row-break"></div>
         <div class="fld da-boss-fld">
           <label>Boss</label>
           <input type="text" id="daBoss" maxlength="48" placeholder="—" autocomplete="off">
         </div>
         <div class="fld">
           <label>Score</label>
-          <input type="number" id="daScore" class="da-score-input" min="0" max="999999" step="1" placeholder="0">
-        </div>
-        <div class="fld">
-          <label>Rating</label>
-          <div class="da-stars-pick" id="daStarsPick"></div>
+          <input type="number" id="daScore" class="da-score-input" min="0" max="65000" step="1" placeholder="0" oninput="onDaScoreInput()">
         </div>
         <div class="fld da-buff-fld">
           <label>Buff</label>
@@ -11772,6 +11776,34 @@ function daBuffTooltip(key) {
   return `${b.name}\n\n` + b.lines.map(l => '\u00b7 ' + l).join('\n\n');
 }
 
+/* Рейтинг руками не выставляется: звёзды — функция от очка. Пороги у обычных
+   боссовых стадий и у Adversity разные (там шаг ровно 10k), потолок очка общий
+   для любого режима. */
+const DA_SCORE_MAX = 65000;
+const DA_STAR_THRESHOLDS = {
+  normal: [7000, 14000, 20000],
+  adv:    [10000, 20000, 30000],
+};
+
+function daStarThresholds(stage) {
+  return String(stage) === 'adv' ? DA_STAR_THRESHOLDS.adv : DA_STAR_THRESHOLDS.normal;
+}
+// Сколько звёзд даёт это очко на этой стадии. Больше трёх не бывает.
+function daStarsForScore(score, stage) {
+  const v = Number(score) || 0;
+  return daStarThresholds(stage).filter(th => v >= th).length;
+}
+// Подсказка к рейтингу: пороги стадии и сколько не хватает до следующей звезды.
+function daStarsHint(score, stage) {
+  const ths = daStarThresholds(stage);
+  const v = Number(score) || 0;
+  const list = ths.map((th, i) => `${i + 1}\u2605 \u2014 ${th.toLocaleString('en-US')}`).join('\n');
+  const next = ths.find(th => v < th);
+  return next
+    ? `${list}\n\n+${(next - v).toLocaleString('en-US')} to the next star`
+    : `${list}\n\nMax rating reached`;
+}
+
 const DA_STAGE_LABELS = { '1': 'Boss 1', '2': 'Boss 2', '3': 'Boss 3', 'adv': 'Adversity' };
 const DA_STAGE_SHORT  = { '1': 'B1', '2': 'B2', '3': 'B3', 'adv': 'ADV' };
 
@@ -11911,7 +11943,7 @@ function renderTeamGrid(mode) {
       ? `<div class="tc-tag" title="${escapeHtml(daStageLabel(t.daStage) + (daBoss ? ' \u2014 ' + daBoss : ''))}">${escapeHtml(daStageShort(t.daStage))}</div>`
       : `<div class="tc-tag">${t.floor}F · Room ${t.side==='A'?'1':t.side==='B'?'2':'3'}</div>`;
     const resultHtml = isDa
-      ? `<div class="tc-score">${daStarsHtml(t.daStars)}<b>${escapeHtml(formatDaScore(t.daScore))}</b></div>`
+      ? `<div class="tc-score" title="${escapeHtml(daStarsHint(t.daScore, t.daStage))}">${daStarsHtml(daStarsForScore(t.daScore, t.daStage))}<b>${escapeHtml(formatDaScore(t.daScore))}</b></div>`
       : `<div class="tc-time"><b>${String(t.timerMin).padStart(2,'0')}:${String(t.timerSec).padStart(2,'0')}</b></div>`;
     const seasonHtml = isDa
       ? ((displayOptions.daphase && t.daPhase) ? `<div class="tc-shiyu" title="${escapeHtml(daPhaseTooltip(t.daPhase))}">${escapeHtml(String(t.daPhase))}</div>` : '')
@@ -12203,7 +12235,7 @@ function showEditor() {
     document.getElementById('daStage').value = currentTeam.daStage || '1';
     document.getElementById('daScore').value = currentTeam.daScore || '';
     renderDaBossField();
-    renderDaStarsPick();
+    renderDaStarsView();
     populateDaBuffSelect();
     renderDaBuffDesc();
   } else {
@@ -12243,6 +12275,9 @@ function onDaPhaseChange() {
 function onDaStageChange() {
   currentTeam.daStage = document.getElementById('daStage').value;
   renderDaBossField();
+  // У Adversity пороги свои (шаг 10k против 7k/14k/20k), так что при смене
+  // стадии то же очко может дать другое число звёзд.
+  renderDaStarsView();
 }
 /* В списке остаются баффы фазы ПЛЮС тот, что уже выбран у команды: иначе при
    правке старой команды (или после смены фазы) её бафф исчезал бы из опций,
@@ -12275,20 +12310,20 @@ function renderDaBuffDesc() {
     b.lines.map(l => `<div class="da-buff-desc-line">${escapeHtml(l)}</div>`).join('');
 }
 
-function renderDaStarsPick() {
-  const el = document.getElementById('daStarsPick');
+/* Рейтинг пересчитывается из очка при каждом изменении очка или стадии — руками
+   он больше не ставится. Поля daStars в currentTeam мы при этом не трогаем:
+   единственный источник правды — очко, а daStars записывается один раз в
+   saveTeam() как производное значение. */
+function renderDaStarsView() {
+  const el = document.getElementById('daStarsView');
   if (!el) return;
-  const v = Math.max(0, Math.min(3, Number(currentTeam.daStars) || 0));
-  el.innerHTML = [1,2,3].map(i =>
-    `<button type="button" class="da-star-btn${i <= v ? ' on' : ''}" onclick="setDaStars(${i})" title="${i} star${i>1?'s':''}">${daStarSvg(i <= v)}</button>`
-  ).join('');
+  const score = Math.max(0, Math.min(DA_SCORE_MAX, parseInt(document.getElementById('daScore').value, 10) || 0));
+  const stage = document.getElementById('daStage').value;
+  const v = daStarsForScore(score, stage);
+  el.title = daStarsHint(score, stage);
+  el.innerHTML = [1,2,3].map(i => daStarSvg(i <= v)).join('');
 }
-function setDaStars(n) {
-  // Повторный клик по последней зажжённой звезде гасит рейтинг: без этого с
-  // одной звезды нельзя было бы вернуться к нулю.
-  currentTeam.daStars = (Number(currentTeam.daStars) === n) ? n - 1 : n;
-  renderDaStarsPick();
-}
+function onDaScoreInput() { renderDaStarsView(); }
 function closeEditor() {
   document.getElementById('editorOverlay').classList.add('hidden');
   document.body.style.overflow = '';
@@ -12305,10 +12340,12 @@ function saveTeam() {
     currentTeam.daStage = document.getElementById('daStage').value;
     currentTeam.daBoss  = document.getElementById('daBoss').value.trim();
     currentTeam.daBuff  = document.getElementById('daBuff').value;
-    // Очко режется в 0…999999: выше игрового максимума и достаточно, чтобы
-    // опечатка в лишний разряд не ломала вид карточки.
-    currentTeam.daScore = Math.max(0, Math.min(999999, parseInt(document.getElementById('daScore').value, 10) || 0));
-    currentTeam.daStars = Math.max(0, Math.min(3, Number(currentTeam.daStars) || 0));
+    // Очко режется в 0…65000 — это игровой потолок для любого режима.
+    currentTeam.daScore = Math.max(0, Math.min(DA_SCORE_MAX, parseInt(document.getElementById('daScore').value, 10) || 0));
+    // Производное от очка и стадии, а не отдельное поле для ввода. Хранится,
+    // чтобы карточка и возможные будущие сортировки не пересчитывали его
+    // каждый раз, но правду задаёт только очко.
+    currentTeam.daStars = daStarsForScore(currentTeam.daScore, currentTeam.daStage);
   } else {
     currentTeam.shiyu    = document.getElementById('sdShiyu').value;
     currentTeam.floor    = document.getElementById('sdFloor').value;
