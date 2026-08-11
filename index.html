@@ -322,6 +322,18 @@ header {
   font-family: 'Share Tech Mono', monospace; font-size: 11px; font-weight: 700;
   color: var(--accent); white-space: nowrap;
 }
+/* Deadly Assault: очко вместо таймера в той же позиции плашки. Форма и цвет
+   те же, что у .tc-time — на обеих вкладках правый край карточки означает
+   «результат забега», меняется только чем он измеряется. */
+.tc-score {
+  font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-mid);
+  background: var(--accent-d);
+  padding: 2px 8px; border-radius: 100px; white-space: nowrap;
+}
+.tc-score b { color: var(--accent); }
+.tc-stars { display: inline-flex; align-items: center; gap: 1px; color: var(--accent); }
+.tc-stars svg { width: 11px; height: 11px; }
+.tc-stars svg.off { opacity: .2; }
 
 /* agent strip */
 .tc-strip {
@@ -493,6 +505,20 @@ select {
 .timer-wrap { display: flex; align-items: center; gap: 4px; }
 .timer-wrap input { width: 50px; text-align: center; }
 .timer-colon { color: var(--text-dim); font-size: 15px; font-weight: 700; }
+.da-boss-fld input { width: 230px; }
+.da-score-input { width: 96px; text-align: center; font-family: 'Share Tech Mono', monospace; }
+/* Три кнопки-звезды вместо <select> с числом: рейтинг в игре и показывается
+   звёздами, так что попадание один-в-один. Клик по уже последней зажжённой
+   звезде гасит её — иначе с 1★ нельзя было бы вернуться на 0. */
+.da-stars-pick { display: flex; align-items: center; gap: 2px; height: 32px; }
+.da-star-btn {
+  background: none; border: none; padding: 2px; cursor: pointer; line-height: 0;
+  color: var(--text-dim); transition: color .15s, transform .1s;
+}
+.da-star-btn:hover { transform: scale(1.12); }
+.da-star-btn.on { color: var(--accent); }
+.da-star-btn svg { width: 19px; height: 19px; }
+
 .total-sec {
   background: var(--bg); border: 1px solid var(--border);
   border-radius: var(--r-sm); padding: 6px 10px;
@@ -1765,14 +1791,15 @@ select {
 </header>
 
 <div class="page-nav">
-  <button class="page-nav-btn active" id="navTeamsBtn" onclick="showPage('teams')">Saved Teams</button>
+  <button class="page-nav-btn active" id="navTeamsBtn" onclick="showPage('teams')">Shiyu Defense</button>
+  <button class="page-nav-btn" id="navDeadlyBtn" onclick="showPage('deadly')">Deadly Assault</button>
   <button class="page-nav-btn" id="navProfileBtn" onclick="showPage('profile')">Profile</button>
   <button class="page-nav-btn" id="navFeedBtn" onclick="showPage('feed')">Feed</button>
 </div>
 
 <div class="toolbar" id="mainToolbar">
 
-<!-- ══ TOOLBAR · SAVED TEAMS ══ -->
+<!-- ══ TOOLBAR · SHIYU DEFENSE ══ -->
 <div class="tb-page-group" id="tbGroupTeams">
   <div class="tb-group">
     <button class="tb-btn" id="tbUndo" onclick="undo()" title="Undo (Ctrl+Z)" disabled>↺</button>
@@ -1794,6 +1821,45 @@ select {
   <div class="tb-group">
     <button class="tb-toggle" data-key="name" onclick="toggleVisOption('name', this)">Name</button>
     <button class="tb-toggle" data-key="shiyu" onclick="toggleVisOption('shiyu', this)">Shiyu</button>
+    <button class="tb-toggle" data-key="wengine" onclick="toggleVisOption('wengine', this)">W-Engine</button>
+    <button class="tb-toggle" data-key="ability" onclick="toggleVisOption('ability', this)">Ability</button>
+    <button class="tb-toggle" data-key="attr" onclick="toggleVisOption('attr', this)">Attribute</button>
+    <button class="tb-toggle" data-key="class" onclick="toggleVisOption('class', this)">Class</button>
+    <button class="tb-toggle" data-key="discs" onclick="toggleVisOption('discs', this)">Discs</button>
+    <button class="tb-toggle" data-key="boo" onclick="toggleVisOption('boo', this)">Bangboo</button>
+  </div>
+</div>
+
+<!-- ══ TOOLBAR · DEADLY ASSAULT ══
+     Deliberately a 1:1 copy of the Shiyu Defense row above, slot for slot, so
+     switching tabs never moves a control under the cursor. Two differences,
+     both forced by the mode itself:
+       · no ⇪ Share — the feed's posts table stores Shiyu season/floor/room, so
+         a Deadly Assault run has nowhere to land there yet;
+       · the season filter filters by DA phase (3.1.1, 3.0.3 …) instead.
+     The display toggles write into the SAME displayOptions as the Shiyu tab
+     (one card design, one set of preferences) — the only own key is `daphase`,
+     the counterpart of `shiyu`, because the two chips are different things. -->
+<div class="tb-page-group hidden" id="tbGroupDeadly">
+  <div class="tb-group">
+    <button class="tb-btn" id="tbDaUndo" onclick="undo()" title="Undo (Ctrl+Z)" disabled>↺</button>
+    <button class="tb-btn" id="tbDaRedo" onclick="redo()" title="Redo (Ctrl+Shift+Z)" disabled>↻</button>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-group">
+    <button class="tb-btn primary" onclick="openNewEditor()" title="New Deadly Assault Team">+</button>
+    <button class="tb-btn" id="tbDaEdit" onclick="editSelectedTeam()" title="Edit Selected" disabled>✎</button>
+    <button class="tb-btn" id="tbDaDup" onclick="duplicateSelectedTeam()" title="Duplicate Selected" disabled>⧉</button>
+    <button class="tb-btn danger" id="tbDaDel" onclick="deleteSelectedTeam()" title="Delete Selected" disabled>✕</button>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-group">
+    <select id="daFilterSelect" onchange="setDaFilter(this.value)" title="Show only teams from a specific Deadly Assault phase"></select>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-group">
+    <button class="tb-toggle" data-key="name" onclick="toggleVisOption('name', this)">Name</button>
+    <button class="tb-toggle" data-key="daphase" onclick="toggleVisOption('daphase', this)">Phase</button>
     <button class="tb-toggle" data-key="wengine" onclick="toggleVisOption('wengine', this)">W-Engine</button>
     <button class="tb-toggle" data-key="ability" onclick="toggleVisOption('ability', this)">Ability</button>
     <button class="tb-toggle" data-key="attr" onclick="toggleVisOption('attr', this)">Attribute</button>
@@ -1892,10 +1958,15 @@ select {
 </div><!-- /.topbar-stack -->
 
 <div class="page" id="pageTeams">
-  <div class="section-title">Saved Teams</div>
+  <div class="section-title">Shiyu Defense</div>
   <div id="teamsGrid" class="teams-grid"></div>
 </div>
 
+
+<div class="page hidden" id="pageDeadly">
+  <div class="section-title">Deadly Assault</div>
+  <div id="deadlyGrid" class="teams-grid"></div>
+</div>
 
 <div class="page hidden" id="pageProfile">
   <div class="section-title">Profile · Character Showcase (by UID)</div>
@@ -1987,7 +2058,7 @@ select {
       </div>
     </div>
     <div class="ed-body">
-      <div class="shiyu-bar">
+      <div class="shiyu-bar" id="shiyuBar">
         <div class="shiyu-label">SHIYU<br>DEFENSE</div>
         <div class="fld">
           <label>Season</label>
@@ -2021,6 +2092,41 @@ select {
         <div class="fld">
           <label>&nbsp;</label>
           <div class="total-sec" id="totalSec">— sec</div>
+        </div>
+      </div>
+
+      <!-- Same chassis as the Shiyu bar above (shared .shiyu-bar styling), with
+           the fields the mode actually has. Deadly Assault has no floor/room
+           and no timer: every stage is a fixed 3-minute run, and what varies is
+           WHICH boss, the score you ended on and the star rating that score
+           bought. Only one of the two bars is ever visible — showEditor()
+           picks by currentTeam.mode. -->
+      <div class="shiyu-bar da-bar hidden" id="daBar">
+        <div class="shiyu-label">DEADLY<br>ASSAULT</div>
+        <div class="fld">
+          <label>Phase</label>
+          <select id="daPhase" onchange="onDaPhaseChange()"></select>
+        </div>
+        <div class="fld">
+          <label>Stage</label>
+          <select id="daStage" onchange="onDaStageChange()">
+            <option value="1">Boss 1</option>
+            <option value="2">Boss 2</option>
+            <option value="3">Boss 3</option>
+            <option value="adv">Adversity</option>
+          </select>
+        </div>
+        <div class="fld da-boss-fld">
+          <label>Boss</label>
+          <input type="text" id="daBoss" maxlength="48" placeholder="—" autocomplete="off">
+        </div>
+        <div class="fld">
+          <label>Score</label>
+          <input type="number" id="daScore" class="da-score-input" min="0" max="999999" step="1" placeholder="0">
+        </div>
+        <div class="fld">
+          <label>Rating</label>
+          <div class="da-stars-pick" id="daStarsPick"></div>
         </div>
       </div>
 
@@ -7186,8 +7292,10 @@ function redo() {
   updateUndoRedoButtons();
 }
 function updateUndoRedoButtons() {
-  const u = document.getElementById('tbUndo'); if (u) u.disabled = !undoStack.length;
-  const r = document.getElementById('tbRedo'); if (r) r.disabled = !redoStack.length;
+  // Стек истории один на оба режима (он снимает весь массив teams целиком),
+  // поэтому кнопки на двух вкладках всегда в одинаковом состоянии.
+  ['tbUndo', 'tbDaUndo'].forEach(id => { const el = document.getElementById(id); if (el) el.disabled = !undoStack.length; });
+  ['tbRedo', 'tbDaRedo'].forEach(id => { const el = document.getElementById(id); if (el) el.disabled = !redoStack.length; });
 }
 document.addEventListener('keydown', e => {
   const tag = document.activeElement && document.activeElement.tagName;
@@ -7196,7 +7304,7 @@ document.addEventListener('keydown', e => {
   if (e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
   else if (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey)) { e.preventDefault(); redo(); }
 });
-let displayOptions = Object.assign({attr:true, class:true, ability:true, wengine:true, boo:true, name:true, discs:true, shiyu:true},
+let displayOptions = Object.assign({attr:true, class:true, ability:true, wengine:true, boo:true, name:true, discs:true, shiyu:true, daphase:true},
   JSON.parse(localStorage.getItem('zzz_display_options') || '{}'));
 
 /* ── DRIVE DISC PICKER MODE ──
@@ -8810,17 +8918,30 @@ let profileSelectedIndex = null;
 // <select> value survive a trip to another tab and back.
 function setToolbarPage(which) {
   document.getElementById('tbGroupTeams').classList.toggle('hidden', which !== 'teams');
+  document.getElementById('tbGroupDeadly').classList.toggle('hidden', which !== 'deadly');
   document.getElementById('tbGroupProfile').classList.toggle('hidden', which !== 'profile');
   document.getElementById('tbGroupFeed').classList.toggle('hidden', which !== 'feed');
   closeProfileSearchResults();
 }
 
+// Какая вкладка команд открыта — это же и режим для кнопки «+»: новая команда
+// создаётся в том режиме, на который смотрит человек.
+let activeTeamPage = 'teams';
+
 function showPage(which) {
+  // Выделение живёт в одном Set'е на оба режима, поэтому при уходе со вкладки
+  // команд оно сбрасывается. Иначе на вкладке Deadly Assault остались бы
+  // активны кнопки удаления/дублирования, действующие на шиюйскую команду,
+  // которой на экране нет.
+  if ((which === 'teams' || which === 'deadly') && which !== activeTeamPage) deselectAll();
+  if (which === 'teams' || which === 'deadly') activeTeamPage = which;
   document.getElementById('pageTeams').classList.toggle('hidden', which !== 'teams');
+  document.getElementById('pageDeadly').classList.toggle('hidden', which !== 'deadly');
   document.getElementById('pageProfile').classList.toggle('hidden', which !== 'profile');
   document.getElementById('pageFeed').classList.toggle('hidden', which !== 'feed');
   setToolbarPage(which);
   document.getElementById('navTeamsBtn').classList.toggle('active', which === 'teams');
+  document.getElementById('navDeadlyBtn').classList.toggle('active', which === 'deadly');
   document.getElementById('navProfileBtn').classList.toggle('active', which === 'profile');
   document.getElementById('navFeedBtn').classList.toggle('active', which === 'feed');
   // (No height re-measure needed on tab switch any more — the toolbar changing
@@ -11442,12 +11563,101 @@ function populateShiyuSelect() {
   sel.innerHTML = '<option value="">—</option>' + knownShiyuSeasons().map(s => `<option value="${s}" title="${escapeHtml(shiyuSeasonTooltip(s))}">${escapeHtml(shiyuSeasonLabel(s))}</option>`).join('');
 }
 
-function newTeam() {
-  return {
+/* ── DEADLY ASSAULT ───────────────────────────────────────────────────────
+   Второй эндгейм-режим, живёт на своей вкладке, но в ТОМ ЖЕ массиве `teams`:
+   команда помечена полем mode ('shiyu' | 'da'), а вкладка — это фильтр по
+   нему. Так весь механизм (выбор, undo, дублирование, перетаскивание,
+   облачная синхронизация, редактор агентов) переиспользуется как есть, а не
+   копируется во второй экземпляр. Команды, сохранённые до появления режима,
+   поля mode не имеют — teamMode() считает их шиюйскими.
+
+   Чем режим отличается по правилам игры (отсюда и другой набор полей):
+     · три боss-стадии за фазу, на каждую — своя команда, агента нельзя
+       переиспользовать между стадиями;
+     · таймер не переменная, а константа: 3 минуты на стадию. Поэтому вместо
+       времени сохраняется ОЧКО — сумма урона и «механики» (идеальные
+       ассисты, цепочки, стан);
+     · очко покупает рейтинг 1–3★ (9★ за фазу максимум);
+     · после 9★ открывается Adversity — один усиливающийся по ходу боя
+       противник, там ведётся свой лучший общий счёт. Он здесь четвёртой
+       стадией, потому что по смыслу это такой же одиночный забег.
+   Порогов очков в звёзды в коде НЕТ намеренно: они менялись от патча к
+   патчу (в 1.x были 6000/14000/20000, сейчас топовые забеги дают 30–45k), и
+   зашитая таблица врала бы молча. Звёзды ставятся руками. */
+const DA_PHASES = ['3.1.1', '3.0.3', '3.0.2', '3.0.1', '2.8.3', '2.8.2'];
+
+/* Имена боссов на фазу, по порядку стадий. Заполнено только там, где я мог
+   проверить состав; для остальных фаз поле «Boss» в редакторе остаётся
+   пустым и вписывается руками — оно свободное, а не список. */
+const DA_PHASE_BOSSES = {
+  '3.1.1': ['Girtablullu: Stagnant Aberrant', 'Notorious: Dead End Butcher', 'Unknown Corruption Complex'],
+};
+
+const DA_STAGE_LABELS = { '1': 'Boss 1', '2': 'Boss 2', '3': 'Boss 3', 'adv': 'Adversity' };
+const DA_STAGE_SHORT  = { '1': 'B1', '2': 'B2', '3': 'B3', 'adv': 'ADV' };
+
+const teamMode = t => (t && t.mode === 'da') ? 'da' : 'shiyu';
+
+function daStageLabel(stage) { return DA_STAGE_LABELS[String(stage)] || ''; }
+function daStageShort(stage) { return DA_STAGE_SHORT[String(stage)] || ''; }
+
+// Имя боссa из справочника — только для трёх обычных стадий: у Adversity
+// противник один и в таблицу по индексу не ложится.
+function daBossName(phase, stage) {
+  const list = DA_PHASE_BOSSES[String(phase)];
+  const idx = Number(stage);
+  if (!list || !idx) return '';
+  return list[idx - 1] || '';
+}
+
+/* Ровно та же причина, что у knownShiyuSeasons(): список актуальных фаз со
+   временем меняется, а у сохранённой команды фаза остаётся навсегда. Если
+   строить <option>'ы только из DA_PHASES, то у команды со старой фазой
+   select покажет пустое значение, а сохранение молча затрёт фазу. */
+function knownDaPhases() {
+  const set = new Set(DA_PHASES);
+  (teams || []).forEach(t => { if (t && teamMode(t) === 'da' && t.daPhase) set.add(String(t.daPhase)); });
+  // Сортировка по номерам версии, а не строкой: '3.10.1' должна встать выше
+  // '3.9.1', хотя посимвольно она меньше.
+  return [...set].sort((a, b) => {
+    const pa = String(a).split('.').map(Number), pb = String(b).split('.').map(Number);
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+      const d = (pb[i] || 0) - (pa[i] || 0);
+      if (d) return d;
+    }
+    return 0;
+  });
+}
+
+function populateDaPhaseSelect() {
+  const sel = document.getElementById('daPhase');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">—</option>' + knownDaPhases()
+    .map(ph => `<option value="${escapeHtml(ph)}">${escapeHtml(ph)}</option>`).join('');
+}
+
+const DA_STAR_PATH = 'M12 3.7l2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z';
+// Монохромная звезда: заполненная = заработанная, контурная и притушенная =
+// нет. Как и у значков пресетов, различие несёт форма (залив против контура),
+// а не цвет — читается и при любом акценте темы.
+function daStarSvg(filled) {
+  return filled
+    ? `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${DA_STAR_PATH}" fill="currentColor"/></svg>`
+    : `<svg viewBox="0 0 24 24" class="off" aria-hidden="true"><path d="${DA_STAR_PATH}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>`;
+}
+function daStarsHtml(n) {
+  const v = Math.max(0, Math.min(3, Number(n) || 0));
+  return `<span class="tc-stars" title="${v}/3 stars">${[1,2,3].map(i => daStarSvg(i <= v)).join('')}</span>`;
+}
+function formatDaScore(n) {
+  const v = Number(n) || 0;
+  return v ? v.toLocaleString('en-US') : '—';
+}
+
+function newTeam(mode = 'shiyu') {
+  const base = {
     id: uid(), name: 'Team',
-    shiyu: '',
-    floor:'1', tier:'4', side:'A',
-    timerMin:0, timerSec:0,
+    mode,
     agents:[
       {key:null,eidolons:0,wengine:null,wrank:0,discs:[null,null,null],icons:[null,null,null],discSlots:[null,null,null,null,null,null]},
       {key:null,eidolons:0,wengine:null,wrank:0,discs:[null,null,null],icons:[null,null,null],discSlots:[null,null,null,null,null,null]},
@@ -11457,6 +11667,22 @@ function newTeam() {
     booMindscape:0,
     note:''
   };
+  if (mode === 'da') {
+    // Фаза по умолчанию — самая свежая известная: новая команда почти всегда
+    // про текущий забег, а не про архив.
+    return Object.assign(base, {
+      daPhase: knownDaPhases()[0] || '',
+      daStage: '1',
+      daBoss: '',
+      daScore: 0,
+      daStars: 0,
+    });
+  }
+  return Object.assign(base, {
+    shiyu: '',
+    floor:'1', tier:'4', side:'A',
+    timerMin:0, timerSec:0,
+  });
 }
 
 function updateRoomOptions() {
@@ -11469,20 +11695,49 @@ function updateRoomOptions() {
   if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
 }
 
-/* ── RENDER LIST ── */
+/* ── RENDER LIST ──
+   renderTeams() рисует ОБЕ сетки сразу — шиюйскую и Deadly Assault. Так все
+   существующие вызовы (undo, сохранение, удаление, дублирование, тумблеры
+   отображения) продолжают работать без разбора, какая вкладка открыта, и две
+   сетки не могут разъехаться по состоянию. Скрытая сетка стоит копейки:
+   это десятки карточек, а не тысячи. */
 function renderTeams() {
-  const grid = document.getElementById('teamsGrid');
-  const list = shiyuFilter ? teams.filter(t => t.shiyu === shiyuFilter) : teams;
+  renderTeamGrid('shiyu');
+  renderTeamGrid('da');
+  updateToolbarState();
+}
+
+function renderTeamGrid(mode) {
+  const grid = document.getElementById(mode === 'da' ? 'deadlyGrid' : 'teamsGrid');
+  if (!grid) return;
+  const own = teams.filter(t => teamMode(t) === mode);
+  const list = mode === 'da'
+    ? (daFilter ? own.filter(t => String(t.daPhase) === daFilter) : own)
+    : (shiyuFilter ? own.filter(t => t.shiyu === shiyuFilter) : own);
   if (!list.length) {
-    grid.innerHTML = shiyuFilter
-      ? `<div class="empty-state"><span class="ico">🗂️</span>No saved teams for Shiyu S${shiyuFilter}.</div>`
-      : `<div class="empty-state"><span class="ico">⚔️</span>No saved teams.<br>Press «+ New Team» to get started.</div>`;
+    grid.innerHTML = mode === 'da'
+      ? (daFilter
+          ? `<div class="empty-state">No saved teams for Deadly Assault ${escapeHtml(daFilter)}.</div>`
+          : `<div class="empty-state">No saved Deadly Assault teams.<br>Press «+» to add one.</div>`)
+      : (shiyuFilter
+          ? `<div class="empty-state"><span class="ico">🗂️</span>No saved teams for Shiyu S${escapeHtml(shiyuFilter)}.</div>`
+          : `<div class="empty-state"><span class="ico">⚔️</span>No saved teams.<br>Press «+ New Team» to get started.</div>`);
     return;
   }
   grid.innerHTML = list.map(t => {
-    const timer = `${String(t.timerMin).padStart(2,'0')}:${String(t.timerSec).padStart(2,'0')}`;
-    const roomNum = t.side==='A'?'1':t.side==='B'?'2':'3';
-    const tag = `${t.floor}F · Room ${roomNum}`;
+    const isDa = teamMode(t) === 'da';
+    // Верхняя плашка — единственное, что отличается между режимами: слева
+    // «где это было», справа «чем кончилось». У шию это этаж/комната и время,
+    // у DA — стадия и очко со звёздами.
+    const tag = isDa
+      ? `${daStageShort(t.daStage)}${(() => { const b = t.daBoss || daBossName(t.daPhase, t.daStage); return b ? ' · ' + escapeHtml(b) : ''; })()}`
+      : `${t.floor}F · Room ${t.side==='A'?'1':t.side==='B'?'2':'3'}`;
+    const resultHtml = isDa
+      ? `<div class="tc-score">${daStarsHtml(t.daStars)} <b>${escapeHtml(formatDaScore(t.daScore))}</b></div>`
+      : `<div class="tc-time"><b>${String(t.timerMin).padStart(2,'0')}:${String(t.timerSec).padStart(2,'0')}</b></div>`;
+    const seasonHtml = isDa
+      ? ((displayOptions.daphase && t.daPhase) ? `<div class="tc-shiyu" title="Deadly Assault phase ${escapeHtml(String(t.daPhase))}">${escapeHtml(String(t.daPhase))}</div>` : '')
+      : ((displayOptions.shiyu && t.shiyu) ? `<div class="tc-shiyu" title="${escapeHtml(shiyuSeasonTooltip(t.shiyu))}">S${escapeHtml(String(t.shiyu))}</div>` : '');
 
     const cells = t.agents.map((a, ai) => {
       if (!a.key) return `<div class="tc-cell"><div class="tc-cell-img"><div class="tc-cell-empty">👤</div></div><div class="tc-cell-foot"></div></div>`;
@@ -11521,14 +11776,13 @@ function renderTeams() {
       <div class="tc-bar${displayOptions.name ? '' : ' tc-bar-noname'}">
         ${displayOptions.name ? `<div class="tc-name">${escapeHtml(t.name || '')}</div>` : ''}
         <div class="tc-tag">${tag}</div>
-        <div class="tc-time"><b>${timer}</b></div>
-        ${(displayOptions.shiyu && t.shiyu) ? `<div class="tc-shiyu" title="${escapeHtml(shiyuSeasonTooltip(t.shiyu))}">S${escapeHtml(String(t.shiyu))}</div>` : ''}
+        ${resultHtml}
+        ${seasonHtml}
       </div>
       <div class="tc-strip">${cells}</div>
       ${displayOptions.boo ? `<div class="tc-foot">${booHtml}</div>` : ''}
     </div>`;
   }).join('');
-  updateToolbarState();
 }
 
 // Filters the saved-teams grid down to one specific Shiyu season. Purely a
@@ -11553,9 +11807,28 @@ function setShiyuFilter(val) {
   renderTeams();
 }
 
+// То же самое для Deadly Assault, включая ту же защиту: сохранённый фильтр,
+// от фазы которого не осталось ни одной команды, всё равно остаётся опцией —
+// иначе сетка пустая, а причина не видна.
+let daFilter = localStorage.getItem('zzz_da_filter') || '';
+function populateDaFilterSelect() {
+  const sel = document.getElementById('daFilterSelect');
+  if (!sel) return;
+  const phases = knownDaPhases();
+  if (daFilter && !phases.includes(daFilter)) phases.unshift(daFilter);
+  sel.innerHTML = '<option value="">All phases</option>' + phases
+    .map(ph => `<option value="${escapeHtml(ph)}">${escapeHtml(ph)}</option>`).join('');
+  sel.value = daFilter;
+}
+function setDaFilter(val) {
+  daFilter = val;
+  localStorage.setItem('zzz_da_filter', daFilter);
+  renderTeams();
+}
+
 /* ── TOOLBAR: SELECTION & ACTIONS ── */
 function applySelectionToDOM() {
-  document.querySelectorAll('#teamsGrid .team-card').forEach(el => {
+  document.querySelectorAll('#teamsGrid .team-card, #deadlyGrid .team-card').forEach(el => {
     el.classList.toggle('selected', selectedTeamIds.has(el.dataset.id));
   });
 }
@@ -11588,10 +11861,17 @@ document.addEventListener('click', e => {
 function updateToolbarState() {
   [...selectedTeamIds].forEach(id => { if (!teams.some(t => t.id === id)) selectedTeamIds.delete(id); });
   const count = selectedTeamIds.size;
-  document.getElementById('tbEdit').disabled = count !== 1;
-  document.getElementById('tbDup').disabled  = count === 0;
-  document.getElementById('tbDel').disabled  = count === 0;
-  document.getElementById('tbShare').disabled = count !== 1;
+  // Оба тулбара обновляются одним и тем же счётчиком: выделение живёт в одном
+  // Set'е, а при переходе между вкладками оно сбрасывается (см. showPage), так
+  // что «выделено на другой вкладке» состояния не бывает.
+  const set = (id, disabled) => { const el = document.getElementById(id); if (el) el.disabled = disabled; };
+  set('tbEdit', count !== 1);
+  set('tbDup', count === 0);
+  set('tbDel', count === 0);
+  set('tbShare', count !== 1);
+  set('tbDaEdit', count !== 1);
+  set('tbDaDup', count === 0);
+  set('tbDaDel', count === 0);
 }
 function editSelectedTeam() {
   if (selectedTeamIds.size !== 1) return;
@@ -11653,14 +11933,18 @@ async function deleteSelectedTeam() {
 function toggleVisOption(key, btn) {
   displayOptions[key] = !displayOptions[key];
   localStorage.setItem('zzz_display_options', JSON.stringify(displayOptions));
-  btn.classList.toggle('active', displayOptions[key]);
+  // Не btn.classList, а обход по data-key: у большинства тумблеров есть
+  // двойник на второй вкладке, и подсветить надо оба — иначе кнопки разъедутся
+  // с общим состоянием.
+  document.querySelectorAll(`#tbGroupTeams .tb-toggle[data-key="${key}"], #tbGroupDeadly .tb-toggle[data-key="${key}"]`)
+    .forEach(el => el.classList.toggle('active', displayOptions[key]));
   renderTeams();
 }
 function initToolbarToggles() {
   // Scoped to the Teams group on purpose: .tb-toggle is now also used by the
   // Feed sub-tabs, whose active state is owned by showFeedTab(), not by
   // displayOptions. A bare '.tb-toggle' query would clear it on load.
-  document.querySelectorAll('#tbGroupTeams .tb-toggle[data-key]').forEach(btn => {
+  document.querySelectorAll('#tbGroupTeams .tb-toggle[data-key], #tbGroupDeadly .tb-toggle[data-key]').forEach(btn => {
     btn.classList.toggle('active', !!displayOptions[btn.dataset.key]);
   });
 }
@@ -11687,27 +11971,92 @@ function initAccentColor() {
 }
 
 /* ── EDITOR ── */
-function openNewEditor() { editingId=null; currentTeam=newTeam(); showEditor(); }
+function openNewEditor() {
+  editingId = null;
+  currentTeam = newTeam(activeTeamPage === 'deadly' ? 'da' : 'shiyu');
+  showEditor();
+}
 function editTeam(id) {
   const t = teams.find(x=>x.id===id); if(!t) return;
   editingId=id; currentTeam=JSON.parse(JSON.stringify(t));
   if (currentTeam.note === undefined) currentTeam.note = '';
-  if (currentTeam.shiyu === undefined) currentTeam.shiyu = '';
+  // Команды, сохранённые до появления Deadly Assault, поля mode не имеют —
+  // проставляем шиюйский режим здесь, чтобы дальше по коду не проверять снова.
+  if (currentTeam.mode !== 'da') currentTeam.mode = 'shiyu';
+  if (currentTeam.mode === 'da') {
+    if (currentTeam.daPhase === undefined) currentTeam.daPhase = '';
+    if (currentTeam.daStage === undefined) currentTeam.daStage = '1';
+    if (currentTeam.daBoss  === undefined) currentTeam.daBoss  = '';
+    if (currentTeam.daScore === undefined) currentTeam.daScore = 0;
+    if (currentTeam.daStars === undefined) currentTeam.daStars = 0;
+  } else if (currentTeam.shiyu === undefined) {
+    currentTeam.shiyu = '';
+  }
   showEditor();
 }
+
+// Одна панель режима видима, другая скрыта. Поля второй при этом остаются в
+// DOM со своими прошлыми значениями — saveTeam() их не читает, потому что
+// разбор идёт по currentTeam.mode, а не по тому, что лежит в input'ах.
 function showEditor() {
+  const isDa = teamMode(currentTeam) === 'da';
   document.getElementById('editorOverlay').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
   document.getElementById('editorName').value = currentTeam.name;
-  populateShiyuSelect();
-  document.getElementById('sdShiyu').value    = currentTeam.shiyu || '';
-  document.getElementById('sdFloor').value    = currentTeam.floor;
-  updateRoomOptions();
-  document.getElementById('sdSide').value     = currentTeam.side;
-  document.getElementById('timerMin').value   = currentTeam.timerMin;
-  document.getElementById('timerSec').value   = currentTeam.timerSec;
-  updateTotalSec();
+  document.getElementById('shiyuBar').classList.toggle('hidden', isDa);
+  document.getElementById('daBar').classList.toggle('hidden', !isDa);
+  if (isDa) {
+    populateDaPhaseSelect();
+    document.getElementById('daPhase').value = currentTeam.daPhase || '';
+    document.getElementById('daStage').value = currentTeam.daStage || '1';
+    document.getElementById('daScore').value = currentTeam.daScore || '';
+    renderDaBossField();
+    renderDaStarsPick();
+  } else {
+    populateShiyuSelect();
+    document.getElementById('sdShiyu').value    = currentTeam.shiyu || '';
+    document.getElementById('sdFloor').value    = currentTeam.floor;
+    updateRoomOptions();
+    document.getElementById('sdSide').value     = currentTeam.side;
+    document.getElementById('timerMin').value   = currentTeam.timerMin;
+    document.getElementById('timerSec').value   = currentTeam.timerSec;
+    updateTotalSec();
+  }
   renderAgents();
+}
+
+/* Поле «Boss»: своё значение, если человек его вписал, иначе имя из
+   справочника фазы как placeholder — то есть подсказка видна, но в данные
+   ничего не подставляется само. У Adversity противник один и в справочник по
+   номеру стадии не ложится, поэтому подсказки там нет. */
+function renderDaBossField() {
+  const inp = document.getElementById('daBoss');
+  if (!inp) return;
+  inp.value = currentTeam.daBoss || '';
+  const known = daBossName(currentTeam.daPhase, currentTeam.daStage);
+  inp.placeholder = known || (String(currentTeam.daStage) === 'adv' ? 'High-Risk entity' : '—');
+}
+function onDaPhaseChange() {
+  currentTeam.daPhase = document.getElementById('daPhase').value;
+  renderDaBossField();
+}
+function onDaStageChange() {
+  currentTeam.daStage = document.getElementById('daStage').value;
+  renderDaBossField();
+}
+function renderDaStarsPick() {
+  const el = document.getElementById('daStarsPick');
+  if (!el) return;
+  const v = Math.max(0, Math.min(3, Number(currentTeam.daStars) || 0));
+  el.innerHTML = [1,2,3].map(i =>
+    `<button type="button" class="da-star-btn${i <= v ? ' on' : ''}" onclick="setDaStars(${i})" title="${i} star${i>1?'s':''}">${daStarSvg(i <= v)}</button>`
+  ).join('');
+}
+function setDaStars(n) {
+  // Повторный клик по последней зажжённой звезде гасит рейтинг: без этого с
+  // одной звезды нельзя было бы вернуться к нулю.
+  currentTeam.daStars = (Number(currentTeam.daStars) === n) ? n - 1 : n;
+  renderDaStarsPick();
 }
 function closeEditor() {
   document.getElementById('editorOverlay').classList.add('hidden');
@@ -11718,16 +12067,30 @@ function editorBgClick(e) { if (e.target === document.getElementById('editorOver
 function saveTeam() {
   pushUndo();
   currentTeam.name     = document.getElementById('editorName').value.trim()||'Team';
-  currentTeam.shiyu    = document.getElementById('sdShiyu').value;
-  currentTeam.floor    = document.getElementById('sdFloor').value;
-  currentTeam.side     = document.getElementById('sdSide').value;
   // booMindscape saved via setBooMindscape directly
   // note saved via textarea oninput directly on currentTeam.note
-  currentTeam.timerMin = parseInt(document.getElementById('timerMin').value)||0;
-  currentTeam.timerSec = parseInt(document.getElementById('timerSec').value)||0;
+  if (teamMode(currentTeam) === 'da') {
+    currentTeam.daPhase = document.getElementById('daPhase').value;
+    currentTeam.daStage = document.getElementById('daStage').value;
+    currentTeam.daBoss  = document.getElementById('daBoss').value.trim();
+    // Очко режется в 0…999999: выше игрового максимума и достаточно, чтобы
+    // опечатка в лишний разряд не ломала вид карточки.
+    currentTeam.daScore = Math.max(0, Math.min(999999, parseInt(document.getElementById('daScore').value, 10) || 0));
+    currentTeam.daStars = Math.max(0, Math.min(3, Number(currentTeam.daStars) || 0));
+  } else {
+    currentTeam.shiyu    = document.getElementById('sdShiyu').value;
+    currentTeam.floor    = document.getElementById('sdFloor').value;
+    currentTeam.side     = document.getElementById('sdSide').value;
+    currentTeam.timerMin = parseInt(document.getElementById('timerMin').value)||0;
+    currentTeam.timerSec = parseInt(document.getElementById('timerSec').value)||0;
+  }
   if (editingId) { const i=teams.findIndex(x=>x.id===editingId); if(i>=0) teams[i]=currentTeam; }
   else teams.unshift(currentTeam);
   localStorage.setItem('zzz_teams', JSON.stringify(teams));
+  // Фаза/сезон могли появиться впервые — списки фильтров строятся из
+  // сохранённых команд, поэтому пересобираем их, а не только сетку.
+  populateShiyuFilterSelect();
+  populateDaFilterSelect();
   renderTeams(); closeEditor();
 }
 // Здесь были deleteTeam(id) / duplicateTeam(id) — легаси со времён кнопок на
@@ -12556,8 +12919,13 @@ function pickItem(key) {
    Nothing moves in the DOM while hovering — only the indicator changes —
    to avoid the grid reflowing and the target flickering. The actual
    move/swap happens once, on drop (dragend). */
-(function() {
-  const grid = document.getElementById('teamsGrid');
+/* Раньше это был IIFE, прибитый к #teamsGrid; теперь функция с параметром —
+   вторая сетка (Deadly Assault) получает тот же механизм без копии кода.
+   Порядок внутри teams между режимами при этом не путается: перестановка
+   применяется только к позициям карточек ЭТОЙ сетки (visibleSet ниже). */
+function initTeamGridDnD(gridId) {
+  const grid = document.getElementById(gridId);
+  if (!grid) return;
 
   function getDropZone(x, y) {
     const cards = [...grid.querySelectorAll('.team-card:not(.dragging)')];
@@ -12652,7 +13020,9 @@ function pickItem(key) {
     window.__justDragged = true;
     setTimeout(() => { window.__justDragged = false; }, 50);
   });
-})();
+}
+initTeamGridDnD('teamsGrid');
+initTeamGridDnD('deadlyGrid');
 
 // ===== Toast notifications & custom confirm/prompt (replace native alert/confirm/prompt) =====
 function showToast(message, kind = 'info') {
@@ -12865,7 +13235,7 @@ const CLOUD_SYNC_KEYS = new Set([
   'zzz_teams', 'zzz_disc_advanced_mode',
   'zzz_agent_library', 'zzz_wengine_library', 'zzz_bangboo_library',
   'zzz_drive_disc_library', 'zzz_profile_favorites', 'zzz_profile_my_uid',
-  'zzz_shiyu_filter', 'zzz_display_options', 'zzz_accent_color',
+  'zzz_shiyu_filter', 'zzz_da_filter', 'zzz_display_options', 'zzz_accent_color',
   'zzz_agent_presets'
 ]);
 let cloudSyncTimer = null;
@@ -13074,6 +13444,13 @@ async function shareSelectedTeam() {
   if (ids.length !== 1) return;
   const team = teams.find(t => t.id === ids[0]);
   if (!team) return;
+  // В posts лежат колонки shiyu_season/floor/room — забегу Deadly Assault в
+  // них деться некуда, поэтому публикация таких команд закрыта до расширения
+  // схемы, а не пишет мусор в шиюйские поля.
+  if (teamMode(team) === 'da') {
+    showToast('The feed only takes Shiyu Defense teams for now.', 'error');
+    return;
+  }
   postFormMode = 'publish';
   postFormTeam = team;
   postFormEditingPost = null;
@@ -13545,6 +13922,7 @@ initAuth();
 initAccentColor();
 initToolbarToggles();
 populateShiyuFilterSelect();
+populateDaFilterSelect();
 populateFeedFilterOptions();
 updateUndoRedoButtons();
 renderTeams();
