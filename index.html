@@ -312,27 +312,28 @@ header {
   font-size: 11px; font-family: 'Share Tech Mono', monospace;
   color: var(--accent);
 }
-.tc-time {
-  font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-mid);
-  background: var(--accent-d);
-  padding: 2px 8px; border-radius: 100px;
+/* Плашка результата забега: у Шию это время, у Deadly Assault — звёзды с
+   очком. ОДНО правило на оба режима, а не две копии: высота этой плашки задаёт
+   высоту всего верхнего ряда карточки, и стоит правилам разойтись — ряды на
+   двух вкладках разъезжаются по высоте.
+   line-height фиксирован в пикселях, а не оставлен normal: иначе высоту строки
+   считает шрифт, и вставленные внутрь звёзды (11px картинки) делают плашку
+   Deadly Assault на пару пикселей выше шиюйской. */
+.tc-time, .tc-score {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: 'Share Tech Mono', monospace; font-size: 11px; line-height: 13px;
+  color: var(--text-mid); background: var(--accent-d);
+  padding: 2px 8px; border-radius: 100px; white-space: nowrap;
 }
-.tc-time b { color: var(--accent); }
+.tc-time b, .tc-score b { color: var(--accent); }
 .tc-shiyu {
   font-family: 'Share Tech Mono', monospace; font-size: 11px; font-weight: 700;
   color: var(--accent); white-space: nowrap;
 }
-/* Deadly Assault: очко вместо таймера в той же позиции плашки. Форма и цвет
-   те же, что у .tc-time — на обеих вкладках правый край карточки означает
-   «результат забега», меняется только чем он измеряется. */
-.tc-score {
-  font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-mid);
-  background: var(--accent-d);
-  padding: 2px 8px; border-radius: 100px; white-space: nowrap;
-}
-.tc-score b { color: var(--accent); }
 .tc-stars { display: inline-flex; align-items: center; gap: 1px; color: var(--accent); }
-.tc-stars svg { width: 11px; height: 11px; }
+/* display:block у картинки — чтобы под ней не оставался зазор под базовую
+   линию строки, который тоже добавлял высоту. */
+.tc-stars svg { width: 11px; height: 11px; display: block; }
 .tc-stars svg.off { opacity: .2; }
 
 /* agent strip */
@@ -11910,7 +11911,7 @@ function renderTeamGrid(mode) {
       ? `<div class="tc-tag" title="${escapeHtml(daStageLabel(t.daStage) + (daBoss ? ' \u2014 ' + daBoss : ''))}">${escapeHtml(daStageShort(t.daStage))}</div>`
       : `<div class="tc-tag">${t.floor}F · Room ${t.side==='A'?'1':t.side==='B'?'2':'3'}</div>`;
     const resultHtml = isDa
-      ? `<div class="tc-score">${daStarsHtml(t.daStars)} <b>${escapeHtml(formatDaScore(t.daScore))}</b></div>`
+      ? `<div class="tc-score">${daStarsHtml(t.daStars)}<b>${escapeHtml(formatDaScore(t.daScore))}</b></div>`
       : `<div class="tc-time"><b>${String(t.timerMin).padStart(2,'0')}:${String(t.timerSec).padStart(2,'0')}</b></div>`;
     const seasonHtml = isDa
       ? ((displayOptions.daphase && t.daPhase) ? `<div class="tc-shiyu" title="${escapeHtml(daPhaseTooltip(t.daPhase))}">${escapeHtml(String(t.daPhase))}</div>` : '')
