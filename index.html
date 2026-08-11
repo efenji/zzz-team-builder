@@ -480,6 +480,7 @@ header {
   border-radius: var(--r-sm); padding: 12px 14px;
   margin-bottom: 6px;
 }
+.shiyu-bar.hidden { display: none; }
 .shiyu-label {
   font-family: 'Share Tech Mono', monospace; font-size: 10px;
   color: var(--accent); letter-spacing: .15em; text-transform: uppercase;
@@ -11504,7 +11505,9 @@ const SHIYU_SEASON_DATES = {
 const SHIYU_SEASONS = Object.keys(SHIYU_SEASON_DATES)
   .sort((a, b) => (parseInt(b, 10) || 0) - (parseInt(a, 10) || 0));
 
-const SHIYU_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+// Общий для Shiyu Defense и Deadly Assault — оба режима подписывают периоды
+// одинаково.
+const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 /* Компактный период для подписи в <select>: "Aug 7–21", а через границу месяца
    "Aug 21 – Sep 4". Без года — иначе опции в тулбаре разъезжаются по ширине;
@@ -11516,8 +11519,8 @@ function shiyuSeasonPeriod(season) {
   const [ye, me, de] = info.end.split('-').map(Number);
   if (!ms || !me) return '';
   const sameMonth = (ms === me && ys === ye);
-  const from = `${SHIYU_MONTHS[ms - 1]} ${ds}`;
-  const to = sameMonth ? `${de}` : `${SHIYU_MONTHS[me - 1]} ${de}`;
+  const from = `${MONTH_ABBR[ms - 1]} ${ds}`;
+  const to = sameMonth ? `${de}` : `${MONTH_ABBR[me - 1]} ${de}`;
   // "Aug 7–21" внутри месяца и "Aug 21 – Sep 4" через границу: без пробелов
   // второй вариант читается как одна склеенная дата.
   return sameMonth ? `${from}\u2013${to}` : `${from} \u2013 ${to}`;
@@ -11584,7 +11587,73 @@ function populateShiyuSelect() {
    Порогов очков в звёзды в коде НЕТ намеренно: они менялись от патча к
    патчу (в 1.x были 6000/14000/20000, сейчас топовые забеги дают 30–45k), и
    зашитая таблица врала бы молча. Звёзды ставятся руками. */
-const DA_PHASES = ['3.1.1', '3.0.3', '3.0.2', '3.0.1', '2.8.3', '2.8.2'];
+/* Периоды фаз — ровно тот же принцип, что у SHIYU_SEASON_DATES. Даты сверены
+   по списку сезонов и заканчиваются на 2026-09-11: дальше расписание ещё не
+   опубликовано, дописывать сюда по мере выхода.
+   Обратите внимание, что фазы Deadly Assault НЕ совпадают по датам с сезонами
+   Шию: у режимов свой график (у Шию 3.0 v3 — это 24 июля ~ 7 августа, у DA
+   та же по номеру фаза — 17 ~ 29 июля). Поэтому это отдельная таблица, а не
+   пересчёт от шиюйской.
+   Шаг между фазами не строго двухнедельный (3.0 v3 длилась 12 дней, 3.1 v1 —
+   16), так что вычислять периоды формулой нельзя — только вписывать. */
+const DA_PHASE_DATES = {
+  '3.1.3': { start: '2026-08-28', end: '2026-09-11' }, // 3.1 v3
+  '3.1.2': { start: '2026-08-14', end: '2026-08-28' }, // 3.1 v2
+  '3.1.1': { start: '2026-07-29', end: '2026-08-14' }, // 3.1 v1
+  '3.0.3': { start: '2026-07-17', end: '2026-07-29' }, // 3.0 v3
+  '3.0.2': { start: '2026-07-03', end: '2026-07-17' }, // 3.0 v2
+};
+
+// Сортировка по номерам версии, а не строкой: '3.10.1' должна встать выше
+// '3.9.1', хотя посимвольно она меньше.
+function compareDaPhases(a, b) {
+  const pa = String(a).split('.').map(Number), pb = String(b).split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pb[i] || 0) - (pa[i] || 0);
+    if (d) return d;
+  }
+  return 0;
+}
+
+const DA_PHASES = Object.keys(DA_PHASE_DATES).sort(compareDaPhases);
+
+function daPhasePeriod(phase) {
+  const info = DA_PHASE_DATES[String(phase)];
+  if (!info) return '';
+  const [ys, ms, ds] = info.start.split('-').map(Number);
+  const [ye, me, de] = info.end.split('-').map(Number);
+  if (!ms || !me) return '';
+  const sameMonth = (ms === me && ys === ye);
+  const from = `${MONTH_ABBR[ms - 1]} ${ds}`;
+  const to = sameMonth ? `${de}` : `${MONTH_ABBR[me - 1]} ${de}`;
+  return sameMonth ? `${from}\u2013${to}` : `${from} \u2013 ${to}`;
+}
+
+/* Какая фаза идёт прямо сейчас. Границы трактуются как [start, end): день
+   окончания одной фазы — это день начала следующей (см. таблицу выше), так
+   что включать его в обе было бы неверно. */
+function currentDaPhase(today) {
+  const d = today || new Date();
+  const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return Object.keys(DA_PHASE_DATES).find(ph => {
+    const info = DA_PHASE_DATES[ph];
+    return iso >= info.start && iso < info.end;
+  }) || '';
+}
+
+// Подпись для селектов: "3.1.1 · Jul 29 – Aug 14", у текущей фазы ещё и
+// пометка LIVE — чтобы не сверять даты с календарём при каждом сохранении.
+function daPhaseLabel(phase) {
+  const p = daPhasePeriod(phase);
+  const live = (phase && phase === currentDaPhase()) ? ' \u00b7 LIVE' : '';
+  return p ? `${phase} \u00b7 ${p}${live}` : `${phase}${live}`;
+}
+
+function daPhaseTooltip(phase) {
+  const info = DA_PHASE_DATES[String(phase)];
+  if (!info) return `Deadly Assault ${phase}`;
+  return `Deadly Assault ${phase} \u2014 ${info.start} ~ ${info.end}`;
+}
 
 /* Имена боссов на фазу, по порядку стадий. Заполнено только там, где я мог
    проверить состав; для остальных фаз поле «Boss» в редакторе остаётся
@@ -11617,23 +11686,14 @@ function daBossName(phase, stage) {
 function knownDaPhases() {
   const set = new Set(DA_PHASES);
   (teams || []).forEach(t => { if (t && teamMode(t) === 'da' && t.daPhase) set.add(String(t.daPhase)); });
-  // Сортировка по номерам версии, а не строкой: '3.10.1' должна встать выше
-  // '3.9.1', хотя посимвольно она меньше.
-  return [...set].sort((a, b) => {
-    const pa = String(a).split('.').map(Number), pb = String(b).split('.').map(Number);
-    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-      const d = (pb[i] || 0) - (pa[i] || 0);
-      if (d) return d;
-    }
-    return 0;
-  });
+  return [...set].sort(compareDaPhases);
 }
 
 function populateDaPhaseSelect() {
   const sel = document.getElementById('daPhase');
   if (!sel) return;
   sel.innerHTML = '<option value="">—</option>' + knownDaPhases()
-    .map(ph => `<option value="${escapeHtml(ph)}">${escapeHtml(ph)}</option>`).join('');
+    .map(ph => `<option value="${escapeHtml(ph)}" title="${escapeHtml(daPhaseTooltip(ph))}">${escapeHtml(daPhaseLabel(ph))}</option>`).join('');
 }
 
 const DA_STAR_PATH = 'M12 3.7l2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z';
@@ -11668,10 +11728,12 @@ function newTeam(mode = 'shiyu') {
     note:''
   };
   if (mode === 'da') {
-    // Фаза по умолчанию — самая свежая известная: новая команда почти всегда
-    // про текущий забег, а не про архив.
+    // Фаза по умолчанию — та, что идёт прямо сейчас (а не самая новая в
+    // таблице: там уже лежат будущие фазы, и новая команда уезжала бы в них).
+    // Если сегодня в таблицу не попадает — расписание кончилось, оставляем
+    // самую свежую известную.
     return Object.assign(base, {
-      daPhase: knownDaPhases()[0] || '',
+      daPhase: currentDaPhase() || knownDaPhases()[0] || '',
       daStage: '1',
       daBoss: '',
       daScore: 0,
@@ -11736,7 +11798,7 @@ function renderTeamGrid(mode) {
       ? `<div class="tc-score">${daStarsHtml(t.daStars)} <b>${escapeHtml(formatDaScore(t.daScore))}</b></div>`
       : `<div class="tc-time"><b>${String(t.timerMin).padStart(2,'0')}:${String(t.timerSec).padStart(2,'0')}</b></div>`;
     const seasonHtml = isDa
-      ? ((displayOptions.daphase && t.daPhase) ? `<div class="tc-shiyu" title="Deadly Assault phase ${escapeHtml(String(t.daPhase))}">${escapeHtml(String(t.daPhase))}</div>` : '')
+      ? ((displayOptions.daphase && t.daPhase) ? `<div class="tc-shiyu" title="${escapeHtml(daPhaseTooltip(t.daPhase))}">${escapeHtml(String(t.daPhase))}</div>` : '')
       : ((displayOptions.shiyu && t.shiyu) ? `<div class="tc-shiyu" title="${escapeHtml(shiyuSeasonTooltip(t.shiyu))}">S${escapeHtml(String(t.shiyu))}</div>` : '');
 
     const cells = t.agents.map((a, ai) => {
@@ -11817,7 +11879,7 @@ function populateDaFilterSelect() {
   const phases = knownDaPhases();
   if (daFilter && !phases.includes(daFilter)) phases.unshift(daFilter);
   sel.innerHTML = '<option value="">All phases</option>' + phases
-    .map(ph => `<option value="${escapeHtml(ph)}">${escapeHtml(ph)}</option>`).join('');
+    .map(ph => `<option value="${escapeHtml(ph)}" title="${escapeHtml(daPhaseTooltip(ph))}">${escapeHtml(daPhaseLabel(ph))}</option>`).join('');
   sel.value = daFilter;
 }
 function setDaFilter(val) {
