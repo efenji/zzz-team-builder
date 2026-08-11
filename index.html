@@ -1496,10 +1496,67 @@ select {
 .profile-fav-chip .fav-x:hover { color: var(--red); background: rgba(239,68,68,.15); }
 /* (.profile-current-player is gone — the nickname · UID · Lv line it styled is
    now the hero half of .player-card above.) */
-.pd-head { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 16px; }
-.pd-portrait { width: 96px; height: 96px; border-radius: 10px; overflow: hidden; background: var(--bg4); flex-shrink: 0; }
-.pd-portrait img { width: 100%; height: 100%; object-fit: cover; }
+/* ── AGENT HERO (top of the Profile detail panel) ──
+   Заменил шапку с квадратной миниатюрой 96×96 на полный арт агента
+   (assets/agents/<slug>/portrait*.webp).
+
+   Почему сцена ФИКСИРОВАННОГО размера, а не «высота задана, ширина по арту»:
+   пропорции портретов гуляют в четыре раза. Проверено по всем 58 агентам —
+   от 0.39 (Grace Howard, 780×2008) до 1.61 (Remielle, 2128×1324: размах
+   крыльев). При width:auto блок скакал бы по ширине от 0.39H до 1.61H, и
+   правая колонка дёргалась бы при каждом переключении агента. Поэтому сцена
+   постоянна, а внутри object-fit:contain — высокие упираются в высоту,
+   широкие в ширину, обрезки нет ни у кого.
+
+   Арты с альфа-каналом (bbox фигуры почти вплотную к краям), так что подложка
+   своя: мягкое радиальное пятно цветом самого агента, --pd-hero-accent
+   подставляется инлайном из avatars.json → Colors. */
+.pd-hero {
+  display: flex; gap: 20px; align-items: stretch; margin-bottom: 18px;
+}
+.pd-hero-stage {
+  position: relative; flex-shrink: 0;
+  width: 300px; height: 380px;
+  border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+  background: var(--bg3);
+}
+/* Пятно под фигурой, чуть ниже центра — там корпус, а не пустота над головой.
+   Цвет агента приглушён до .18: это подложка, а не заливка. */
+.pd-hero-stage::before {
+  content: ''; position: absolute; inset: 0;
+  background:
+    radial-gradient(72% 58% at 50% 62%, var(--pd-hero-accent, transparent) 0%, transparent 72%),
+    linear-gradient(180deg, rgba(0,0,0,.28) 0%, transparent 45%);
+  opacity: .18;
+}
+/* object-position по центру, а не по низу. Разница касается ТОЛЬКО двух
+   агентов из 58: у всех с пропорцией уже 0.79 (это 56 из 58) арт упирается в
+   высоту сцены, и вертикальная привязка на них не влияет вообще. А широких —
+   Pyrois (1.06) и Remielle (1.61) — низ прижимал к дну, оставляя пустую полосу
+   над головой; по центру они читаются нормально. */
+.pd-hero-art {
+  position: relative; z-index: 1;
+  width: 100%; height: 100%;
+  object-fit: contain; object-position: center;
+  display: block;
+}
+/* Пока арт не загрузился — пустая сцена, а не «сломанная картинка». */
+.pd-hero-art.is-missing { opacity: 0; }
+.pd-hero-skin {
+  position: absolute; z-index: 2; left: 10px; bottom: 10px;
+  font-family: 'Share Tech Mono', monospace; font-size: 10px;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent); background: rgba(0,0,0,.6);
+  border: 1px solid var(--accent-30); border-radius: 20px; padding: 3px 9px;
+}
+/* min-width:0 обязателен: без него длинное имя агента не даёт флексу сжаться и
+   выдавливает сцену. */
+.pd-hero-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.pd-hero-skills { margin-top: auto; }
+/* (.pd-head / .pd-portrait ушли вместе с квадратной миниатюрой 96×96 — оба
+   вызова, живой стенд и пресет, теперь строят шапку через agentHeroHtml.) */
 .pd-name { font-family: 'Barlow Condensed', 'Oswald', sans-serif; font-size: 22px; font-weight: 900; }
+.pd-hero .pd-name { font-size: 30px; line-height: 1.05; }
 .pd-sub { color: var(--text-dim); font-size: 12.5px; margin-top: 2px; }
 .pd-badges { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .pd-badge {
@@ -9727,7 +9784,7 @@ function selectAgentPresetTab(presetId) {
 }
 
 // Renders the tab row (one chip per saved preset, always at least one) plus
-// the full presetDetailHtml() card below it — same pd-head/Stats/W-Engine/
+// the full presetDetailHtml() card below it — same hero/Stats/W-Engine/
 // Discs layout used for a live showcase agent, just fed from the preset
 // snapshot instead of a real Enka avatar.
 async function renderAgentPresetView() {
@@ -10609,7 +10666,7 @@ async function savePresetDraft() {
 /* ── PRESETS DISPLAY (Profile tab) ────────────────────────────────────────
    Sits right below the current showcase character, matching the "same
    display format as viewing a character off the stand" requirement: a
-   preset's expanded card reuses the exact same pd-head/Stats/W-Engine/Discs
+   preset's expanded card reuses the exact same hero/Stats/W-Engine/Discs
    layout as renderProfileDetail above, just fed from buildManualAgentStatSheet
    (Phase 1) instead of a real Enka avatar. */
 // Whichever live showcase agent renderProfileDetail() last drew, and its
@@ -10919,7 +10976,7 @@ async function saveCurrentShowcaseBuildAsPreset(agentKey) {
 }
 
 // Renders one preset in the SAME visual shape as renderProfileDetail's own
-// output (pd-head / Stats / W-Engine / Drive Disc Sets / Sub-Stat Totals /
+// output (agentHeroHtml / Stats / W-Engine / Drive Disc Sets / Sub-Stat Totals /
 // Drive Discs) — the "as if viewed off the stand" requirement — except the
 // numbers come from buildManualAgentStatSheet (a THEORETICAL build assuming
 // this agent's Agent Library Level/Core Skill Enhancement), not a real
@@ -11008,20 +11065,26 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
   const aggHtml = substatTotalsRowHtml(agg, useful);
   const usefulSummary = usefulProcsSummaryHtml(procCounts, useful);
 
+  /* Та же шапка, что у живого стенда, — иначе панель меняла бы форму при
+     переключении между стендом и пресетом в одном и том же месте экрана.
+     Арт всегда дефолтный: в пресете хранятся только W-Engine и диски, скина в
+     нём нет и взяться ему неоткуда. Цвет подложки берём из справочника по
+     slug'у, если он там есть. */
+  const heroAvatarsRef = await getEnkaAvatarsRefData().catch(() => null);
+  const heroAccent = enkaAgentAccent(heroAvatarsRef, SLUG_TO_ENKA_AGENT_ID[agentKey]);
+  const heroHtml = agentHeroHtml({
+    agentKey,
+    title: `${escapeHtml(cardName(agentKey))} <span style="color:var(--text-mid);font-weight:500">· ${escapeHtml(preset.name)}</span>`,
+    sub: profile ? `${escapeHtml(profile.fullName || '')} · ${escapeHtml(profile.gender || '')} · ${escapeHtml(profile.stature || '')}` : '',
+    badgesHtml: `<span class="pd-badge">Lv.${libEntry.level}</span>
+            <span class="pd-badge" title="Mindscape isn't modeled in this calc, same as skill levels — set from the Agent Library, shown here for context only">Mindscape M${libEntry.mindscape || 0}</span>
+            ${coreLetter ? `<span class="pd-badge">Core Skill ${coreLetter}</span>` : ''}`,
+    accent: heroAccent,
+  });
+
   return `
     <div class="pd-preset-detail">
-      <div class="pd-head">
-        <div class="pd-portrait"><img src="${agentUrl(agentKey)}" onerror="this.style.opacity=.15"></div>
-        <div>
-          <div class="pd-name">${escapeHtml(cardName(agentKey))} <span style="color:var(--text-mid);font-weight:500">· ${escapeHtml(preset.name)}</span></div>
-          <div class="pd-sub">${profile ? `${escapeHtml(profile.fullName || '')} · ${escapeHtml(profile.gender || '')} · ${escapeHtml(profile.stature || '')}` : ''}</div>
-          <div class="pd-badges">
-            <span class="pd-badge">Lv.${libEntry.level}</span>
-            <span class="pd-badge" title="Mindscape isn't modeled in this calc, same as skill levels — set from the Agent Library, shown here for context only">Mindscape M${libEntry.mindscape || 0}</span>
-            ${coreLetter ? `<span class="pd-badge">Core Skill ${coreLetter}</span>` : ''}
-          </div>
-        </div>
-      </div>
+      ${heroHtml}
 
       ${missingBanner}
       ${importedNote}
@@ -11115,24 +11178,31 @@ async function renderProfileDetail(i) {
   const aggHtml = substatTotalsRowHtml(agg, useful);
   const usefulSummary = usefulProcsSummaryHtml(procCounts, useful);
 
+  /* Скин со стенда. avatarsRef здесь берётся из того же кэша, что уже питает
+     стат-движок, — лишнего запроса нет. Если справочник не поднялся (сеть),
+     suffix пустой и показываем дефолтный арт: панель не должна ломаться из-за
+     косметики. */
+  const avatarsRef = await getEnkaAvatarsRefData().catch(() => null);
+  const skinSuffix = enkaSkinSuffix(avatarsRef, a.Id, a.SkinId);
+  const heroHtml = agentHeroHtml({
+    agentKey: slug,
+    title: slug ? escapeHtml(cardName(slug)) : `Unknown (Id ${a.Id})`,
+    sub: profile ? `${escapeHtml(profile.fullName || '')} · ${escapeHtml(profile.gender || '')} · ${escapeHtml(profile.stature || '')}` : '',
+    badgesHtml: `<span class="pd-badge">Lv.${a.Level}/${(a.PromotionLevel || 1) * 10}</span>
+          <span class="pd-badge">Mindscape M${a.TalentLevel || 0}</span>`,
+    skillsHtml,
+    skinSuffix,
+    accent: enkaAgentAccent(avatarsRef, a.Id),
+    // Номер в бейдже — тот же, что в имени файла, т.е. игровой суффикс арта, а
+    // не «скин №1 по счёту». Названий скинов Enka не отдаёт.
+    skinLabel: skinSuffix ? `Skin ${skinSuffix}` : '',
+  });
+
   panel.innerHTML = `
-    <div class="pd-head">
-      <div class="pd-portrait"><img src="${slug ? agentUrl(slug) : ''}" onerror="this.style.opacity=.15"></div>
-      <div>
-        <div class="pd-name">${slug ? escapeHtml(cardName(slug)) : `Unknown (Id ${a.Id})`}</div>
-        <div class="pd-sub">${profile ? `${escapeHtml(profile.fullName || '')} · ${escapeHtml(profile.gender || '')} · ${escapeHtml(profile.stature || '')}` : ''}</div>
-        <div class="pd-badges">
-          <span class="pd-badge">Lv.${a.Level}/${(a.PromotionLevel || 1) * 10}</span>
-          <span class="pd-badge">Mindscape M${a.TalentLevel || 0}</span>
-        </div>
-      </div>
-    </div>
+    ${heroHtml}
 
     <div class="pd-section-title">Stats</div>
     <div class="pd-cols">${statsHtml}</div>
-
-    <div class="pd-section-title">Skills</div>
-    <div class="pd-skills">${skillsHtml}</div>
 
     <div class="pd-section-title">W-Engine</div>
     ${wengineHtml}
@@ -11522,6 +11592,87 @@ const agentUrl  = k => `${BASE}/agents/${assetSlug(k)}/card.webp`;
    номеров пришлось бы вручную при каждом новом агенте. Поэтому файл в каждой
    папке называется одинаково, и адрес собирается из одного slug'а. */
 const agentSquareUrl = k => `${BASE}/agents/${assetSlug(k)}/square.webp`;
+
+/* ── ПОЛНЫЙ АРТ АГЕНТА ──
+   Файлы в папке агента: portrait.webp — дефолтный вид, portrait-01/-02/-03 —
+   скины. Номер в имени файла — это НЕ порядковый номер скина, а суффикс из
+   игровых ассетов: файлы приехали как IconRole<N>_01, _02, … и были
+   переименованы скриптом, который числовой суффикс СОХРАНИЛ. То есть
+   portrait-01 — это ровно IconRole<N>_01, соответствие точное, а не подогнанное.
+   Поэтому суффикс достаётся из avatars.json → Skins[skinId].Image
+   (см. enkaSkinSuffix), а не выводится из порядка скинов. Разница видна на
+   Remielle: по возрастанию SkinId её скины дают суффиксы 02, 01, 03 — то есть
+   «первый скин → portrait-01» показывало бы чужой арт.
+   Проверено по всем 19 агентам со скинами: набор portrait-NN в репозитории в
+   точности равен набору суффиксов Enka, лишних файлов нет. */
+const agentPortraitUrl = (k, suffix) =>
+  `${BASE}/agents/${assetSlug(k)}/portrait${suffix ? `-${suffix}` : ''}.webp`;
+
+/* Скин мог выйти в патче раньше, чем мы домиррорили его арт, поэтому падаем по
+   цепочке: portrait-NN → portrait → card → пустая сцена. Остаток цепочки лежит
+   в data-fb (через '|'), и обработчик снимает по одному шагу. Через
+   this.onerror=null так не сделать: он бы оборвал цепочку на первом же шаге, а
+   ступеней тут может быть две. */
+function agentPortraitFallback(img) {
+  const rest = (img.dataset.fb || '').split('|').filter(Boolean);
+  const next = rest.shift();
+  img.dataset.fb = rest.join('|');
+  if (next) img.src = next;
+  else img.classList.add('is-missing');
+}
+
+/* Суффикс файла для скина, надетого на агента на стенде. Возвращает '' для
+   дефолтного вида — и для скина, которого нет в справочнике (свежий патч:
+   SkinId уже приходит, а avatars.json ещё не обновился). Лучше показать
+   дефолтный арт, чем ничего. */
+function enkaSkinSuffix(avatarsRef, agentId, skinId) {
+  if (!skinId || !avatarsRef) return '';
+  const skins = avatarsRef[String(agentId)]?.Skins;
+  const image = skins && skins[String(skinId)]?.Image;
+  const m = image && /_(\d+)\.\w+$/.exec(image);
+  return m ? m[1] : '';
+}
+
+// Цвет агента для подложки сцены. Accent — приглушённый «основной», у почти
+// всех агентов он серо-стальной; AccentExtra заметно насыщеннее и как пятно
+// читается лучше, поэтому он первый.
+function enkaAgentAccent(avatarsRef, agentId) {
+  const c = avatarsRef && avatarsRef[String(agentId)]?.Colors;
+  return (c && (c.AccentExtra || c.Accent)) || '';
+}
+
+/* Общая шапка панели: сцена с полным артом слева, текст справа. Одна на два
+   вызова — живой стенд (renderProfileDetail) и сохранённый пресет
+   (presetDetailHtml), — чтобы панель не меняла форму при переключении между
+   ними. У пресета скина нет (в нём хранятся только W-Engine и диски), поэтому
+   он всегда получает дефолтный арт и без бейджа. */
+function agentHeroHtml({ agentKey, title, sub, badgesHtml, skillsHtml, skinSuffix, accent, skinLabel }) {
+  // Ступень «дефолтный портрет» осмысленна только когда пробуем скин, иначе она
+  // повторяла бы src и давала лишний запрос.
+  const chain = agentKey
+    ? [...(skinSuffix ? [agentPortraitUrl(agentKey)] : []), agentUrl(agentKey)]
+    : [];
+  const primary = agentKey ? agentPortraitUrl(agentKey, skinSuffix) : '';
+  const style = accent ? ` style="--pd-hero-accent:${escapeHtml(accent)}"` : '';
+  return `
+    <div class="pd-hero">
+      <div class="pd-hero-stage"${style}>
+        ${primary ? `<img class="pd-hero-art" src="${primary}" alt="" data-fb="${escapeHtml(chain.join('|'))}" onerror="agentPortraitFallback(this)">` : ''}
+        ${skinLabel ? `<span class="pd-hero-skin" title="Skin equipped on the showcase">${escapeHtml(skinLabel)}</span>` : ''}
+      </div>
+      <div class="pd-hero-body">
+        <div>
+          <div class="pd-name">${title}</div>
+          ${sub ? `<div class="pd-sub">${sub}</div>` : ''}
+        </div>
+        ${badgesHtml ? `<div class="pd-badges">${badgesHtml}</div>` : ''}
+        ${skillsHtml ? `<div class="pd-hero-skills">
+          <div class="pd-section-title" style="margin-top:0">Skills</div>
+          <div class="pd-skills">${skillsHtml}</div>
+        </div>` : ''}
+      </div>
+    </div>`;
+}
 const wengineUrl= k => `${BASE}/w-engines/${assetSlug(k)}.webp`;
 const discUrl   = k => `${BASE}/disc-sets/${assetSlug(k)}.webp`;
 const bangbooUrl= k => `${BASE}/bangboo/${assetSlug(k)}.webp`;
