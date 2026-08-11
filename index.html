@@ -428,6 +428,15 @@ header {
 .tc-boo { display: flex; align-items: center; gap: 5px; }
 .tc-boo img { width: 20px; height: 20px; border-radius: 4px; object-fit: cover; }
 .tc-boo-name { font-size: 10px; color: var(--text-dim); font-family: 'Share Tech Mono', monospace; }
+/* Выбранный бафф — в том же нижнем ряду, что бангбу, но у правого края: в этом
+   ряду всего одна сущность, места хватает с запасом. Полное описание висит в
+   title, чтобы карточка осталась компактной. */
+.tc-buff { display: flex; align-items: center; gap: 5px; margin-left: auto; min-width: 0; }
+.tc-buff img { width: 20px; height: 20px; border-radius: 50%; background: var(--bg); object-fit: cover; flex-shrink: 0; }
+.tc-buff-name {
+  font-size: 10px; color: var(--text-dim); font-family: 'Share Tech Mono', monospace;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 
 /* empty */
 .empty-state {
@@ -546,6 +555,27 @@ select {
    звёздами, так что попадание один-в-один. Клик по уже последней зажжённой
    звезде гасит её — иначе с 1★ нельзя было бы вернуться на 0. */
 .da-stars-pick { display: flex; align-items: center; gap: 2px; height: 32px; }
+/* Бафф — последний элемент строки, поэтому уезжает вправо: слева остаются
+   поля «где и с каким результатом», справа «с чем шли». */
+.da-buff-fld { margin-left: auto; }
+.da-buff-fld select { min-width: 170px; }
+/* flex-basis:100% — строка описания разрывает поток панели и занимает её
+   целиком под селектами. */
+.da-buff-desc {
+  flex: 0 0 100%; margin-top: 2px;
+  display: flex; flex-direction: column; gap: 5px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 9px 11px;
+  font-size: 12px; line-height: 1.45; color: var(--text-mid);
+}
+.da-buff-desc.hidden { display: none; }
+.da-buff-desc-head { display: flex; align-items: center; gap: 7px; }
+.da-buff-desc-head img { width: 22px; height: 22px; border-radius: 50%; background: var(--bg3); object-fit: cover; }
+.da-buff-desc-head b { color: var(--accent); font-size: 12.5px; letter-spacing: .02em; }
+/* Маркер — псевдоэлементом, а не символом в тексте: строки описания приходят
+   из данных как чистый текст, и точка не должна в них жить. */
+.da-buff-desc-line { position: relative; padding-left: 12px; }
+.da-buff-desc-line::before { content: '\00b7'; position: absolute; left: 3px; color: var(--accent); font-weight: 700; }
 .da-star-btn {
   background: none; border: none; padding: 2px; cursor: pointer; line-height: 0;
   color: var(--text-dim); transition: color .15s, transform .1s;
@@ -1901,6 +1931,7 @@ select {
     <button class="tb-toggle" data-key="class" onclick="toggleVisOption('class', this)">Class</button>
     <button class="tb-toggle" data-key="discs" onclick="toggleVisOption('discs', this)">Discs</button>
     <button class="tb-toggle" data-key="boo" onclick="toggleVisOption('boo', this)">Bangboo</button>
+    <button class="tb-toggle" data-key="dabuff" onclick="toggleVisOption('dabuff', this)">Buff</button>
   </div>
 </div>
 
@@ -2163,6 +2194,14 @@ select {
           <label>Rating</label>
           <div class="da-stars-pick" id="daStarsPick"></div>
         </div>
+        <div class="fld da-buff-fld">
+          <label>Buff</label>
+          <select id="daBuff" onchange="onDaBuffChange()"></select>
+        </div>
+        <!-- Описание занимает всю ширину панели отдельной строкой: текст
+             длинный, в одну ячейку рядом с селектами он не влезает, а обрезать
+             его нельзя — смысл выбора именно в условиях. -->
+        <div class="da-buff-desc hidden" id="daBuffDesc"></div>
       </div>
 
       <div id="agentsRow"></div>
@@ -7339,7 +7378,7 @@ document.addEventListener('keydown', e => {
   if (e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
   else if (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey)) { e.preventDefault(); redo(); }
 });
-let displayOptions = Object.assign({attr:true, class:true, ability:true, wengine:true, boo:true, name:true, discs:true, shiyu:true, daphase:true},
+let displayOptions = Object.assign({attr:true, class:true, ability:true, wengine:true, boo:true, name:true, discs:true, shiyu:true, daphase:true, dabuff:true},
   JSON.parse(localStorage.getItem('zzz_display_options') || '{}'));
 
 /* ── DRIVE DISC PICKER MODE ──
@@ -11696,6 +11735,64 @@ const DA_PHASE_BOSSES = {
   '3.1.1': ['Girtablullu: Stagnant Aberrant', 'Notorious: Dead End Butcher', 'Unknown Corruption Complex'],
 };
 
+/* ── ВЫБИРАЕМЫЕ БАФФЫ ──
+   Перед забегом игра даёт выбрать один бафф из набора, и набор меняется вместе
+   с фазой. Поэтому две таблицы, а не одна: DA_BUFFS — сам справочник (что это
+   такое и что делает), DA_PHASE_BUFFS — какие из них предлагались в конкретной
+   фазе. Так описание баффа не приходится дублировать, когда тот же бафф
+   вернётся в другой фазе.
+   Иконки лежат рядом с иконками статов (assets/stats/), поэтому адрес собирает
+   тот же iconUrl(). У Heartcrusher и Sneak Attack картинка в игре одна и та же
+   — это не опечатка. */
+const DA_BUFFS = {
+  'heartcrusher': {
+    name: 'Heartcrusher',
+    icon: 'deadly-assault-buff-atk',
+    lines: [
+      'Agent CRIT DMG increases by 30%.',
+      'ATK of Agents with Attack specialty increases by 10%. Their Basic Attack DMG increases by 30% and ignore 15% of enemy DEF.',
+    ],
+  },
+  'united-strength': {
+    name: 'United Strength',
+    icon: 'deadly-assault-buff-element',
+    lines: [
+      "If there are 2/3 Agents in the squad with Anomaly specialty, the whole squad's Anomaly Proficiency increases by 30/70 respectively, and Attribute Anomaly DMG dealt increases by 10%/25% respectively.",
+      "After inflicting an Attribute Anomaly on an enemy, the enemy's All-Attribute RES is reduced by 15% for 10s. Repeated triggers reset the duration.",
+    ],
+  },
+  'sneak-attack': {
+    name: 'Sneak Attack',
+    icon: 'deadly-assault-buff-atk',
+    lines: [
+      'Agent ATK increases by 10%, their Anomaly Proficiency increases by 30 pts, and their CRIT DMG increases by 40%.',
+      'After an Agent inflicts Attribute Anomaly on an enemy, their DEF decreases by 10% for 10s. Repeated triggers reset the duration.',
+    ],
+  },
+};
+
+const DA_PHASE_BUFFS = {
+  '3.1.1': ['heartcrusher', 'united-strength', 'sneak-attack'],
+};
+
+/* Какие баффы предлагать для выбранной фазы. Если про фазу ничего не известно
+   (старая команда, будущая фаза, ещё не заполненная), отдаём весь справочник:
+   иначе у такой команды селект был бы пуст и уже выбранный бафф стало бы
+   нельзя ни увидеть, ни сохранить обратно. */
+function daBuffKeysForPhase(phase) {
+  return DA_PHASE_BUFFS[String(phase)] || Object.keys(DA_BUFFS);
+}
+function daBuffName(key) {
+  const b = DA_BUFFS[String(key)];
+  return b ? b.name : String(key || '');
+}
+// Полное описание одной строкой — для title= на карточке.
+function daBuffTooltip(key) {
+  const b = DA_BUFFS[String(key)];
+  if (!b) return '';
+  return `${b.name}\n\n` + b.lines.map(l => '\u00b7 ' + l).join('\n\n');
+}
+
 const DA_STAGE_LABELS = { '1': 'Boss 1', '2': 'Boss 2', '3': 'Boss 3', 'adv': 'Adversity' };
 const DA_STAGE_SHORT  = { '1': 'B1', '2': 'B2', '3': 'B3', 'adv': 'ADV' };
 
@@ -11770,6 +11867,7 @@ function newTeam(mode = 'shiyu') {
       daPhase: currentDaPhase() || knownDaPhases()[0] || '',
       daStage: '1',
       daBoss: '',
+      daBuff: '',
       daScore: 0,
       daStars: 0,
     });
@@ -11889,11 +11987,24 @@ function renderTeamGrid(mode) {
         ${seasonHtml}
       </div>`;
 
+    /* Нижний ряд: бангбу слева, бафф справа. Показывается, если есть хоть
+       одно из двух — иначе выключенный тумблер Bangboo прятал бы и бафф. */
+    const buff = isDa && displayOptions.dabuff && t.daBuff && DA_BUFFS[t.daBuff] ? DA_BUFFS[t.daBuff] : null;
+    const buffHtml = buff
+      ? `<div class="tc-buff" title="${escapeHtml(daBuffTooltip(t.daBuff))}">
+          <img src="${iconUrl(buff.icon)}" onerror="this.style.opacity=.15" alt="">
+          <span class="tc-buff-name">${escapeHtml(buff.name)}</span>
+        </div>`
+      : '';
+    const footHtml = (displayOptions.boo || buffHtml)
+      ? `<div class="tc-foot">${displayOptions.boo ? booHtml : ''}${buffHtml}</div>`
+      : '';
+
     const selCls = selectedTeamIds.has(t.id) ? ' selected' : '';
     return `<div class="team-card${selCls}" draggable="true" data-id="${t.id}" onclick="if(!window.__justDragged) selectTeam('${t.id}', event.shiftKey)">
       ${barHtml}
       <div class="tc-strip">${cells}</div>
-      ${displayOptions.boo ? `<div class="tc-foot">${booHtml}</div>` : ''}
+      ${footHtml}
     </div>`;
   }).join('');
 }
@@ -12100,6 +12211,7 @@ function editTeam(id) {
     if (currentTeam.daPhase === undefined) currentTeam.daPhase = '';
     if (currentTeam.daStage === undefined) currentTeam.daStage = '1';
     if (currentTeam.daBoss  === undefined) currentTeam.daBoss  = '';
+    if (currentTeam.daBuff  === undefined) currentTeam.daBuff  = '';
     if (currentTeam.daScore === undefined) currentTeam.daScore = 0;
     if (currentTeam.daStars === undefined) currentTeam.daStars = 0;
   } else if (currentTeam.shiyu === undefined) {
@@ -12125,6 +12237,8 @@ function showEditor() {
     document.getElementById('daScore').value = currentTeam.daScore || '';
     renderDaBossField();
     renderDaStarsPick();
+    populateDaBuffSelect();
+    renderDaBuffDesc();
   } else {
     populateShiyuSelect();
     document.getElementById('sdShiyu').value    = currentTeam.shiyu || '';
@@ -12152,11 +12266,48 @@ function renderDaBossField() {
 function onDaPhaseChange() {
   currentTeam.daPhase = document.getElementById('daPhase').value;
   renderDaBossField();
+  // Набор баффов зависит от фазы: пересобираем список. Уже выбранный бафф
+  // сохраняется, если он есть и в новом наборе, — populateDaBuffSelect()
+  // добавляет его как опцию даже когда фаза его не предлагает, иначе смена
+  // фазы молча стирала бы выбор.
+  populateDaBuffSelect();
+  renderDaBuffDesc();
 }
 function onDaStageChange() {
   currentTeam.daStage = document.getElementById('daStage').value;
   renderDaBossField();
 }
+/* В списке остаются баффы фазы ПЛЮС тот, что уже выбран у команды: иначе при
+   правке старой команды (или после смены фазы) её бафф исчезал бы из опций,
+   value становилось бы пустым, и saveTeam() затирал бы поле при сохранении —
+   ровно та же ловушка, что была с сезонами Шию. */
+function populateDaBuffSelect() {
+  const sel = document.getElementById('daBuff');
+  if (!sel) return;
+  const keys = daBuffKeysForPhase(currentTeam && currentTeam.daPhase).slice();
+  const chosen = currentTeam && currentTeam.daBuff;
+  if (chosen && !keys.includes(chosen)) keys.unshift(chosen);
+  sel.innerHTML = '<option value="">— none —</option>' + keys
+    .map(k => `<option value="${escapeHtml(k)}">${escapeHtml(daBuffName(k))}</option>`).join('');
+  sel.value = chosen || '';
+}
+function onDaBuffChange() {
+  currentTeam.daBuff = document.getElementById('daBuff').value;
+  renderDaBuffDesc();
+}
+function renderDaBuffDesc() {
+  const el = document.getElementById('daBuffDesc');
+  if (!el) return;
+  const b = DA_BUFFS[String(currentTeam && currentTeam.daBuff)];
+  el.classList.toggle('hidden', !b);
+  if (!b) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="da-buff-desc-head">
+      <img src="${iconUrl(b.icon)}" onerror="this.style.opacity=.15" alt="">
+      <b>${escapeHtml(b.name)}</b>
+    </div>` +
+    b.lines.map(l => `<div class="da-buff-desc-line">${escapeHtml(l)}</div>`).join('');
+}
+
 function renderDaStarsPick() {
   const el = document.getElementById('daStarsPick');
   if (!el) return;
@@ -12186,6 +12337,7 @@ function saveTeam() {
     currentTeam.daPhase = document.getElementById('daPhase').value;
     currentTeam.daStage = document.getElementById('daStage').value;
     currentTeam.daBoss  = document.getElementById('daBoss').value.trim();
+    currentTeam.daBuff  = document.getElementById('daBuff').value;
     // Очко режется в 0…999999: выше игрового максимума и достаточно, чтобы
     // опечатка в лишний разряд не ломала вид карточки.
     currentTeam.daScore = Math.max(0, Math.min(999999, parseInt(document.getElementById('daScore').value, 10) || 0));
