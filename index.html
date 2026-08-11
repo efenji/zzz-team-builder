@@ -491,7 +491,7 @@ header {
   font-size: 10px; color: var(--text-dim);
   font-family: 'Share Tech Mono', monospace; letter-spacing: .1em; text-transform: uppercase;
 }
-select, input[type=number] {
+select, input[type=number], .fld input[type=text] {
   background: var(--bg); border: 1px solid var(--border);
   border-radius: var(--r-sm); color: var(--text);
   padding: 6px 10px; font-family: 'Barlow', 'Inter', sans-serif; font-size: 13px;
@@ -508,6 +508,13 @@ select {
 .timer-colon { color: var(--text-dim); font-size: 15px; font-weight: 700; }
 .da-boss-fld input { width: 230px; }
 .da-score-input { width: 96px; text-align: center; font-family: 'Share Tech Mono', monospace; }
+/* Штатные стрелки прибавляют/убавляют по единице — на числах вроде 43000 это
+   бессмысленно (до соседнего осмысленного значения тысячи кликов), а места
+   занимают половину поля и ломают центрирование. Ввод только руками; min/max
+   на элементе остаются и продолжают ограничивать значение. */
+.da-score-input::-webkit-outer-spin-button,
+.da-score-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.da-score-input { -moz-appearance: textfield; appearance: textfield; }
 /* Три кнопки-звезды вместо <select> с числом: рейтинг в игре и показывается
    звёздами, так что попадание один-в-один. Клик по уже последней зажжённой
    звезде гасит её — иначе с 1★ нельзя было бы вернуться на 0. */
