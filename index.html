@@ -2025,7 +2025,6 @@ select {
     <button class="tb-toggle" data-key="wengine" onclick="toggleProfileVisOption('wengine', this)" title="Show the W-Engine block">W-Engine</button>
     <button class="tb-toggle" data-key="sets" onclick="toggleProfileVisOption('sets', this)" title="Show the Drive Disc Sets summary">Sets</button>
     <button class="tb-toggle" data-key="discs" onclick="toggleProfileVisOption('discs', this)" title="Full disc cards with every sub-stat, vs. a compact icon + level row">Discs</button>
-    <button class="tb-toggle" data-key="approx" onclick="toggleProfileVisOption('approx', this)" title="Show the ⓘ hints that flag theoretical/approximate numbers">Approx</button>
     <button class="tb-toggle" data-key="notes" onclick="toggleProfileVisOption('notes', this)" title="Show info banners (Imported/Verified/Shared build, missing-discs warning)">Notes</button>
   </div>
 </div>
@@ -7434,9 +7433,12 @@ let displayOptions = Object.assign({attr:true, class:true, ability:true, wengine
      wengine — the W-Engine block
      sets    — the Drive Disc Sets summary
      discs   — full per-disc stat cards vs. a compact icon+level row
-     approx  — the ⓘ "theoretical/approximate" hint spans
-     notes   — info banners (Imported/Verified/Shared/missing-discs) */
-let profileDisplayOptions = Object.assign({procs:true, totals:true, skills:true, wengine:true, sets:true, discs:true, approx:true, notes:true},
+     notes   — info banners (Imported/Verified/Shared/missing-discs)
+   (There used to be an `approx` toggle for the ⓘ/⚠ "theoretical/approximate"
+   hints — removed per user feedback: the hints themselves just confused
+   people more than the numbers they were annotating, toggle or not, so both
+   are gone rather than hidden-by-default.) */
+let profileDisplayOptions = Object.assign({procs:true, totals:true, skills:true, wengine:true, sets:true, discs:true, notes:true},
   JSON.parse(localStorage.getItem('zzz_profile_display_options') || '{}'));
 
 /* ── DRIVE DISC PICKER MODE ──
@@ -10355,14 +10357,15 @@ function statSheetBucket(row, useful) {
    двумя одинаковыми правками и они бы разъехались при следующей. */
 function statSheetRowsHtml(sheet, useful) {
   if (!sheet) return '<div class="disc-detail-row-empty">No reference data available for this agent.</div>';
-  // Same "approximate value" concept as the section-level ⓘ hints (both use
-  // .pd-stat-approx), just flagged per-row instead of per-section — so it
-  // rides the same Profile-tab "Approx" toggle rather than always showing.
+  // s.approximate still gets computed by the stat sheet builders (flags rows
+  // with an unmodeled kit-specific conditional bonus) but is no longer shown
+  // — the ⚠ hint that used to sit here confused people more than it helped,
+  // same reasoning as dropping the section-level ⓘ hints below.
   return sheet.map(s => {
     const b = statSheetBucket(s, useful);
     return `
       <div class="disc-detail-row pd-stat-row${b ? ' up-' + b : ''}">
-        <div class="disc-detail-row-label">${escapeHtml(s.label)}${(s.approximate && profileDisplayOptions.approx) ? ' <span class="pd-stat-approx" title="Kit-specific conditional bonus not modeled — may run slightly under the true value">⚠</span>' : ''}</div>
+        <div class="disc-detail-row-label">${escapeHtml(s.label)}</div>
         <div class="disc-detail-row-val">${formatEnkaStatValue(s.total, s.isPercent, s.fam)}
           <span class="pd-stat-note">(${formatEnkaStatValue(s.base, s.isPercent, s.fam)} + ${formatEnkaStatValue(s.bonus, s.isPercent, s.fam)})</span>
         </div>
@@ -11037,7 +11040,6 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
   // site needs to know the toggle exists.
   const useful = resolveUsefulSubstats(profileDisplayOptions.procs ? agentKey : null, discEntries);
   const procCounts = countUsefulProcs(discEntries, useful);
-  const approxHint = title => profileDisplayOptions.approx ? ` <span class="pd-stat-approx" title="${escapeHtml(title)}">ⓘ</span>` : '';
 
   const statsHtml = statSheetRowsHtml(sheet, useful);
 
@@ -11047,7 +11049,7 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
   // have preset.skills === null, so the row is omitted rather than shown empty.
   const snapshotCoreLetter = preset.coreSkillEnhancement ? enkaCoreSkillLetter(preset.coreSkillEnhancement) : null;
   const skillsHtml = (profileDisplayOptions.skills && preset.skills && preset.skills.length)
-    ? `<div class="pd-section-title">Skills${approxHint('Actual skill levels on the stand at the moment this preset was saved — frozen with the rest of the snapshot, not kept in sync afterward')}</div>
+    ? `<div class="pd-section-title">Skills</div>
        <div class="pd-skills">${preset.skills.map(s => `<div class="pd-skill-pill">${escapeHtml(s.label)} <b>Lv.${s.level}</b></div>`).join('')}${snapshotCoreLetter ? `<div class="pd-skill-pill">Core Skill Enhancement <b>${snapshotCoreLetter}</b></div>` : ''}</div>`
     : '';
 
@@ -11100,7 +11102,7 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
       ${importedNote}
       ${publicNote}
 
-      <div class="pd-section-title">Stats${approxHint("Theoretical build: Level/Core Skill from the Agent Library, this W-Engine's Level from the W-Engine Library — same formulas as the Enka import above")}</div>
+      <div class="pd-section-title">Stats</div>
       <div class="pd-cols">${statsHtml}</div>
 
       ${skillsHtml}
