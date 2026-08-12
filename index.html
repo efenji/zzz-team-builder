@@ -8232,9 +8232,14 @@ function nextPresetName(agentKey) {
 // Enka showcase (yours or someone else's) rather than built from this
 // tool's own Drive Disc Library — see evaluatePresetApplicability(), which
 // skips the "missing from your library" check for these entirely, since
-// that check was never meaningful for them in the first place. Returns the
-// new preset, or null (with a toast) if a precondition fails.
-function createAgentPreset(agentKey, wengineKey, wrank, discEntries, name, source = null, category = 'manual') {
+// that check was never meaningful for them in the first place. `skillSnapshot`
+// ({ skills, coreSkillEnhancement }), if given, freezes the on-stand skill
+// levels at save time (see profileCurrentLiveBuild in renderProfileDetail) so
+// presetDetailHtml can show the same SKILLS row a live showcase agent gets —
+// manual builder presets never have this, since that data only exists on a
+// real Enka stand. Returns the new preset, or null (with a toast) if a
+// precondition fails.
+function createAgentPreset(agentKey, wengineKey, wrank, discEntries, name, source = null, category = 'manual', skillSnapshot = null) {
   if (!agentKey) return null;
   if (!wengineKey) { showToast('Pick a W-Engine before saving the preset.', 'error'); return null; }
   const discs = (discEntries || []).filter(Boolean);
@@ -8256,6 +8261,8 @@ function createAgentPreset(agentKey, wengineKey, wrank, discEntries, name, sourc
     discs: discs.slice().sort((a, b) => a.slot - b.slot).map(discToSnapshot),
     source: source ? { uid: source.uid || null, nickname: source.nickname || null } : null,
     category,
+    skills: (skillSnapshot && skillSnapshot.skills && skillSnapshot.skills.length) ? skillSnapshot.skills : null,
+    coreSkillEnhancement: (skillSnapshot && skillSnapshot.coreSkillEnhancement) || 0,
   };
   agentPresets[agentKey] = [...list, preset];
   saveAgentPresets();
@@ -10888,7 +10895,8 @@ async function saveCurrentShowcaseBuildAsPreset(agentKey) {
   const name = await customPrompt('Preset name:', nextPresetName(agentKey));
   if (name === null) return;
   const preset = createAgentPreset(agentKey, liveBuild.wengine, liveBuild.wrank || 1, discEntries, name,
-    { uid: profileCurrentUid, nickname: profileCurrentNickname || null }, category);
+    { uid: profileCurrentUid, nickname: profileCurrentNickname || null }, category,
+    { skills: liveBuild.skills, coreSkillEnhancement: liveBuild.coreSkillEnhancement });
   if (preset) {
     showToast(`Preset "${preset.name}" saved${category === 'verified' ? ' (Verified)' : ' (Imported)'}.`, 'success');
     refreshPresetViews(agentKey);
@@ -10941,13 +10949,22 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
   const wengineInfo = preset.wengine ? WENGINE_INFO[preset.wengine] : null;
   const wengineLibLevel = preset.wengine ? (getWengineLibEntry(preset.wengine).level || 60) : 60;
   const coreLetter = libEntry.coreSkillEnhancement ? enkaCoreSkillLetter(libEntry.coreSkillEnhancement) : null;
+  const cat = presetCategory(preset);
   const isExternal = presetIsExternalSnapshot(preset);
   const { missing } = isExternal ? { missing: [] } : evaluatePresetApplicability(preset, null);
   const missingBanner = (!readOnly && !isExternal && missing.length)
     ? `<div class="pd-preset-warn">⚠ ${missing.length} of 6 discs no longer match anything in your Drive Disc Library (edited or deleted since this preset was saved). The stats below still use the saved snapshot, but applying this preset to a team will skip those slots. Delete and re-save the preset to fix.</div>`
     : '';
+  // Wording forks on category: 'verified' is YOUR OWN stand (never "imported"
+  // from someone else, even though it's just as external/frozen as an actual
+  // import), 'imported'/legacy-detected is someone else's. preset.source can
+  // be null on both the legacy copyPublicPresetToMine presets (predates
+  // tagging entirely) and the 6-of-6-missing manual heuristic, so every field
+  // read off it here has to be optional-chained.
   const importedNote = (!readOnly && isExternal)
-    ? `<div class="pd-preset-warn pd-preset-note">ℹ Imported build${preset.source.nickname ? ` — from ${escapeHtml(preset.source.nickname)}'s showcase` : ''}${preset.source.uid ? ` (UID ${escapeHtml(preset.source.uid)})` : ''}. This is a reference snapshot straight off that account's stand, not tied to your own Drive Disc Library, so it can't be applied directly to a team.</div>`
+    ? (cat === 'verified'
+        ? `<div class="pd-preset-warn pd-preset-note">ℹ Verified build — a frozen snapshot pulled from your own confirmed stand${preset.source?.uid ? ` (UID ${escapeHtml(preset.source.uid)})` : ''}. Not tied to your current Drive Disc Library, so it can't be applied directly to a team — save it again from the Profile tab to refresh the snapshot.</div>`
+        : `<div class="pd-preset-warn pd-preset-note">ℹ Imported build${preset.source?.nickname ? ` — from ${escapeHtml(preset.source.nickname)}'s showcase` : ''}${preset.source?.uid ? ` (UID ${escapeHtml(preset.source.uid)})` : ''}. This is a reference snapshot straight off that account's stand, not tied to your own Drive Disc Library, so it can't be applied directly to a team.</div>`)
     : '';
   const publicNote = readOnly
     ? `<div class="pd-preset-warn pd-preset-note">ℹ Shared build${ownerLabel ? ` by ${escapeHtml(ownerLabel)}` : ''}. The Level/Core Skill Enhancement shown use <em>your own</em> Agent Library settings for ${escapeHtml(cardName(agentKey))} — only the W-Engine and discs are actually part of what was published.</div>`
@@ -10963,6 +10980,16 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
   const procCounts = countUsefulProcs(discEntries, useful);
 
   const statsHtml = statSheetRowsHtml(sheet, useful);
+
+  // Only presets saved off a live stand (verified/imported, via
+  // saveCurrentShowcaseBuildAsPreset) carry a skills snapshot — manual builder
+  // presets, and any showcase preset saved before this field existed, simply
+  // have preset.skills === null, so the row is omitted rather than shown empty.
+  const snapshotCoreLetter = preset.coreSkillEnhancement ? enkaCoreSkillLetter(preset.coreSkillEnhancement) : null;
+  const skillsHtml = (preset.skills && preset.skills.length)
+    ? `<div class="pd-section-title">Skills <span class="pd-stat-approx" title="Actual skill levels on the stand at the moment this preset was saved — frozen with the rest of the snapshot, not kept in sync afterward">ⓘ</span></div>
+       <div class="pd-skills">${preset.skills.map(s => `<div class="pd-skill-pill">${escapeHtml(s.label)} <b>Lv.${s.level}</b></div>`).join('')}${snapshotCoreLetter ? `<div class="pd-skill-pill">Core Skill Enhancement <b>${snapshotCoreLetter}</b></div>` : ''}</div>`
+    : '';
 
   const wengineHtml = preset.wengine
     ? `<div class="pd-wengine">
@@ -11005,6 +11032,8 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
       <div class="pd-section-title">Stats <span class="pd-stat-approx" title="Theoretical build: Level/Core Skill from the Agent Library, this W-Engine's Level from the W-Engine Library — same formulas as the Enka import above">ⓘ</span></div>
       <div class="pd-cols">${statsHtml}</div>
 
+      ${skillsHtml}
+
       <div class="pd-section-title">W-Engine</div>
       ${wengineHtml}
 
@@ -11046,17 +11075,22 @@ async function renderProfileDetail(i) {
   const wengineSlug = a.Weapon ? ENKA_WENGINE_MAP[a.Weapon.Id] : null;
   const wengineInfo = wengineSlug ? WENGINE_INFO[wengineSlug] : null;
 
+  const skillLevels = enkaSkillLevels(a);
+  const coreLetter = enkaCoreSkillLetter(a.CoreSkillEnhancement || 0);
+
+  // skills/coreSkillEnhancement ride along so "Save current build" can freeze
+  // them into the preset — see createAgentPreset's skillSnapshot param. Without
+  // this, presets saved off a stand had no way to show the SKILLS row that
+  // renderProfileDetail shows below (they simply never captured the data).
   profileCurrentLiveBuild = slug
-    ? { agentKey: slug, wengine: wengineSlug, wrank: a.Weapon ? Math.max(1, a.Weapon.UpgradeLevel || 1) : 0, discEntries }
+    ? { agentKey: slug, wengine: wengineSlug, wrank: a.Weapon ? Math.max(1, a.Weapon.UpgradeLevel || 1) : 0, discEntries,
+        skills: skillLevels, coreSkillEnhancement: a.CoreSkillEnhancement || 0 }
     : null;
 
   // "Save current build" moved to the toolbar (slot B, #tbSaveBuild) — it
   // derives everything it needs from profileCurrentLiveBuild, which was just
   // set above, so this is the point to refresh it.
   updateSaveBuildToolbar();
-
-  const skillLevels = enkaSkillLevels(a);
-  const coreLetter = enkaCoreSkillLetter(a.CoreSkillEnhancement || 0);
 
   // slug пуст для агента, которого ещё нет в наших таблицах (свежий патч) —
   // тогда resolveUsefulSubstats() отдаёт пустые наборы, подсветки и итога нет,
