@@ -10731,7 +10731,14 @@ function copyPublicPresetToMine() {
     showToast(`${cardName(agentKey)} already has the max presets (${PRESET_LIMIT}). Delete one to copy this.`, 'error');
     return;
   }
-  const created = createAgentPreset(agentKey, preset.wengine, preset.wrank || 1, (preset.discs || []).map(d => ({ ...d })), `${preset.name} (copy)`);
+  // Discs here are someone else's exact snapshot, not anything from our own
+  // driveDiscLibrary — tag it the same way a live-showcase import would be
+  // (source + 'imported' category) so it's treated as an external snapshot
+  // everywhere (presetDetailHtml, the tab row, the team-builder chips, the
+  // conflict modal), instead of silently being compared against our library
+  // and flagged as "6 of 6 discs missing".
+  const created = createAgentPreset(agentKey, preset.wengine, preset.wrank || 1, (preset.discs || []).map(d => ({ ...d })), `${preset.name} (copy)`,
+    { uid: null, nickname: publicPresetsOwnerLabel || null }, 'imported');
   if (created) {
     showToast(`Preset "${created.name}" added to your presets.`, 'success');
     refreshPresetViews(agentKey);
@@ -10934,11 +10941,12 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
   const wengineInfo = preset.wengine ? WENGINE_INFO[preset.wengine] : null;
   const wengineLibLevel = preset.wengine ? (getWengineLibEntry(preset.wengine).level || 60) : 60;
   const coreLetter = libEntry.coreSkillEnhancement ? enkaCoreSkillLetter(libEntry.coreSkillEnhancement) : null;
-  const { missing } = preset.source ? { missing: [] } : evaluatePresetApplicability(preset, null);
-  const missingBanner = (!readOnly && !preset.source && missing.length)
+  const isExternal = presetIsExternalSnapshot(preset);
+  const { missing } = isExternal ? { missing: [] } : evaluatePresetApplicability(preset, null);
+  const missingBanner = (!readOnly && !isExternal && missing.length)
     ? `<div class="pd-preset-warn">⚠ ${missing.length} of 6 discs no longer match anything in your Drive Disc Library (edited or deleted since this preset was saved). The stats below still use the saved snapshot, but applying this preset to a team will skip those slots. Delete and re-save the preset to fix.</div>`
     : '';
-  const importedNote = (!readOnly && preset.source)
+  const importedNote = (!readOnly && isExternal)
     ? `<div class="pd-preset-warn pd-preset-note">ℹ Imported build${preset.source.nickname ? ` — from ${escapeHtml(preset.source.nickname)}'s showcase` : ''}${preset.source.uid ? ` (UID ${escapeHtml(preset.source.uid)})` : ''}. This is a reference snapshot straight off that account's stand, not tied to your own Drive Disc Library, so it can't be applied directly to a team.</div>`
     : '';
   const publicNote = readOnly
@@ -12732,8 +12740,8 @@ async function saveCurrentAsPreset(agentIdx) {
 function showPresetConflictModal(preset, missing, conflicts) {
   const lines = [];
   conflicts.forEach(c => lines.push(`"${c.snap.setName}" [slot ${c.snap.slot}] is already used by ${c.agentName}.`));
-  if (preset.source) {
-    if (missing.length) lines.push("This preset was imported straight from a stand (not from your Drive Disc Library), so it can't be applied to a team — view only.");
+  if (presetIsExternalSnapshot(preset)) {
+    if (missing.length) lines.push("This preset was imported from someone else's build (not from your Drive Disc Library), so it can't be applied to a team — view only.");
   } else {
     missing.forEach(m => lines.push(`"${m.setName}" [slot ${m.slot}] wasn't found in your current Drive Disc Library.`));
   }
@@ -12880,8 +12888,8 @@ function renderAgents() {
           const { missing, conflicts } = evaluatePresetApplicability(p, i);
           const broken = missing.length || conflicts.length;
           const titleBits = [];
-          if (p.source) {
-            if (missing.length) titleBits.push('imported from a showcase — reference only, can\'t apply to a team');
+          if (presetIsExternalSnapshot(p)) {
+            if (missing.length) titleBits.push('imported build — reference only, can\'t apply to a team');
           } else if (missing.length) {
             titleBits.push(`${missing.length} disc(s) missing from library`);
           }
