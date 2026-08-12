@@ -8298,12 +8298,14 @@ function nextPresetName(agentKey) {
 // wengineKey + wrank + exactly 6 non-null discEntries (driveDiscLibrary
 // shape) are all required — presets are all-or-nothing by design (per the
 // "1 - заполнены оба, 6 дисков и w engine" decision). `source`, if given
-// ({ uid, nickname }), marks this as a snapshot pulled straight off a live
-// Enka showcase (yours or someone else's) rather than built from this
-// tool's own Drive Disc Library — see evaluatePresetApplicability(), which
-// skips the "missing from your library" check for these entirely, since
-// that check was never meaningful for them in the first place. Returns the
-// new preset, or null (with a toast) if a precondition fails.
+// ({ uid, nickname }), marks this as a snapshot whose discs are NOT drawn
+// from this tool's own Drive Disc Library — either pulled straight off a
+// live Enka showcase (yours or someone else's), or copied from someone
+// else's published preset via copyPublicPresetToMine(). Either way the
+// discs belong to a different library and comparing them against mine would
+// be meaningless, so evaluatePresetApplicability() skips the "missing from
+// your library" check for these entirely. Returns the new preset, or null
+// (with a toast) if a precondition fails.
 function createAgentPreset(agentKey, wengineKey, wrank, discEntries, name, source = null, category = 'manual') {
   if (!agentKey) return null;
   if (!wengineKey) { showToast('Pick a W-Engine before saving the preset.', 'error'); return null; }
@@ -10834,12 +10836,27 @@ function copyPublicPresetToMine() {
     showToast(`${cardName(agentKey)} already has the max regular presets (${PRESET_LIMIT}). Delete one to copy this.`, 'error');
     return;
   }
-  const created = createAgentPreset(agentKey, preset.wengine, preset.wrank || 1, (preset.discs || []).map(d => ({ ...d })), `${preset.name} (copy)`);
+  /* source ОБЯЗАТЕЛЕН здесь: диски в этом снимке — чужие, из библиотеки автора
+     публикации, сверять их с МОЕЙ Drive Disc Library бессмысленно — они там
+     появятся только по случайному совпадению. Без source
+     evaluatePresetApplicability() честно находит «0 из 6 совпало» и рисует
+     тревожный баннер "no longer match anything in your library" — как будто
+     когда-то совпадало и потерялось, хотя это копия чужой сборки и связи с
+     моей библиотекой не было НИКОГДА. Тот же source, что уже стоит на снимках
+     прямо со стенда (см. createAgentPreset), даёт ровно то поведение, которое
+     здесь и нужно: спокойную заметку "Imported build" вместо баннера и
+     "can't be applied to a team" вместо попытки сопоставить диски.
+     Контекст (Профиль или лента) приходится определять снаружи: оба места
+     показа делят одну currentPublicPresetView, у которой нет своего uid/label. */
+  const feedModalOpen = !document.getElementById('publicPresetsBg')?.classList.contains('hidden');
+  const source = feedModalOpen
+    ? { uid: null, nickname: publicPresetsOwnerLabel || null }
+    : { uid: profileCurrentUid || null, nickname: profileCurrentNickname || null };
+  const created = createAgentPreset(agentKey, preset.wengine, preset.wrank || 1, (preset.discs || []).map(d => ({ ...d })), `${preset.name} (copy)`, source);
   if (created) {
     showToast(`Preset "${created.name}" added to your presets.`, 'success');
     refreshPresetViews(agentKey);
     if (ownerPresetViewAgentKey === agentKey) renderOwnerPresetView();
-    const feedModalOpen = !document.getElementById('publicPresetsBg')?.classList.contains('hidden');
     if (feedModalOpen && preset.id != null) viewPublicPresetDetail(preset.id);
   }
 }
@@ -11054,7 +11071,7 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
     ? `<div class="pd-preset-warn">⚠ ${missing.length} of 6 discs no longer match anything in your Drive Disc Library (edited or deleted since this preset was saved). The stats below still use the saved snapshot, but applying this preset to a team will skip those slots. Delete and re-save the preset to fix.</div>`
     : '';
   const importedNote = (!readOnly && preset.source)
-    ? `<div class="pd-preset-warn pd-preset-note">ℹ Imported build${preset.source.nickname ? ` — from ${escapeHtml(preset.source.nickname)}'s showcase` : ''}${preset.source.uid ? ` (UID ${escapeHtml(preset.source.uid)})` : ''}. This is a reference snapshot straight off that account's stand, not tied to your own Drive Disc Library, so it can't be applied directly to a team.</div>`
+    ? `<div class="pd-preset-warn pd-preset-note">ℹ Imported build${preset.source.nickname ? ` — from ${escapeHtml(preset.source.nickname)}` : ''}${preset.source.uid ? ` (UID ${escapeHtml(preset.source.uid)})` : ''}. This is a reference snapshot, not tied to your own Drive Disc Library, so it can't be applied directly to a team.</div>`
     : '';
   const publicNote = readOnly
     ? `<div class="pd-preset-warn pd-preset-note">ℹ Shared build${ownerLabel ? ` by ${escapeHtml(ownerLabel)}` : ''}. The Level/Core Skill Enhancement shown use <em>your own</em> Agent Library settings for ${escapeHtml(cardName(agentKey))} — only the W-Engine and discs are actually part of what was published.</div>`
