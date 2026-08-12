@@ -1496,92 +1496,10 @@ select {
 .profile-fav-chip .fav-x:hover { color: var(--red); background: rgba(239,68,68,.15); }
 /* (.profile-current-player is gone — the nickname · UID · Lv line it styled is
    now the hero half of .player-card above.) */
-/* ── AGENT HERO (top of the Profile detail panel) ──
-   Заменил шапку с квадратной миниатюрой 96×96 на арт агента
-   (assets/agents/<slug>/portrait*.webp), закадрированный «по колено».
-
-   Почему сцена ФИКСИРОВАННОГО размера: пропорции портретов гуляют вчетверо.
-   Проверено по всем 58 агентам — от 0.39 (Grace Howard, 780×2008) до 1.61
-   (Remielle, 2128×1324: размах крыльев). Если подгонять ширину под арт, блок
-   скакал бы от 0.39H до 1.61H, и правая колонка дёргалась бы при каждом
-   переключении агента.
-
-   Целиком арт при этом НЕ показывается: вписанный в сцену, он выходил слишком
-   мелким и по-разному у разных агентов. Вместо этого берётся кадр от макушки
-   до колена — рамка на каждый арт лежит в AGENT_PORTRAIT_FOCUS, см. .pd-hero-art
-   ниже и комментарий у самой таблицы.
-
-   Арты с альфа-каналом (bbox фигуры почти вплотную к краям), так что подложка
-   своя: мягкое радиальное пятно цветом самого агента, --pd-hero-accent
-   подставляется инлайном из avatars.json → Colors. */
-.pd-hero {
-  display: flex; gap: 20px; align-items: stretch; margin-bottom: 18px;
-}
-.pd-hero-stage {
-  position: relative; flex-shrink: 0;
-  width: 300px; height: 380px;
-  border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
-  background: var(--bg3);
-}
-/* Пятно под фигурой, чуть ниже центра — там корпус, а не пустота над головой.
-   Цвет агента приглушён до .18: это подложка, а не заливка. */
-.pd-hero-stage::before {
-  content: ''; position: absolute; inset: 0;
-  background:
-    radial-gradient(72% 58% at 50% 62%, var(--pd-hero-accent, transparent) 0%, transparent 72%),
-    linear-gradient(180deg, rgba(0,0,0,.28) 0%, transparent 45%);
-  opacity: .18;
-}
-/* Кадр «по колено», а не весь арт целиком. Три переменные приходят из
-   AGENT_PORTRAIT_FOCUS (доли от размеров самого арта):
-     --pd-art-h — какая часть ВЫСОТЫ арта должна занять сцену;
-     --pd-art-y — где кадр начинается по вертикали (обычно чуть выше макушки,
-                  поэтому значение слегка отрицательное — это воздух над головой);
-     --pd-art-x — сдвиг к центру КОРПУСА (у многих оружие уводит центр в сторону).
-
-   Почему height + width:auto, а не object-fit: масштаб должен задаваться
-   высотой ФИГУРЫ, иначе кадрирование поехало бы вместе с пропорциями арта, а
-   они гуляют вчетверо (0.39 у Grace Howard против 1.61 у Remielle). Так у всех
-   агентов от макушки до колена ровно высота сцены, а лишнее по бокам просто
-   обрезается.
-   Проценты в translate считаются от РАЗМЕРОВ САМОЙ КАРТИНКИ (в отличие от
-   top/left, которые считались бы от сцены) — именно поэтому сдвиг сделан
-   трансформом: доли из таблицы заданы в размерах арта. */
-.pd-hero-art {
-  position: absolute; z-index: 1; top: 0; left: 50%;
-  height: calc(100% / var(--pd-art-h, 1));
-  width: auto; max-width: none;
-  transform: translate(
-    calc(-50% - 100% * var(--pd-art-x, 0)),
-    calc(-100% * var(--pd-art-y, 0))
-  );
-  display: block;
-}
-/* Если портрет не нашёлся и мы упали на card.webp — у того арта своя обрезка, и
-   числа из таблицы к нему не относятся. Показываем его целиком. */
-.pd-hero-art.is-fallback {
-  position: relative; left: 0; top: 0;
-  width: 100%; height: 100%;
-  object-fit: contain; object-position: center;
-  transform: none;
-}
-/* Пока арт не загрузился — пустая сцена, а не «сломанная картинка». */
-.pd-hero-art.is-missing { opacity: 0; }
-.pd-hero-skin {
-  position: absolute; z-index: 2; left: 10px; bottom: 10px;
-  font-family: 'Share Tech Mono', monospace; font-size: 10px;
-  letter-spacing: .08em; text-transform: uppercase;
-  color: var(--accent); background: rgba(0,0,0,.6);
-  border: 1px solid var(--accent-30); border-radius: 20px; padding: 3px 9px;
-}
-/* min-width:0 обязателен: без него длинное имя агента не даёт флексу сжаться и
-   выдавливает сцену. */
-.pd-hero-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
-.pd-hero-skills { margin-top: auto; }
-/* (.pd-head / .pd-portrait ушли вместе с квадратной миниатюрой 96×96 — оба
-   вызова, живой стенд и пресет, теперь строят шапку через agentHeroHtml.) */
+.pd-head { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 16px; }
+.pd-portrait { width: 96px; height: 96px; border-radius: 10px; overflow: hidden; background: var(--bg4); flex-shrink: 0; }
+.pd-portrait img { width: 100%; height: 100%; object-fit: cover; }
 .pd-name { font-family: 'Barlow Condensed', 'Oswald', sans-serif; font-size: 22px; font-weight: 900; }
-.pd-hero .pd-name { font-size: 30px; line-height: 1.05; }
 .pd-sub { color: var(--text-dim); font-size: 12.5px; margin-top: 2px; }
 .pd-badges { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .pd-badge {
@@ -1623,14 +1541,15 @@ select {
 .preset-chip-lg:hover { border-color: var(--border2); color: var(--text); }
 .preset-chip-lg.selected { border-color: var(--accent); background: var(--accent-d); color: var(--accent); }
 .pd-preset-detail { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border2); }
-/* The dashed divider only earns its keep when something sits above it. On the
-   Profile tab nothing does any more — the tab row moved to the toolbar and the
-   read-only "Copy to my presets" row moved onto the toolbar's ⇩ — so the detail
-   is the panel's first child and the divider goes away. It still applies in the
-   feed's public-presets modal, where the detail follows the chip row.
-   (.preset-view-tabs-row / .pd-preset-actions-inline lived here for that removed
-   row and went away with it.) */
+/* The dashed divider only earns its keep when something sits above it (the
+   read-only "Copy to my presets" row). Since the tab row moved to the
+   toolbar, the detail is usually the panel's FIRST child — no divider then. */
 .pd-preset-detail:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+.preset-view-tabs-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.pd-preset-actions-inline { display: flex; gap: 8px; flex-wrap: wrap; }
 .pd-preset-actions { display: flex; gap: 8px; margin-top: 14px; }
 .lib-pill-btn.danger { color: var(--red); }
 .lib-pill-btn.danger:hover { border-color: var(--red); background: rgba(239,68,68,.12); color: var(--red); }
@@ -2039,11 +1958,7 @@ select {
        ✎  edit       (Teams: ✎ Edit Selected)
        ⇩  save build (Teams' ⧉ Duplicate slot — the create-from-what's-shown
                       action; ⇩ "down into my presets" deliberately mirrors ⇪
-                      "up to the public side" at the end of the row. Covers BOTH
-                      sources of "what's shown": a build off the loaded stand
-                      and someone else's published preset — copying one used to
-                      be a separate "⧉ Copy to my presets" pill inside the panel,
-                      which meant two buttons in two places for one action)
+                      "up to the public side" at the end of the row)
        ✕  delete     (Teams: ✕ Delete Selected)
        ⇪  publish    (Teams: ⇪ Share to Feed)
      There is deliberately no separate Rename button: ✎ opens the edit form
@@ -2051,9 +1966,10 @@ select {
      with the W-Engine and discs locked, leaving the name as the only editable
      field. So "rename" is just "edit a locked preset" — one entry point, one
      mental model, and the row stays exactly five buttons wide like Teams.
-     ✎/✕/⇪ act only on whichever of YOUR OWN presets is open in the detail panel
-     — same "select then act" contract the Teams tab uses. Someone else's
-     published preset leaves those three dark and lights up only ⇩.
+     Everything except "+" acts on whichever of YOUR OWN presets is currently
+     open in the detail panel — same "select then act" contract the Teams tab
+     uses. Someone else's published presets stay read-only and keep their
+     in-panel button.
      Slot C: the UID / nickname search. Slot E: bookmarks + this-UID toggles. -->
 <div class="tb-page-group hidden" id="tbGroupProfile">
   <div class="tb-group">
@@ -2064,7 +1980,7 @@ select {
   <div class="tb-group">
     <button class="tb-btn primary" id="tbPresetNew" onclick="openPresetAgentPicker()" title="New preset — pick any agent, then a W-Engine and discs from your libraries">+</button>
     <button class="tb-btn" id="tbPresetEdit" onclick="toolbarEditPreset()" title="Edit the open preset" disabled>✎</button>
-    <button class="tb-btn" id="tbSaveBuild" onclick="toolbarSaveCurrentBuild()" title="Save the shown build to my presets" disabled>⇩</button>
+    <button class="tb-btn" id="tbSaveBuild" onclick="toolbarSaveCurrentBuild()" title="Save the shown build as a preset" disabled>⇩</button>
     <button class="tb-btn danger" id="tbPresetDelete" onclick="toolbarDeletePreset()" title="Delete the open preset" disabled>✕</button>
     <button class="tb-btn" id="tbPresetPublish" onclick="toolbarTogglePublishPreset()" title="Publish the open preset" disabled>⇪</button>
   </div>
@@ -8298,14 +8214,12 @@ function nextPresetName(agentKey) {
 // wengineKey + wrank + exactly 6 non-null discEntries (driveDiscLibrary
 // shape) are all required — presets are all-or-nothing by design (per the
 // "1 - заполнены оба, 6 дисков и w engine" decision). `source`, if given
-// ({ uid, nickname }), marks this as a snapshot whose discs are NOT drawn
-// from this tool's own Drive Disc Library — either pulled straight off a
-// live Enka showcase (yours or someone else's), or copied from someone
-// else's published preset via copyPublicPresetToMine(). Either way the
-// discs belong to a different library and comparing them against mine would
-// be meaningless, so evaluatePresetApplicability() skips the "missing from
-// your library" check for these entirely. Returns the new preset, or null
-// (with a toast) if a precondition fails.
+// ({ uid, nickname }), marks this as a snapshot pulled straight off a live
+// Enka showcase (yours or someone else's) rather than built from this
+// tool's own Drive Disc Library — see evaluatePresetApplicability(), which
+// skips the "missing from your library" check for these entirely, since
+// that check was never meaningful for them in the first place. Returns the
+// new preset, or null (with a toast) if a precondition fails.
 function createAgentPreset(agentKey, wengineKey, wrank, discEntries, name, source = null, category = 'manual') {
   if (!agentKey) return null;
   if (!wengineKey) { showToast('Pick a W-Engine before saving the preset.', 'error'); return null; }
@@ -9811,7 +9725,7 @@ function selectAgentPresetTab(presetId) {
 }
 
 // Renders the tab row (one chip per saved preset, always at least one) plus
-// the full presetDetailHtml() card below it — same hero/Stats/W-Engine/
+// the full presetDetailHtml() card below it — same pd-head/Stats/W-Engine/
 // Discs layout used for a live showcase agent, just fed from the preset
 // snapshot instead of a real Enka avatar.
 async function renderAgentPresetView() {
@@ -9924,12 +9838,10 @@ function refreshPresetViews(agentKey) {
 /* ── PRESET ACTIONS IN THE TOOLBAR (Profile slot B) ──────────────────────
    Same contract as the Teams tab: the detail panel holds the selection, the
    toolbar acts on it. The "selection" here is whichever of YOUR OWN presets is
-   open in the right-hand panel (profilePresetViewAgentKey/PresetId), and that's
-   what ✎/✕/⇪ act on — lighting up Delete/Publish for a build that isn't yours
-   would be wrong.
-   Someone else's published preset stays read-only, but it isn't inert: the one
-   thing you CAN do with it — take a copy — is handled by ⇩ in this same row,
-   through profileSaveTarget(). See updateSaveBuildToolbar(). */
+   open in the right-hand panel (profilePresetViewAgentKey/PresetId). Someone
+   else's published preset stays read-only and keeps its single in-panel
+   "Copy to my presets" button — there is nothing else to do with it, and it
+   would be wrong to light up Delete/Publish for a build that isn't yours. */
 function toolbarPresetTarget() {
   const agentKey = profilePresetViewAgentKey;
   const presetId = profilePresetViewPresetId;
@@ -10030,60 +9942,11 @@ function clearPresetTabsToolbar() {
    off a stand, so it belongs beside "+". Everything it needs is already in
    profileCurrentLiveBuild, so the state is derived rather than passed in —
    and the reasons it can't fire are now visible as a disabled tooltip
-   instead of only surfacing as a toast after the click.
-
-   Кнопка обслуживает ДВА источника, потому что по смыслу это одно и то же
-   действие — «положить показанную сборку себе в пресеты»:
-     · stand — сборка агента с загруженного стенда (своего или чужого);
-     · copy  — чужой ОПУБЛИКОВАННЫЙ пресет, открытый на вкладке Profile.
-   Второй случай раньше жил отдельной пилюлей «⧉ Copy to my presets» внутри
-   панели. Две кнопки для одного действия в двух разных местах — лишний
-   мысленный переключатель, поэтому пилюля убрана, а ⇩ («вниз, ко мне») теперь
-   единственная точка входа. В модалке ленты пилюля осталась: там тулбара нет.
-
-   profileSaveTarget() — единственный источник правды о том, что произойдёт по
-   клику. И updateSaveBuildToolbar(), и toolbarSaveCurrentBuild() спрашивают
-   его, поэтому доступность кнопки физически не может разойтись с её
-   действием. */
-function profileSaveTarget() {
-  // Чужой опубликованный пресет проверяется ПЕРВЫМ: открывая его, мы гасим
-  // profileCurrentLiveBuild, так что оба состояния одновременно ненулевыми не
-  // бывают — но порядок фиксируем явно, чтобы это не зависело от чужого кода.
-  if (ownerPresetViewAgentKey && currentPublicPresetView
-      && currentPublicPresetView.agentKey === ownerPresetViewAgentKey) {
-    return { kind: 'copy', agentKey: ownerPresetViewAgentKey, preset: currentPublicPresetView.preset };
-  }
-  const lb = profileCurrentLiveBuild;
-  if (lb && lb.agentKey) return { kind: 'stand', agentKey: lb.agentKey, build: lb };
-  return null;
-}
-
+   instead of only surfacing as a toast after the click. */
 function updateSaveBuildToolbar() {
   const btn = document.getElementById('tbSaveBuild');
   if (!btn) return;
-  const target = profileSaveTarget();
-
-  if (target && target.kind === 'copy') {
-    const { agentKey, preset } = target;
-    const matching = findMatchingPresetBySnapshots(agentKey, preset.wengine, preset.wrank || 1, preset.discs);
-    // Копия ложится обычным (manual) пресетом, поэтому и лимит здесь тот же,
-    // что проверяет createAgentPreset — по группе «не-verified», а не по всему
-    // списку агента. Иначе подсказка обещала бы одно, а сохранение падало бы
-    // с другим текстом.
-    const counts = presetCategoryCounts(agentKey);
-    const reason = matching
-      ? `Already saved as \u201c${matching.name}\u201d`
-      : (counts.other >= PRESET_LIMIT
-          ? `Max ${PRESET_LIMIT} regular presets reached for this agent`
-          : '');
-    btn.disabled = !!reason;
-    btn.title = reason
-      ? `Copy to my presets — ${reason}`
-      : `Copy \u201c${preset.name}\u201d to my presets`;
-    return;
-  }
-
-  const lb = target && target.kind === 'stand' ? target.build : null;
+  const lb = profileCurrentLiveBuild;
   const slug = lb && lb.agentKey;
 
   const reason = (() => {
@@ -10112,10 +9975,8 @@ function updateSaveBuildToolbar() {
 }
 
 function toolbarSaveCurrentBuild() {
-  const target = profileSaveTarget();
-  if (!target) return;
-  if (target.kind === 'copy') copyPublicPresetToMine();
-  else saveCurrentShowcaseBuildAsPreset(target.agentKey);
+  const lb = profileCurrentLiveBuild;
+  if (lb && lb.agentKey) saveCurrentShowcaseBuildAsPreset(lb.agentKey);
 }
 
 // Builds a disc-display entry for the Profile tab, but scales the main stat with
@@ -10693,7 +10554,7 @@ async function savePresetDraft() {
 /* ── PRESETS DISPLAY (Profile tab) ────────────────────────────────────────
    Sits right below the current showcase character, matching the "same
    display format as viewing a character off the stand" requirement: a
-   preset's expanded card reuses the exact same hero/Stats/W-Engine/Discs
+   preset's expanded card reuses the exact same pd-head/Stats/W-Engine/Discs
    layout as renderProfileDetail above, just fed from buildManualAgentStatSheet
    (Phase 1) instead of a real Enka avatar. */
 // Whichever live showcase agent renderProfileDetail() last drew, and its
@@ -10828,35 +10689,16 @@ async function viewPublicPresetDetail(rowId) {
 function copyPublicPresetToMine() {
   if (!currentPublicPresetView) return;
   const { agentKey, preset } = currentPublicPresetView;
-  // Копия ложится обычным (manual) пресетом, поэтому лимит считаем по той же
-  // группе, что проверяет createAgentPreset — «не-verified». Раньше здесь стоял
-  // общий length по агенту: у кого были заняты verified-слоты, тот получал
-  // отказ раньше времени, а подсказка на ⇩ обещала обратное.
-  if (presetCategoryCounts(agentKey).other >= PRESET_LIMIT) {
-    showToast(`${cardName(agentKey)} already has the max regular presets (${PRESET_LIMIT}). Delete one to copy this.`, 'error');
+  if (getAgentPresets(agentKey).length >= PRESET_LIMIT) {
+    showToast(`${cardName(agentKey)} already has the max presets (${PRESET_LIMIT}). Delete one to copy this.`, 'error');
     return;
   }
-  /* source ОБЯЗАТЕЛЕН здесь: диски в этом снимке — чужие, из библиотеки автора
-     публикации, сверять их с МОЕЙ Drive Disc Library бессмысленно — они там
-     появятся только по случайному совпадению. Без source
-     evaluatePresetApplicability() честно находит «0 из 6 совпало» и рисует
-     тревожный баннер "no longer match anything in your library" — как будто
-     когда-то совпадало и потерялось, хотя это копия чужой сборки и связи с
-     моей библиотекой не было НИКОГДА. Тот же source, что уже стоит на снимках
-     прямо со стенда (см. createAgentPreset), даёт ровно то поведение, которое
-     здесь и нужно: спокойную заметку "Imported build" вместо баннера и
-     "can't be applied to a team" вместо попытки сопоставить диски.
-     Контекст (Профиль или лента) приходится определять снаружи: оба места
-     показа делят одну currentPublicPresetView, у которой нет своего uid/label. */
-  const feedModalOpen = !document.getElementById('publicPresetsBg')?.classList.contains('hidden');
-  const source = feedModalOpen
-    ? { uid: null, nickname: publicPresetsOwnerLabel || null }
-    : { uid: profileCurrentUid || null, nickname: profileCurrentNickname || null };
-  const created = createAgentPreset(agentKey, preset.wengine, preset.wrank || 1, (preset.discs || []).map(d => ({ ...d })), `${preset.name} (copy)`, source);
+  const created = createAgentPreset(agentKey, preset.wengine, preset.wrank || 1, (preset.discs || []).map(d => ({ ...d })), `${preset.name} (copy)`);
   if (created) {
     showToast(`Preset "${created.name}" added to your presets.`, 'success');
     refreshPresetViews(agentKey);
     if (ownerPresetViewAgentKey === agentKey) renderOwnerPresetView();
+    const feedModalOpen = !document.getElementById('publicPresetsBg')?.classList.contains('hidden');
     if (feedModalOpen && preset.id != null) viewPublicPresetDetail(preset.id);
   }
 }
@@ -10947,7 +10789,6 @@ async function renderOwnerPresetView() {
     document.getElementById('profileDetail').innerHTML = `<div class="profile-detail-empty">Search for a UID in the toolbar and press Load.</div>`;
     renderProfileLeftExtra();
     clearPresetTabsToolbar();
-    updateSaveBuildToolbar(); // больше нечего копировать — ⇩ гаснет
     return;
   }
   const row = rows.find(r => String(r.id) === ownerPresetViewPresetId) || rows[0];
@@ -10967,17 +10808,18 @@ async function renderOwnerPresetView() {
     handler: `selectOwnerPresetTab('${r.id}')`,
   })));
 
+  const matching = findMatchingPresetBySnapshots(agentKey, preset.wengine, preset.wrank || 1, preset.discs);
+  const actionsHtml = presetActionsHtml(agentKey, preset, { readOnly: true, matchingName: matching ? matching.name : null });
   const detailHtml = await presetDetailHtml(agentKey, preset, { hideActions: true, readOnly: true, ownerLabel: profileCurrentNickname });
-  // Никакого ряда действий в панели: копирование переехало на ⇩ в тулборе, где
-  // уже живут остальные действия над пресетами (см. profileSaveTarget). Панель
-  // осталась чистым просмотром, а «уже сохранено» и причины блокировки видны в
-  // подсказке кнопки — тем же способом, что для сборок со стенда.
-  document.getElementById('profileDetail').innerHTML = detailHtml;
-  // Строго ПОСЛЕ currentPublicPresetView выше: кнопка читает его через
-  // profileSaveTarget(). Вызов здесь, а не только в openOwnerPresetView(),
-  // потому что переключение вкладки пресета (selectOwnerPresetTab) меняет
-  // сборку — а значит и «уже сохранено», и доступность кнопки.
-  updateSaveBuildToolbar();
+  // Someone else's build: the selector is in the toolbar like everywhere else,
+  // but "Copy to my presets" stays in the panel — slot B only ever acts on
+  // presets that are yours.
+  document.getElementById('profileDetail').innerHTML = `
+    <div class="preset-view-tabs-row">
+      <div class="pd-preset-actions-inline">${actionsHtml}</div>
+    </div>
+    ${detailHtml}
+  `;
 }
 
 // Saves whatever the Profile tab is currently showing for this agent's
@@ -11018,7 +10860,7 @@ async function saveCurrentShowcaseBuildAsPreset(agentKey) {
 }
 
 // Renders one preset in the SAME visual shape as renderProfileDetail's own
-// output (agentHeroHtml / Stats / W-Engine / Drive Disc Sets / Sub-Stat Totals /
+// output (pd-head / Stats / W-Engine / Drive Disc Sets / Sub-Stat Totals /
 // Drive Discs) — the "as if viewed off the stand" requirement — except the
 // numbers come from buildManualAgentStatSheet (a THEORETICAL build assuming
 // this agent's Agent Library Level/Core Skill Enhancement), not a real
@@ -11028,11 +10870,9 @@ async function saveCurrentShowcaseBuildAsPreset(agentKey) {
 // Rename/Publish-Unpublish/Delete (or, read-only, "Copy to my presets") —
 // pulled out so callers can place these in a top action row next to the
 // preset tabs instead of leaving them pinned to presetDetailHtml's footer.
-/* In-panel action pills. NOTE: only the FEED's public-presets modal still uses
-   this — it has no toolbar, so the read-only "⧉ Copy to my presets" pill has to
-   live in the panel there. Both Profile-tab call sites pass hideActions:true and
-   route through the toolbar instead (see profileSaveTarget), so neither branch
-   below is reachable from that tab. The non-readOnly branch is kept in sync with
+/* In-panel action pills. NOTE: for your OWN presets both current call sites
+   pass hideActions:true (the toolbar owns those actions now), so only the
+   readOnly branch is actually reachable today — the rest is kept in sync with
    the toolbar's behaviour so it stays correct if it's ever switched back on. */
 function presetActionsHtml(agentKey, preset, opts = {}) {
   const { readOnly = false, matchingName = null } = opts;
@@ -11071,7 +10911,7 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
     ? `<div class="pd-preset-warn">⚠ ${missing.length} of 6 discs no longer match anything in your Drive Disc Library (edited or deleted since this preset was saved). The stats below still use the saved snapshot, but applying this preset to a team will skip those slots. Delete and re-save the preset to fix.</div>`
     : '';
   const importedNote = (!readOnly && preset.source)
-    ? `<div class="pd-preset-warn pd-preset-note">ℹ Imported build${preset.source.nickname ? ` — from ${escapeHtml(preset.source.nickname)}` : ''}${preset.source.uid ? ` (UID ${escapeHtml(preset.source.uid)})` : ''}. This is a reference snapshot, not tied to your own Drive Disc Library, so it can't be applied directly to a team.</div>`
+    ? `<div class="pd-preset-warn pd-preset-note">ℹ Imported build${preset.source.nickname ? ` — from ${escapeHtml(preset.source.nickname)}'s showcase` : ''}${preset.source.uid ? ` (UID ${escapeHtml(preset.source.uid)})` : ''}. This is a reference snapshot straight off that account's stand, not tied to your own Drive Disc Library, so it can't be applied directly to a team.</div>`
     : '';
   const publicNote = readOnly
     ? `<div class="pd-preset-warn pd-preset-note">ℹ Shared build${ownerLabel ? ` by ${escapeHtml(ownerLabel)}` : ''}. The Level/Core Skill Enhancement shown use <em>your own</em> Agent Library settings for ${escapeHtml(cardName(agentKey))} — only the W-Engine and discs are actually part of what was published.</div>`
@@ -11107,26 +10947,20 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
   const aggHtml = substatTotalsRowHtml(agg, useful);
   const usefulSummary = usefulProcsSummaryHtml(procCounts, useful);
 
-  /* Та же шапка, что у живого стенда, — иначе панель меняла бы форму при
-     переключении между стендом и пресетом в одном и том же месте экрана.
-     Арт всегда дефолтный: в пресете хранятся только W-Engine и диски, скина в
-     нём нет и взяться ему неоткуда. Цвет подложки берём из справочника по
-     slug'у, если он там есть. */
-  const heroAvatarsRef = await getEnkaAvatarsRefData().catch(() => null);
-  const heroAccent = enkaAgentAccent(heroAvatarsRef, SLUG_TO_ENKA_AGENT_ID[agentKey]);
-  const heroHtml = agentHeroHtml({
-    agentKey,
-    title: `${escapeHtml(cardName(agentKey))} <span style="color:var(--text-mid);font-weight:500">· ${escapeHtml(preset.name)}</span>`,
-    sub: profile ? `${escapeHtml(profile.fullName || '')} · ${escapeHtml(profile.gender || '')} · ${escapeHtml(profile.stature || '')}` : '',
-    badgesHtml: `<span class="pd-badge">Lv.${libEntry.level}</span>
-            <span class="pd-badge" title="Mindscape isn't modeled in this calc, same as skill levels — set from the Agent Library, shown here for context only">Mindscape M${libEntry.mindscape || 0}</span>
-            ${coreLetter ? `<span class="pd-badge">Core Skill ${coreLetter}</span>` : ''}`,
-    accent: heroAccent,
-  });
-
   return `
     <div class="pd-preset-detail">
-      ${heroHtml}
+      <div class="pd-head">
+        <div class="pd-portrait"><img src="${agentUrl(agentKey)}" onerror="this.style.opacity=.15"></div>
+        <div>
+          <div class="pd-name">${escapeHtml(cardName(agentKey))} <span style="color:var(--text-mid);font-weight:500">· ${escapeHtml(preset.name)}</span></div>
+          <div class="pd-sub">${profile ? `${escapeHtml(profile.fullName || '')} · ${escapeHtml(profile.gender || '')} · ${escapeHtml(profile.stature || '')}` : ''}</div>
+          <div class="pd-badges">
+            <span class="pd-badge">Lv.${libEntry.level}</span>
+            <span class="pd-badge" title="Mindscape isn't modeled in this calc, same as skill levels — set from the Agent Library, shown here for context only">Mindscape M${libEntry.mindscape || 0}</span>
+            ${coreLetter ? `<span class="pd-badge">Core Skill ${coreLetter}</span>` : ''}
+          </div>
+        </div>
+      </div>
 
       ${missingBanner}
       ${importedNote}
@@ -11220,31 +11054,24 @@ async function renderProfileDetail(i) {
   const aggHtml = substatTotalsRowHtml(agg, useful);
   const usefulSummary = usefulProcsSummaryHtml(procCounts, useful);
 
-  /* Скин со стенда. avatarsRef здесь берётся из того же кэша, что уже питает
-     стат-движок, — лишнего запроса нет. Если справочник не поднялся (сеть),
-     suffix пустой и показываем дефолтный арт: панель не должна ломаться из-за
-     косметики. */
-  const avatarsRef = await getEnkaAvatarsRefData().catch(() => null);
-  const skinSuffix = enkaSkinSuffix(avatarsRef, a.Id, a.SkinId);
-  const heroHtml = agentHeroHtml({
-    agentKey: slug,
-    title: slug ? escapeHtml(cardName(slug)) : `Unknown (Id ${a.Id})`,
-    sub: profile ? `${escapeHtml(profile.fullName || '')} · ${escapeHtml(profile.gender || '')} · ${escapeHtml(profile.stature || '')}` : '',
-    badgesHtml: `<span class="pd-badge">Lv.${a.Level}/${(a.PromotionLevel || 1) * 10}</span>
-          <span class="pd-badge">Mindscape M${a.TalentLevel || 0}</span>`,
-    skillsHtml,
-    skinSuffix,
-    accent: enkaAgentAccent(avatarsRef, a.Id),
-    // Номер в бейдже — тот же, что в имени файла, т.е. игровой суффикс арта, а
-    // не «скин №1 по счёту». Названий скинов Enka не отдаёт.
-    skinLabel: skinSuffix ? `Skin ${skinSuffix}` : '',
-  });
-
   panel.innerHTML = `
-    ${heroHtml}
+    <div class="pd-head">
+      <div class="pd-portrait"><img src="${slug ? agentUrl(slug) : ''}" onerror="this.style.opacity=.15"></div>
+      <div>
+        <div class="pd-name">${slug ? escapeHtml(cardName(slug)) : `Unknown (Id ${a.Id})`}</div>
+        <div class="pd-sub">${profile ? `${escapeHtml(profile.fullName || '')} · ${escapeHtml(profile.gender || '')} · ${escapeHtml(profile.stature || '')}` : ''}</div>
+        <div class="pd-badges">
+          <span class="pd-badge">Lv.${a.Level}/${(a.PromotionLevel || 1) * 10}</span>
+          <span class="pd-badge">Mindscape M${a.TalentLevel || 0}</span>
+        </div>
+      </div>
+    </div>
 
     <div class="pd-section-title">Stats</div>
     <div class="pd-cols">${statsHtml}</div>
+
+    <div class="pd-section-title">Skills</div>
+    <div class="pd-skills">${skillsHtml}</div>
 
     <div class="pd-section-title">W-Engine</div>
     ${wengineHtml}
@@ -11634,250 +11461,6 @@ const agentUrl  = k => `${BASE}/agents/${assetSlug(k)}/card.webp`;
    номеров пришлось бы вручную при каждом новом агенте. Поэтому файл в каждой
    папке называется одинаково, и адрес собирается из одного slug'а. */
 const agentSquareUrl = k => `${BASE}/agents/${assetSlug(k)}/square.webp`;
-
-/* ── ПОЛНЫЙ АРТ АГЕНТА ──
-   Файлы в папке агента: portrait.webp — дефолтный вид, portrait-01/-02/-03 —
-   скины. Номер в имени файла — это НЕ порядковый номер скина, а суффикс из
-   игровых ассетов: файлы приехали как IconRole<N>_01, _02, … и были
-   переименованы скриптом, который числовой суффикс СОХРАНИЛ. То есть
-   portrait-01 — это ровно IconRole<N>_01, соответствие точное, а не подогнанное.
-   Поэтому суффикс достаётся из avatars.json → Skins[skinId].Image
-   (см. enkaSkinSuffix), а не выводится из порядка скинов. Разница видна на
-   Remielle: по возрастанию SkinId её скины дают суффиксы 02, 01, 03 — то есть
-   «первый скин → portrait-01» показывало бы чужой арт.
-   Проверено по всем 19 агентам со скинами: набор portrait-NN в репозитории в
-   точности равен набору суффиксов Enka, лишних файлов нет. */
-const agentPortraitUrl = (k, suffix) =>
-  `${BASE}/agents/${assetSlug(k)}/portrait${suffix ? `-${suffix}` : ''}.webp`;
-
-/* ── РАМКА КАДРА (бюст + верх бедра, эталон — дефолтный арт Remielle) ──
-   На каждый арт три числа в долях его собственных размеров:
-     [fy, fh, fx]
-       fy — где начинается кадр по вертикали. Обычно слегка ОТРИЦАТЕЛЬНО: кадр
-            берётся чуть выше макушки, чтобы голова не упиралась в край сцены;
-       fh — какую часть высоты арта занимает кадр;
-       fx — сдвиг к центру корпуса, в долях ширины арта.
-   Ключ — имя файла без 'portrait': 'hugo' — дефолтный арт, 'remielle-02' — скин.
-
-   Числа посчитаны скриптом tools/portrait-focus.py по альфа-каналу — но не по
-   ПЕРВОЙ версии этого скрипта, а по исправленной. Стоит сказать, в чём была
-   ошибка, потому что она не бросалась в глаза: граница фигуры считалась как
-   доля от САМОЙ ШИРОКОЙ СТРОКИ КАРТИНКИ — а не от полной ширины арта. Это
-   ломается ровно на широких силуэтах (Remielle с размахом крыльев — самый
-   яркий случай, но не единственный): нога в 150px на канвасе шириной 2128px
-   — это всего 7% от ширины, а порог был 10% от максимума, так что нога
-   считалась «торчащей деталью», как меч или прядь волос, и терялась. Граница
-   фигуры у Remielle обрывалась на середине бедра вместо стопы (0.717 высоты
-   канваса вместо истинных 0.94 — проверено вручную по сетке на арте), и её
-   кадр «на глаз» выглядел ИДЕАЛЬНО — бюст и верх бедра, — но по чистой
-   случайности: колено считалось от заниженной высоты фигуры, что сработало
-   как повезло, а не потому что метод верный. У большинства остальных агентов
-   ноги не такие тонкие относительно канваса, порог их не терял, граница
-   доходила почти до реальных стоп, и то же вычисление «колено = 0.74 высоты»
-   честно останавливало кадр у настоящего колена — заметно ниже, чем у
-   Remielle, и с более просторным кадром, чем хотелось.
-   Порог теперь считается от ПОЛНОЙ ширины арта (3%) — не теряет тонкие ноги ни
-   у кого, включая Remielle. А раз голова-до-стопы стало измеряться одинаково
-   надёжно у всех, вскрылось и то, какая доля этой честной высоты на самом
-   деле нужна: не колено (0.74), а низ бедра (0.56) — именно туда и приходился
-   тот случайно удачный кадр Remielle. Так и оставлено: у неё сам крой платья
-   подсказывает, куда должен идти кадр, поэтому её результат и стал эталоном,
-   под который откалиброван KNEE в скрипте, а не наоборот.
-   Горизонтальный центр — по полосе от плеч до бёдер (15%–55% высоты фигуры),
-   а не по геометрическому центру картинки: оружие в вытянутой руке иначе
-   уводило бы кадр в сторону.
-
-   Новый агент или скин → перезапустить скрипт и вставить его вывод сюда целиком.
-   Отдельную строку можно и подправить руками: у пары агентов поза нестандартная
-   (Lycaon в прыжке с огромным хвостом), и автоматический центр там спорный.
-   Чего в таблице нет — показывается целиком, вписанным в сцену: см. фолбэк в
-   agentPortraitFocus(). */
-const AGENT_PORTRAIT_FOCUS = {
-  'alice': [-0.044, 0.605, -0.082],
-  'alice-01': [-0.047, 0.608, 0.129],
-  'anby-demara': [-0.049, 0.609, 0.104],
-  'anton': [-0.04, 0.603, 0.002],
-  'aria': [-0.038, 0.601, -0.009],
-  'aria-01': [-0.047, 0.607, -0.026],
-  'astra-yao': [-0.046, 0.607, 0.013],
-  'astra-yao-01': [-0.047, 0.607, 0.013],
-  'banyue': [-0.048, 0.607, -0.018],
-  'ben': [-0.049, 0.607, -0.009],
-  'billy-kid': [-0.036, 0.601, 0.027],
-  'burnice': [-0.036, 0.6, 0.074],
-  'caesar': [-0.028, 0.594, 0.12],
-  'cissia': [-0.024, 0.592, 0.024],
-  'corin': [-0.047, 0.607, 0.071],
-  'dialyn': [-0.048, 0.606, -0.025],
-  'ellen': [-0.049, 0.609, 0.114],
-  'ellen-01': [-0.048, 0.607, -0.156],
-  'evelyn': [-0.048, 0.601, 0.045],
-  'grace-howard': [-0.049, 0.609, -0.014],
-  'harumasa': [0.005, 0.576, 0.016],
-  'hugo': [-0.049, 0.606, 0.083],
-  'jane-doe': [-0.05, 0.609, -0.024],
-  'jane-doe-01': [-0.049, 0.608, 0.095],
-  'ju-fufu': [-0.04, 0.603, -0.046],
-  'koleda': [-0.034, 0.599, 0.004],
-  'lighter': [-0.037, 0.602, 0.004],
-  'lucia': [-0.024, 0.594, -0.038],
-  'lucy': [-0.033, 0.588, 0.114],
-  'lucy-01': [-0.042, 0.601, 0.116],
-  'lycaon': [-0.039, 0.601, -0.085],
-  'manato': [-0.032, 0.599, -0.025],
-  'manato-01': [-0.032, 0.599, -0.025],
-  'miyabi': [-0.025, 0.594, 0.066],
-  'miyabi-01': [-0.026, 0.595, -0.059],
-  'nangong-yu': [-0.035, 0.6, 0.004],
-  'nangong-yu-01': [-0.041, 0.604, 0.013],
-  'nekomata': [-0.033, 0.598, 0.01],
-  'nicole-demara': [-0.043, 0.604, 0.018],
-  'nicole-demara-01': [-0.043, 0.605, -0.005],
-  'norma': [-0.048, 0.605, 0.006],
-  'orphie-and-magus': [-0.044, 0.605, -0.055],
-  'pan-yinhu': [-0.049, 0.603, 0.006],
-  'pan-yinhu-01': [-0.048, 0.608, 0.035],
-  'piper': [-0.045, 0.605, -0.109],
-  'promeia': [-0.049, 0.609, -0.005],
-  'pulchra': [0.007, 0.576, -0.007],
-  'pyrois': [0.024, 0.543, 0.137],
-  'qingyi': [-0.038, 0.601, 0.021],
-  'remielle': [-0.043, 0.577, 0.009],
-  'remielle-01': [-0.044, 0.605, -0.021],
-  'remielle-02': [-0.039, 0.573, -0.02],
-  'remielle-03': [-0.039, 0.573, -0.02],
-  'rina': [-0.044, 0.601, -0.011],
-  'seed': [-0.041, 0.604, 0.045],
-  'seth': [-0.032, 0.599, 0.078],
-  'sigrid': [-0.017, 0.589, -0.111],
-  'sigrid-01': [-0.008, 0.585, 0.006],
-  'soldier-0': [-0.044, 0.606, 0.019],
-  'soldier-11': [-0.039, 0.602, 0.078],
-  'soukaku': [-0.018, 0.59, -0.009],
-  'starlight-billy': [-0.048, 0.608, 0.061],
-  'sunna': [-0.032, 0.598, 0.006],
-  'sunna-01': [-0.047, 0.607, -0.032],
-  'trigger': [-0.045, 0.607, -0.015],
-  'velina': [-0.044, 0.604, -0.061],
-  'velina-01': [-0.045, 0.605, -0.015],
-  'vivian': [-0.008, 0.583, 0.138],
-  'vivian-01': [-0.008, 0.585, 0.057],
-  'yanagi': [-0.039, 0.597, -0.165],
-  'ye-shunguang': [-0.008, 0.584, 0.018],
-  'ye-shunguang-01': [-0.041, 0.604, 0.065],
-  'yidhari': [-0.049, 0.608, -0.006],
-  'yixuan': [-0.046, 0.606, 0.052],
-  'yixuan-01': [-0.031, 0.598, 0.065],
-  'yuzuha': [-0.034, 0.599, 0.012],
-  'yuzuha-01': [-0.046, 0.607, -0.005],
-  'zhao': [-0.045, 0.605, 0.025],
-  'zhu-yuan': [-0.041, 0.604, -0.053],
-};
-
-/* Рамка для арта. Сначала своя рамка скина, если она посчитана; иначе — рамка
-   дефолтного портрета этого агента (скины того же агента закадрированы похоже,
-   так что это лучше, чем ничего); иначе null и арт показывается целиком через
-   .is-fallback. */
-function agentPortraitFocus(agentKey, suffix) {
-  const slug = assetSlug(agentKey);
-  return AGENT_PORTRAIT_FOCUS[suffix ? `${slug}-${suffix}` : slug]
-      || AGENT_PORTRAIT_FOCUS[slug]
-      || null;
-}
-
-/* Скин мог выйти в патче раньше, чем мы домиррорили его арт, поэтому падаем по
-   цепочке: portrait-NN → portrait → card → пустая сцена. Остаток цепочки лежит
-   в data-fb (через '|'), и обработчик снимает по одному шагу. Через
-   this.onerror=null так не сделать: он бы оборвал цепочку на первом же шаге, а
-   ступеней тут может быть две. */
-function agentPortraitFallback(img) {
-  const rest = (img.dataset.fb || '').split('|').filter(Boolean);
-  const next = rest.shift();
-  img.dataset.fb = rest.join('|');
-  if (!next) { img.classList.add('is-missing'); return; }
-  if (rest.length) {
-    /* Упали со скина на дефолтный портрет — а рамка на элементе стоит скиновая.
-       Кадры одного агента похожи, так что разница невелика, но подменить их
-       здесь ничего не стоит, а иначе кадр молча съезжает. Рамка дефолтного арта
-       заранее положена в data-fb-focus, чтобы обработчику не нужно было знать
-       ни slug'а, ни таблицы. */
-    const f = (img.dataset.fbFocus || '').split(',');
-    if (f.length === 3) {
-      img.style.setProperty('--pd-art-y', f[0]);
-      img.style.setProperty('--pd-art-h', f[1]);
-      img.style.setProperty('--pd-art-x', f[2]);
-    }
-  } else {
-    // Последняя ступень — card.webp: у него своя обрезка, и рамка из
-    // AGENT_PORTRAIT_FOCUS к нему не относится. Показываем целиком.
-    img.classList.add('is-fallback');
-  }
-  img.src = next;
-}
-
-/* Суффикс файла для скина, надетого на агента на стенде. Возвращает '' для
-   дефолтного вида — и для скина, которого нет в справочнике (свежий патч:
-   SkinId уже приходит, а avatars.json ещё не обновился). Лучше показать
-   дефолтный арт, чем ничего. */
-function enkaSkinSuffix(avatarsRef, agentId, skinId) {
-  if (!skinId || !avatarsRef) return '';
-  const skins = avatarsRef[String(agentId)]?.Skins;
-  const image = skins && skins[String(skinId)]?.Image;
-  const m = image && /_(\d+)\.\w+$/.exec(image);
-  return m ? m[1] : '';
-}
-
-// Цвет агента для подложки сцены. Accent — приглушённый «основной», у почти
-// всех агентов он серо-стальной; AccentExtra заметно насыщеннее и как пятно
-// читается лучше, поэтому он первый.
-function enkaAgentAccent(avatarsRef, agentId) {
-  const c = avatarsRef && avatarsRef[String(agentId)]?.Colors;
-  return (c && (c.AccentExtra || c.Accent)) || '';
-}
-
-/* Общая шапка панели: сцена с полным артом слева, текст справа. Одна на два
-   вызова — живой стенд (renderProfileDetail) и сохранённый пресет
-   (presetDetailHtml), — чтобы панель не меняла форму при переключении между
-   ними. У пресета скина нет (в нём хранятся только W-Engine и диски), поэтому
-   он всегда получает дефолтный арт и без бейджа. */
-function agentHeroHtml({ agentKey, title, sub, badgesHtml, skillsHtml, skinSuffix, accent, skinLabel }) {
-  // Ступень «дефолтный портрет» осмысленна только когда пробуем скин, иначе она
-  // повторяла бы src и давала лишний запрос.
-  const chain = agentKey
-    ? [...(skinSuffix ? [agentPortraitUrl(agentKey)] : []), agentUrl(agentKey)]
-    : [];
-  const primary = agentKey ? agentPortraitUrl(agentKey, skinSuffix) : '';
-  const style = accent ? ` style="--pd-hero-accent:${escapeHtml(accent)}"` : '';
-  // Рамка кадра. Нет в таблице (новый агент, ассет ещё не обмерен) → .is-fallback:
-  // арт целиком, вписанный в сцену. Мельче, зато не наугад.
-  const focus = agentKey ? agentPortraitFocus(agentKey, skinSuffix) : null;
-  const artClass = `pd-hero-art${focus ? '' : ' is-fallback'}`;
-  const artStyle = focus
-    ? ` style="--pd-art-y:${focus[0]};--pd-art-h:${focus[1]};--pd-art-x:${focus[2]}"`
-    : '';
-  // Рамка дефолтного арта — на случай, если файл скина не найдётся и мы упадём
-  // на него. Нужна только когда ступень со скином вообще есть.
-  const fbFocus = skinSuffix && agentKey ? agentPortraitFocus(agentKey) : null;
-  const fbFocusAttr = fbFocus ? ` data-fb-focus="${fbFocus.join(',')}"` : '';
-  return `
-    <div class="pd-hero">
-      <div class="pd-hero-stage"${style}>
-        ${primary ? `<img class="${artClass}" src="${primary}" alt=""${artStyle}${fbFocusAttr} data-fb="${escapeHtml(chain.join('|'))}" onerror="agentPortraitFallback(this)">` : ''}
-        ${skinLabel ? `<span class="pd-hero-skin" title="Skin equipped on the showcase">${escapeHtml(skinLabel)}</span>` : ''}
-      </div>
-      <div class="pd-hero-body">
-        <div>
-          <div class="pd-name">${title}</div>
-          ${sub ? `<div class="pd-sub">${sub}</div>` : ''}
-        </div>
-        ${badgesHtml ? `<div class="pd-badges">${badgesHtml}</div>` : ''}
-        ${skillsHtml ? `<div class="pd-hero-skills">
-          <div class="pd-section-title" style="margin-top:0">Skills</div>
-          <div class="pd-skills">${skillsHtml}</div>
-        </div>` : ''}
-      </div>
-    </div>`;
-}
 const wengineUrl= k => `${BASE}/w-engines/${assetSlug(k)}.webp`;
 const discUrl   = k => `${BASE}/disc-sets/${assetSlug(k)}.webp`;
 const bangbooUrl= k => `${BASE}/bangboo/${assetSlug(k)}.webp`;
