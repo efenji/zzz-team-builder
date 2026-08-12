@@ -4,169 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ZZZ · Team Builder</title>
-<!-- Tailwind (Play CDN — no build step, matches the rest of this file's
-     "single static HTML, no bundler" setup). Config below maps Tailwind's
-     color utilities straight onto the existing CSS custom properties instead
-     of hardcoding hex values, so things like the accent-color picker
-     (setAccentColor() rewrites --accent/--accent-d/etc. at runtime) keep
-     working identically whether an element is styled with the legacy
-     hand-written CSS below or with new Tailwind utility classes. New markup
-     going forward should prefer Tailwind utilities in this palette
-     (bg-bg2, text-text-mid, border-border, text-accent, …) over inventing
-     more custom classes in the <style> block. Migration is incremental,
-     section by section — see MEMORY/task notes for progress. -->
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        colors: {
-          bg:      'var(--bg)',
-          bg2:     'var(--bg2)',
-          bg3:     'var(--bg3)',
-          bg4:     'var(--bg4)',
-          border:  'var(--border)',
-          border2: 'var(--border2)',
-          accent:  'var(--accent)',
-          'accent-d':  'var(--accent-d)',
-          'accent-30': 'var(--accent-30)',
-          'accent-60': 'var(--accent-60)',
-          accent2: 'var(--accent2)',
-          text:    'var(--text)',
-          'text-dim': 'var(--text-dim)',
-          'text-mid': 'var(--text-mid)',
-          red: 'var(--red)',
-        },
-        borderRadius: {
-          DEFAULT: 'var(--r-sm)',
-          lg: 'var(--r)',
-        },
-        fontFamily: {
-          barlow: ['Barlow', 'Inter', 'sans-serif'],
-          condensed: ['Barlow Condensed', 'Oswald', 'sans-serif'],
-          mono: ['Share Tech Mono', 'monospace'],
-        },
-      },
-    },
-  };
-</script>
-<!-- ══════════════════════════════════════════════════════════════════════
-     TAILWIND MIGRATION — PHASE 2: header + primary nav + toolbar.
-     Same selectors as the old hand-written CSS (now removed from the
-     legacy <style> block below to avoid the two fighting over one
-     selector) — every classList.add/remove/toggle('active'|'hidden'|
-     'primary'|'danger'|'active-fav'|…) call in the JS keeps working
-     untouched, since none of those class NAMES changed, only what they
-     draw. Play CDN's `<style type="text/tailwindcss">` is what lets
-     @apply work without a build step; regular <style> tags are left
-     alone as plain CSS. Values come from the same tailwind.config color/
-     radius extension above, so accent-color-picker etc. still works.
-     Later phases repeat this for the rest of the page, one section at a
-     time — see the task list for progress. -->
-<style type="text/tailwindcss">
-/* ── PINNED BAR STACK (header + primary nav + toolbar) ──
-   One sticky element holding all three bars, instead of three independently
-   sticky bars offset by JS-measured heights.
-
-   The old approach set --header-h / --nav-h from offsetHeight and used them as
-   each bar's `top`. That leaked page content through a seam between the bars
-   for two reasons, both unavoidable in that design:
-     • offsetHeight returns a ROUNDED integer, while layout heights here are
-       fractional (font metrics + odd paddings + 1px borders). Round up by a
-       fraction of a pixel and the bar below sits that fraction too low.
-     • the values went stale. They were measured once at the end of the script
-       and only refreshed on `resize` — but the bars change height after that:
-       the webfonts (@import at the top of this file) swap in and reflow the
-       nav's Barlow Condensed buttons, and renderAuthUI() injects the Discord
-       avatar chip into the header once the Supabase session resolves.
-   Stacking them in a normal flow container removes the whole class of bug: the
-   browser does the arithmetic, at full sub-pixel precision, and redoes it
-   automatically on every reflow. Behaviour is unchanged — the bars were always
-   pinned together and never scrolled away individually.
-
-   The wrapper also carries the bars' own background, so even a sub-pixel
-   rounding seam between two children can only ever expose --bg2, never the
-   scrolling page beneath.
-
-   The children keep their z-index ladder (100 > 99 > 98) so that dropdowns
-   opened in the header overlap the nav and toolbar below; z-index needs a
-   positioned element, hence `relative` rather than `static`. */
-.topbar-stack { @apply sticky top-0 z-[100] bg-bg2; }
-
-header { @apply bg-bg2 border-b border-border px-5 py-[11px] flex items-center gap-3 relative z-[100]; }
-.header-brand { @apply flex flex-col; }
-.header-right { @apply ml-auto flex items-center gap-2.5; }
-.logo { @apply font-condensed text-[18px] font-black tracking-[.1em] uppercase; }
-.logo em { @apply text-accent not-italic; }
-.logo-sub { @apply text-[10px] text-text-dim font-mono tracking-[.15em] mt-px; }
-
-.hd-dropdown { @apply relative; }
-.hd-menu { @apply absolute top-[calc(100%_+_8px)] right-0 z-10 bg-bg3 border border-border2 rounded p-3 min-w-[210px] shadow-[0_8px_24px_rgba(0,0,0,.4)]; }
-.hd-menu.hidden { @apply hidden; }
-.hd-menu-label { @apply font-mono text-[9px] text-text-dim tracking-[.15em] uppercase mb-2; }
-.hd-menu-row { @apply flex gap-1.5 flex-wrap; }
-.hd-menu-sep { @apply h-px bg-border my-3; }
-
-.account-menu { @apply relative; }
-.account-caret { @apply text-[9px] text-text-mid ml-px transition-transform duration-150; }
-.account-menu.open .account-caret { @apply rotate-180; }
-.account-dropdown { @apply absolute top-[calc(100%_+_8px)] right-0 z-10 bg-bg3 border border-border2 rounded min-w-[210px] overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,.4)]; }
-.account-dropdown.hidden { @apply hidden; }
-.account-dropdown-user { @apply flex items-center gap-[9px] p-3 border-b border-border; }
-.account-dropdown-user img { @apply w-[30px] h-[30px] rounded-full flex-shrink-0; }
-.account-dropdown-name { @apply text-xs font-bold font-condensed truncate; }
-.account-dropdown-admin-badge { @apply text-[9px] font-mono tracking-[.08em] uppercase text-accent bg-accent-d border border-accent-30 rounded-full px-[7px] py-px mt-1 inline-block w-fit; }
-.account-dropdown-item { font: inherit; @apply block w-full text-left bg-transparent border-0 text-text text-xs px-3 py-2.5 cursor-pointer; }
-.account-dropdown-item:hover { @apply bg-bg4; }
-.account-dropdown-item.danger { @apply text-red; }
-.account-dropdown-item.danger:hover { @apply bg-[rgba(239,68,68,.1)]; }
-
-.page-nav { @apply flex items-center gap-1 bg-bg2 border-b border-border px-5 relative z-[99]; }
-.page-nav-btn { @apply bg-transparent border-0 border-b-2 border-b-transparent text-text-mid font-condensed text-[13px] font-bold tracking-[.04em] uppercase py-[13px] px-3.5 cursor-pointer transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-60 focus-visible:ring-offset-2 focus-visible:ring-offset-bg2; }
-.page-nav-btn:hover { @apply text-text; }
-.page-nav-btn.active { @apply text-accent border-b-accent; }
-
-.auth-widget { @apply flex items-center; }
-.auth-user { @apply flex items-center gap-2 cursor-pointer py-[5px] pr-2.5 pl-1.5 rounded bg-bg3 border border-border transition-colors duration-150; }
-.auth-user:hover { @apply border-border2; }
-.auth-avatar { @apply w-[22px] h-[22px] rounded-[6px] block; }
-.auth-name { @apply text-xs font-bold text-text font-condensed tracking-[.03em]; }
-
-.toolbar { @apply bg-bg2 border-b border-border px-5 py-[9px] flex items-center gap-1.5 flex-wrap relative z-[98]; }
-.toolbar.hidden { @apply hidden; }
-.tb-group { @apply flex items-center gap-[5px]; }
-.tb-sep { @apply w-px h-6 bg-border2 mx-[5px] flex-shrink-0; }
-.tb-btn { @apply bg-bg3 border border-border text-text-mid w-[34px] h-[34px] rounded flex items-center justify-center cursor-pointer text-[15px] leading-none flex-shrink-0 transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-60 focus-visible:ring-offset-2 focus-visible:ring-offset-bg2; }
-.tb-btn:hover:not(:disabled) { @apply border-border2 text-text bg-bg4; }
-.tb-btn:disabled { @apply opacity-30 cursor-not-allowed; }
-.tb-btn .tb-ico, .we-ph-ico .tb-ico { @apply block; }
-.tb-btn.primary { @apply bg-accent text-black border-accent font-black text-lg; }
-.tb-btn.primary:hover { @apply opacity-85; }
-.tb-btn.danger:hover:not(:disabled) { @apply text-red border-red bg-[rgba(239,68,68,.1)]; }
-
-.tb-color-swatch { @apply relative w-[34px] h-[34px] rounded border border-border cursor-pointer overflow-hidden flex-shrink-0 bg-accent transition-colors duration-150; }
-.tb-color-swatch:hover { @apply border-border2; }
-.tb-color-swatch input[type=color] { @apply absolute -inset-1 w-[calc(100%_+_8px)] h-[calc(100%_+_8px)] border-0 p-0 cursor-pointer opacity-0; }
-
-.tb-toggle { @apply flex items-center h-[34px] box-border px-3 bg-bg3 border border-border rounded cursor-pointer transition-colors duration-150 font-mono text-[10px] text-text-mid tracking-[.08em] uppercase flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-60 focus-visible:ring-offset-2 focus-visible:ring-offset-bg2; }
-.tb-toggle:hover { @apply border-border2 text-text; }
-.tb-toggle.active { @apply border-accent bg-accent-d text-accent; }
-
-.tb-page-group { @apply flex items-center gap-1.5 flex-wrap flex-1 min-w-0; }
-.tb-page-group.hidden { @apply hidden; }
-.tb-push { @apply ml-auto; }
-
-.tb-btn-txt { @apply w-auto px-3 font-condensed text-xs font-bold tracking-[.04em] text-text whitespace-nowrap; }
-.tb-btn.has-caret { @apply w-auto px-[9px] gap-[3px]; }
-.tb-caret { @apply text-[8px] text-text-mid; }
-.tb-btn.active-fav { @apply border-accent bg-accent-d text-accent; }
-.toolbar select { @apply h-[34px] bg-bg3 text-xs; }
-
-/* Slot C search field (Profile) — the autocomplete dropdown anchors to .tb-search. */
-.tb-search { @apply relative flex flex-1 min-w-[150px] max-w-[420px]; }
-.tb-input { @apply flex-1 min-w-0 h-[34px] box-border bg-bg3 border border-border rounded text-text px-2.5 text-[13px] outline-none transition-colors duration-150 focus:border-accent; }
-.tb-search .profile-search-results { @apply top-[calc(100%_+_6px)]; }
-</style>
+<!-- A Tailwind Play CDN experiment (<script src="cdn.tailwindcss.com"> +
+     @apply in a <style type="text/tailwindcss"> block) was tried here and
+     reverted: that domain isn't reachable from this environment (confirmed
+     via a direct fetch — times out), and Play CDN's @apply only works by
+     injecting compiled CSS at runtime via JS, so an unreachable CDN meant
+     NO styles at all for the header/nav/toolbar, with no fallback — bad
+     failure mode for a tool people rely on. If Tailwind is reintroduced
+     later, prefer a LOCALLY pre-compiled static stylesheet (built once via
+     the Tailwind CLI, pasted in as plain CSS) over any CDN/runtime
+     approach — same zero-build-step experience for visitors, none of the
+     single-point-of-failure risk. -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;700;900&family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap');
 
@@ -193,12 +41,193 @@ header { @apply bg-bg2 border-b border-border px-5 py-[11px] flex items-center g
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--text); font-family: 'Barlow', 'Inter', sans-serif; min-height: 100vh; }
 
-/* ── HEADER / NAV / TOOLBAR ──
-   Migrated to Tailwind (@apply) — see the <style type="text/tailwindcss">
-   block in <head>, right after the tailwind.config script. Same selectors,
-   same behavior, just implemented with utilities instead of hand-written
-   declarations. Left here as a marker so this isn't mistaken for an
-   accidental gap in the stylesheet. */
+/* ── PINNED BAR STACK (header + primary nav + toolbar) ──
+   One sticky element holding all three bars, instead of three independently
+   sticky bars offset by JS-measured heights.
+
+   The old approach set --header-h / --nav-h from offsetHeight and used them as
+   each bar's `top`. That leaked page content through a seam between the bars
+   for two reasons, both unavoidable in that design:
+     • offsetHeight returns a ROUNDED integer, while layout heights here are
+       fractional (font metrics + odd paddings + 1px borders). Round up by a
+       fraction of a pixel and the bar below sits that fraction too low.
+     • the values went stale. They were measured once at the end of the script
+       and only refreshed on `resize` — but the bars change height after that:
+       the webfonts (@import at the top of this file) swap in and reflow the
+       nav's Barlow Condensed buttons, and renderAuthUI() injects the Discord
+       avatar chip into the header once the Supabase session resolves.
+   Stacking them in a normal flow container removes the whole class of bug: the
+   browser does the arithmetic, at full sub-pixel precision, and redoes it
+   automatically on every reflow. Behaviour is unchanged — the bars were always
+   pinned together and never scrolled away individually.
+
+   The wrapper also carries the bars' own background, so even a sub-pixel
+   rounding seam between two children can only ever expose --bg2, never the
+   scrolling page beneath.
+
+   The children keep their z-index ladder (100 > 99 > 98) so that dropdowns
+   opened in the header overlap the nav and toolbar below; z-index needs a
+   positioned element, hence `position: relative` rather than `static`. */
+.topbar-stack {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--bg2);
+}
+
+/* ── HEADER ── */
+header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 11px 20px;
+  display: flex; align-items: center; gap: 12px;
+  position: relative; z-index: 100;
+}
+.header-brand { display: flex; flex-direction: column; }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.logo { font-family: 'Barlow Condensed', 'Oswald', sans-serif; font-size: 18px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+.logo em { color: var(--accent); font-style: normal; }
+.logo-sub { font-size: 10px; color: var(--text-dim); font-family: 'Share Tech Mono', monospace; letter-spacing: .15em; margin-top: 1px; }
+
+/* ── HEADER DROPDOWNS (settings / account) ── */
+.hd-dropdown { position: relative; }
+.hd-menu {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 10;
+  background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r-sm);
+  box-shadow: 0 8px 24px rgba(0,0,0,.4); padding: 12px; min-width: 210px;
+}
+.hd-menu.hidden { display: none; }
+.hd-menu-label { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--text-dim); letter-spacing: .15em; text-transform: uppercase; margin-bottom: 8px; }
+.hd-menu-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.hd-menu-sep { height: 1px; background: var(--border); margin: 12px 0; }
+
+.account-menu { position: relative; }
+.account-caret { font-size: 9px; color: var(--text-mid); margin-left: 1px; transition: transform .15s; }
+.account-menu.open .account-caret { transform: rotate(180deg); }
+.account-dropdown {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 10;
+  background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r-sm);
+  box-shadow: 0 8px 24px rgba(0,0,0,.4); min-width: 210px; overflow: hidden;
+}
+.account-dropdown.hidden { display: none; }
+.account-dropdown-user { display: flex; align-items: center; gap: 9px; padding: 12px; border-bottom: 1px solid var(--border); }
+.account-dropdown-user img { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; }
+.account-dropdown-name { font-size: 12px; font-weight: 700; font-family: 'Barlow Condensed', 'Oswald', sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-dropdown-admin-badge { font-size: 9px; font-family: 'Share Tech Mono', monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); background: var(--accent-d); border: 1px solid var(--accent-30); border-radius: 20px; padding: 1px 7px; margin-top: 4px; display: inline-block; width: fit-content; }
+.account-dropdown-item { display: block; width: 100%; text-align: left; background: none; border: none; color: var(--text); font: inherit; font-size: 12px; padding: 10px 12px; cursor: pointer; }
+.account-dropdown-item:hover { background: var(--bg4); }
+.account-dropdown-item.danger { color: var(--red); }
+.account-dropdown-item.danger:hover { background: rgba(239,68,68,.1); }
+
+/* ── PRIMARY NAV (Saved Teams / Profile / Feed) ── */
+.page-nav {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  position: relative; z-index: 99;
+}
+.page-nav-btn {
+  background: transparent; border: none; color: var(--text-mid);
+  font-family: 'Barlow Condensed', 'Oswald', sans-serif; font-size: 13px; font-weight: 700;
+  letter-spacing: .04em; text-transform: uppercase; padding: 13px 14px; cursor: pointer;
+  border-bottom: 2px solid transparent; transition: color .15s, border-color .15s;
+}
+.page-nav-btn:hover { color: var(--text); }
+.page-nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.auth-widget { display: flex; align-items: center; }
+.auth-user { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px 10px 5px 6px; border-radius: var(--r-sm); background: var(--bg3); border: 1px solid var(--border); transition: border-color .15s; }
+.auth-user:hover { border-color: var(--border2); }
+.auth-avatar { width: 22px; height: 22px; border-radius: 6px; display: block; }
+.auth-name { font-size: 12px; font-weight: 700; color: var(--text); font-family: 'Barlow Condensed', 'Oswald', sans-serif; letter-spacing: .03em; }
+
+/* ── TOOLBAR (Saved Teams page only) ── */
+.toolbar {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 9px 20px;
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  position: relative; z-index: 98;
+}
+.toolbar.hidden { display: none; }
+.tb-group { display: flex; align-items: center; gap: 5px; }
+.tb-sep { width: 1px; height: 24px; background: var(--border2); margin: 0 5px; flex-shrink: 0; }
+.tb-btn {
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text-mid);
+  width: 34px; height: 34px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 15px; line-height: 1;
+  transition: border-color .15s, background .15s, color .15s, opacity .15s;
+  flex-shrink: 0;
+}
+.tb-btn:hover:not(:disabled) { border-color: var(--border2); color: var(--text); background: var(--bg4); }
+.tb-btn:disabled { opacity: .3; cursor: not-allowed; }
+.tb-btn .tb-ico, .we-ph-ico .tb-ico { display: block; }
+.tb-btn.primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 900; font-size: 18px; }
+.tb-btn.primary:hover { opacity: .85; }
+.tb-btn.danger:hover:not(:disabled) { color: var(--red); border-color: var(--red); background: rgba(239,68,68,.1); }
+
+.tb-color-swatch {
+  position: relative;
+  width: 34px; height: 34px; border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: pointer; overflow: hidden; flex-shrink: 0;
+  background: var(--accent);
+  transition: border-color .15s;
+}
+.tb-color-swatch:hover { border-color: var(--border2); }
+.tb-color-swatch input[type=color] {
+  position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px);
+  border: none; padding: 0; cursor: pointer; opacity: 0;
+}
+
+.tb-toggle {
+  display: flex; align-items: center; gap: 0;
+  height: 34px; box-sizing: border-box;
+  padding: 0 12px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 8px; cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px; color: var(--text-mid);
+  letter-spacing: .08em; text-transform: uppercase;
+  flex-shrink: 0;
+}
+.tb-toggle:hover { border-color: var(--border2); color: var(--text); }
+.tb-toggle.active { border-color: var(--accent); background: var(--accent-d); color: var(--accent); }
+
+/* ── TOOLBAR PAGE GROUPS (one toolbar, per-tab contents) ──
+   The toolbar is part of the permanent chassis now (header → nav → toolbar)
+   and never hides; only the active .tb-page-group is displayed. Slot order is
+   the SAME left-to-right meaning on every tab:
+     A history · B create/act on the object · C scope (what am I looking at)
+     D filter/sort · E view options + bookmarks (pushed right via .tb-push)
+   A tab with no action for a slot simply omits it and the rest shift left. */
+.tb-page-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
+.tb-page-group.hidden { display: none; }
+.tb-push { margin-left: auto; }
+
+/* Text-labelled toolbar button — same 34px box as .tb-btn, auto width. Must
+   stay AFTER .tb-btn so `width: auto` wins (same specificity). */
+.tb-btn-txt {
+  width: auto; padding: 0 12px;
+  font-family: 'Barlow Condensed', 'Oswald', sans-serif;
+  font-size: 12px; font-weight: 700; letter-spacing: .04em;
+  color: var(--text); white-space: nowrap;
+}
+.tb-btn.has-caret { width: auto; padding: 0 9px; gap: 3px; }
+.tb-caret { font-size: 8px; color: var(--text-mid); }
+.tb-btn.active-fav { border-color: var(--accent); background: var(--accent-d); color: var(--accent); }
+.toolbar select { height: 34px; background-color: var(--bg3); font-size: 12px; }
+
+/* Slot C search field (Profile) — the autocomplete dropdown anchors to .tb-search. */
+.tb-search { position: relative; display: flex; flex: 1; min-width: 150px; max-width: 420px; }
+.tb-input {
+  flex: 1; min-width: 0; height: 34px; box-sizing: border-box;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); padding: 0 10px; font-size: 13px; outline: none;
+  transition: border-color .15s;
+}
+.tb-input:focus { border-color: var(--accent); }
+.tb-search .profile-search-results { top: calc(100% + 6px); }
 
 /* (The bookmarks dropdown that used to sit in Profile slot E is gone — the
    list moved to #profileFavBar at the top of the page, where it can wrap.
