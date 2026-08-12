@@ -154,7 +154,7 @@ header {
 .tb-sep { width: 1px; height: 24px; background: var(--border2); margin: 0 5px; flex-shrink: 0; }
 .tb-btn {
   background: var(--bg3); border: 1px solid var(--border); color: var(--text-mid);
-  width: 34px; height: 34px; border-radius: 8px;
+  width: 34px; height: 34px; border-radius: var(--r-sm);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; font-size: 15px; line-height: 1;
   transition: border-color .15s, background .15s, color .15s, opacity .15s;
@@ -170,7 +170,7 @@ header {
 
 .tb-color-swatch {
   position: relative;
-  width: 34px; height: 34px; border-radius: 8px;
+  width: 34px; height: 34px; border-radius: var(--r-sm);
   border: 1px solid var(--border);
   cursor: pointer; overflow: hidden; flex-shrink: 0;
   background: var(--accent);
@@ -187,7 +187,7 @@ header {
   height: 34px; box-sizing: border-box;
   padding: 0 12px;
   background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 8px; cursor: pointer;
+  border-radius: var(--r-sm); cursor: pointer;
   transition: border-color .15s, background .15s, color .15s;
   font-family: 'Share Tech Mono', monospace;
   font-size: 10px; color: var(--text-mid);
@@ -226,7 +226,7 @@ header {
 .tb-search { position: relative; display: flex; flex: 1; min-width: 150px; max-width: 420px; }
 .tb-input {
   flex: 1; min-width: 0; height: 34px; box-sizing: border-box;
-  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm);
   color: var(--text); padding: 0 10px; font-size: 13px; outline: none;
   transition: border-color .15s;
 }
@@ -258,7 +258,7 @@ header {
   position: relative; /* anchors the absolute .preset-chip-badge corner icon */
   display: flex; align-items: center; gap: 6px;
   height: 34px; box-sizing: border-box; padding: 0 10px 0 6px;
-  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm);
   cursor: pointer; font-size: 12px; color: var(--text-mid); flex-shrink: 0;
   transition: border-color .15s, background .15s, color .15s;
 }
@@ -485,7 +485,7 @@ header {
 .ed-name-input {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 100px;
+  border-radius: var(--r-sm);
   padding: 7px 14px;
   color: var(--text);
   font-family: 'Barlow Condensed', 'Oswald', sans-serif;
@@ -501,7 +501,7 @@ header {
   border: none; padding: 7px 20px;
   font-family: 'Barlow Condensed', 'Oswald', sans-serif; font-size: 13px; font-weight: 900;
   letter-spacing: .08em; text-transform: uppercase;
-  cursor: pointer; border-radius: 100px; transition: opacity .15s;
+  cursor: pointer; border-radius: var(--r-sm); transition: opacity .15s;
 }
 .btn-save:hover { opacity: .85; }
 .btn-save:focus-visible, .btn-cancel:focus-visible { outline: 2px solid var(--accent-60); outline-offset: 2px; }
@@ -510,7 +510,7 @@ header {
   color: var(--text-mid); padding: 7px 14px;
   font-family: 'Barlow Condensed', 'Oswald', sans-serif; font-size: 13px; font-weight: 700;
   letter-spacing: .06em; text-transform: uppercase;
-  cursor: pointer; border-radius: 100px; transition: border-color .15s, color .15s;
+  cursor: pointer; border-radius: var(--r-sm); transition: border-color .15s, color .15s;
 }
 .btn-cancel:hover { border-color: var(--text-mid); color: var(--text); }
 
@@ -620,7 +620,7 @@ select {
 .ag-card {
   background: var(--bg3);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r);
   overflow: hidden;
 }
 
@@ -825,7 +825,7 @@ select {
 }
 .disc-adv-toggle {
   font-size: 10.5px; font-weight: 600; letter-spacing: .02em;
-  padding: 4px 10px; border-radius: 999px;
+  padding: 4px 10px; border-radius: var(--r-sm);
   background: var(--bg3); border: 1px solid var(--border); color: var(--text-mid);
   cursor: pointer; transition: border-color .15s, background .15s, color .15s;
 }
@@ -902,7 +902,7 @@ select {
 .boo-card {
   width: calc(33.33% - 6px);
   background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 10px; overflow: hidden;
+  border-radius: var(--r); overflow: hidden;
   display: flex; flex-direction: column;
 }
 .boo-card-top {
@@ -933,7 +933,7 @@ select {
 .note-card {
   flex: 1;
   background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 10px; overflow: hidden;
+  border-radius: var(--r); overflow: hidden;
   display: flex; flex-direction: column;
   padding: 8px 10px 10px;
   gap: 6px;
@@ -995,11 +995,12 @@ select {
 .modal-srch input {
   width: 100%; padding: 8px 13px;
   background: var(--bg); border: 1px solid var(--border);
-  border-radius: 100px; color: var(--text); font-size: 13px;
+  border-radius: var(--r-sm); color: var(--text); font-size: 13px;
   outline: none; transition: border-color .15s;
   font-family: 'Barlow', 'Inter', sans-serif;
 }
 .modal-srch input:focus { border-color: var(--accent); }
+.modal-srch input:focus-visible { outline: 2px solid var(--accent-60); outline-offset: 2px; }
 .modal-grid {
   flex: 1 1 auto;
   min-height: 0;
@@ -1043,7 +1044,7 @@ select {
   height: 24px; box-sizing: border-box;
   padding: 0 8px 0 5px;
   background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 100px; cursor: pointer;
+  border-radius: var(--r-sm); cursor: pointer;
   transition: border-color .15s, background .15s;
   font-family: 'Share Tech Mono', monospace;
   font-size: 9.5px; color: var(--text-mid);
@@ -1103,7 +1104,7 @@ select {
 .lib-pill-btn {
   background: var(--bg3); border: 1px solid var(--border); color: var(--text);
   font-family: 'Barlow Condensed', 'Oswald', sans-serif; font-size: 12px; font-weight: 700;
-  letter-spacing: .04em; padding: 6px 16px; border-radius: 8px; cursor: pointer;
+  letter-spacing: .04em; padding: 6px 16px; border-radius: var(--r-sm); cursor: pointer;
   transition: border-color .15s, background .15s;
 }
 .lib-pill-btn:hover { border-color: var(--accent); background: var(--accent-d); color: var(--accent); }
@@ -1112,7 +1113,7 @@ select {
 .lib-rarity-btn {
   width: 28px; height: 24px;
   background: var(--bg3); border: 1px solid var(--border); color: var(--text-mid);
-  border-radius: 100px; cursor: pointer; font-family: 'Share Tech Mono', monospace;
+  border-radius: var(--r-sm); cursor: pointer; font-family: 'Share Tech Mono', monospace;
   font-size: 11px; font-weight: 700; transition: border-color .15s, background .15s, color .15s;
 }
 .lib-rarity-btn:hover { border-color: var(--border2); color: var(--text); }
@@ -1376,10 +1377,11 @@ select {
 .dlg-btn {
   background: var(--bg3); border: 1px solid var(--border); color: var(--text);
   font-family: 'Barlow Condensed', 'Oswald', sans-serif; font-size: 12px; font-weight: 700;
-  letter-spacing: .04em; padding: 8px 18px; border-radius: 100px; cursor: pointer;
+  letter-spacing: .04em; padding: 8px 18px; border-radius: var(--r-sm); cursor: pointer;
   transition: border-color .15s, background .15s;
 }
 .dlg-btn:hover { border-color: var(--border2); background: var(--bg4); }
+.dlg-btn:focus-visible { outline: 2px solid var(--accent-60); outline-offset: 2px; }
 .dlg-btn.primary { background: var(--accent); color: #000; border-color: var(--accent); }
 .dlg-btn.primary:hover { background: var(--accent); opacity: .9; }
 .dlg-btn.danger { color: var(--red); }
@@ -1389,7 +1391,7 @@ select {
 .profile-agent-list { display: flex; flex-direction: column; gap: 6px; }
 .profile-agent-list.with-divider { margin-top: 14px; padding-top: 16px; border-top: 1px solid var(--border); }
 .profile-agent-card {
-  background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-sm);
   padding: 8px 10px; cursor: pointer; font-size: 13px;
   display: flex; align-items: center; gap: 10px;
 }
@@ -1432,7 +1434,7 @@ select {
    .profile-detail (below) isn't inside this wrapper, so it keeps its own
    flex:1 rule untouched. */
 .profile-detail-col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.profile-detail { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+.profile-detail { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 18px; }
 .profile-detail-empty { color: var(--text-dim); font-size: 13px; text-align: center; padding: 60px 0; }
 .profile-favorites { display: flex; flex-wrap: wrap; gap: 6px; }
 
@@ -1455,7 +1457,7 @@ select {
    with an automatic per-image fallback to the original enka.network URL. */
 .player-card {
   background: var(--bg2); border: 1px solid var(--border);
-  border-radius: 10px; overflow: hidden; margin-bottom: 16px;
+  border-radius: var(--r); overflow: hidden; margin-bottom: 16px;
 }
 /* Nothing loaded yet: the card must not sit there as an empty bordered box,
    but the meta strip still has to be able to show "Loading…" / "Enter a
@@ -1527,7 +1529,7 @@ select {
 .pc-meta-discord b { color: var(--text); font-weight: 700; }
 .profile-fav-chip {
   display: flex; align-items: center; gap: 6px;
-  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm);
   padding: 5px 13px; font-size: 12px; cursor: pointer;
 }
 .profile-fav-chip:hover { border-color: var(--border2); }
@@ -1541,7 +1543,7 @@ select {
 /* (.profile-current-player is gone — the nickname · UID · Lv line it styled is
    now the hero half of .player-card above.) */
 .pd-head { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 16px; }
-.pd-portrait { width: 96px; height: 96px; border-radius: 10px; overflow: hidden; background: var(--bg4); flex-shrink: 0; }
+.pd-portrait { width: 96px; height: 96px; border-radius: var(--r); overflow: hidden; background: var(--bg4); flex-shrink: 0; }
 .pd-portrait img { width: 100%; height: 100%; object-fit: cover; }
 .pd-name { font-family: 'Barlow Condensed', 'Oswald', sans-serif; font-size: 22px; font-weight: 900; }
 .pd-sub { color: var(--text-dim); font-size: 12.5px; margin-top: 2px; }
@@ -1563,12 +1565,12 @@ select {
   padding: 5px 10px; font-size: 12px; display: flex; gap: 6px; align-items: center;
 }
 .pd-skill-pill b { color: var(--accent); }
-.pd-wengine { display: flex; gap: 12px; align-items: center; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+.pd-wengine { display: flex; gap: 12px; align-items: center; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 10px 12px; }
 .pd-wengine img { width: 48px; height: 48px; object-fit: contain; flex-shrink: 0; }
 .pd-discs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
-.pd-disc-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+.pd-disc-card { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 10px 12px; }
 .pd-sets-list { display: flex; gap: 8px; flex-wrap: wrap; }
-.pd-agg-row { display: flex; flex-wrap: wrap; gap: 14px; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-family: 'Share Tech Mono', monospace; font-size: 12px; }
+.pd-agg-row { display: flex; flex-wrap: wrap; gap: 14px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 10px 12px; font-family: 'Share Tech Mono', monospace; font-size: 12px; }
 .pd-agg-item { display: flex; gap: 5px; align-items: baseline; }
 .pd-agg-item .procs { color: var(--text-dim); }
 .pd-agg-item .val { color: var(--accent); font-weight: 700; }
@@ -1579,7 +1581,7 @@ select {
 .pd-discs-compact { display: flex; flex-wrap: wrap; gap: 8px; }
 .pd-disc-compact {
   display: flex; align-items: center; gap: 8px;
-  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm);
   padding: 6px 10px 6px 6px;
 }
 .pd-disc-compact img { width: 28px; height: 28px; object-fit: contain; flex-shrink: 0; }
@@ -1591,7 +1593,7 @@ select {
 .pd-presets-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .preset-chip-lg {
   display: flex; align-items: center; gap: 6px; position: relative;
-  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm);
   padding: 4px 12px 4px 4px; cursor: pointer; font-size: 12px; color: var(--text-mid);
   transition: border-color .15s, color .15s, background .15s;
 }
@@ -1710,7 +1712,7 @@ select {
 }
 .disc-detail-hd { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .disc-detail-icon {
-  width: 54px; height: 54px; flex-shrink: 0; border-radius: 8px;
+  width: 54px; height: 54px; flex-shrink: 0; border-radius: var(--r-sm);
   overflow: hidden; background: var(--bg4);
 }
 .disc-detail-icon img { width: 100%; height: 100%; object-fit: cover; display: block; }
