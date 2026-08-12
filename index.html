@@ -223,12 +223,23 @@ header {
    .tb-btn.has-caret / .tb-caret above are left in place as generic utilities
    for any future toolbar dropdown.) */
 
-/* Preset selector (Profile slot C) — the .preset-chip-lg tab row from the
-   detail panel, shrunk to toolbar height. Sits immediately left of the
-   act-on-preset buttons so "which preset" and "what to do with it" read as
-   one cluster. Hidden entirely when the panel isn't showing a preset. */
-.tb-preset-tabs { gap: 5px; flex-wrap: wrap; }
-.tb-preset-chip {
+/* Preset selector — used to live in the toolbar (Profile slot C, shrunk to
+   34px chips squeezed next to the act-on-preset buttons), moved back into
+   the detail panel as its own row above pd-head once an agent could carry
+   up to 12 presets (6 Verified + 6 Manual/Imported) and the chip row started
+   pushing the toolbar's view-toggle row onto its own wrapped line. Full
+   panel width now (much wider than whatever toolbar space was left), so it
+   scrolls sideways instead of wrapping — see refreshProfileDetailView() /
+   renderPresetTabs() for how it's populated. */
+.profile-preset-tabs {
+  display: flex; align-items: center; gap: 6px;
+  overflow-x: auto; overflow-y: hidden;
+  padding: 0 0 10px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.profile-preset-tabs.hidden { display: none; }
+.pp-tab-chip {
   position: relative; /* anchors the absolute .preset-chip-badge corner icon */
   display: flex; align-items: center; gap: 6px;
   height: 34px; box-sizing: border-box; padding: 0 10px 0 6px;
@@ -236,15 +247,15 @@ header {
   cursor: pointer; font-size: 12px; color: var(--text-mid); flex-shrink: 0;
   transition: border-color .15s, background .15s, color .15s;
 }
-.tb-preset-chip img {
+.pp-tab-chip img {
   width: 22px; height: 22px; border-radius: 50%; object-fit: contain;
   background: var(--bg); flex-shrink: 0;
 }
-.tb-preset-chip .tpc-name { max-width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tb-preset-chip:hover { border-color: var(--border2); color: var(--text); }
-.tb-preset-chip.selected { border-color: var(--accent); background: var(--accent-d); color: var(--accent); }
-.tb-preset-chip.broken { border-color: #b45309; }
-.tb-preset-chip .tpc-warn { color: #f59e0b; font-size: 11px; }
+.pp-tab-chip .tpc-name { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pp-tab-chip:hover { border-color: var(--border2); color: var(--text); }
+.pp-tab-chip.selected { border-color: var(--accent); background: var(--accent-d); color: var(--accent); }
+.pp-tab-chip.broken { border-color: #b45309; }
+.pp-tab-chip .tpc-warn { color: #f59e0b; font-size: 11px; }
 
 /* ── LAYOUT ── */
 .page { max-width: 1600px; margin: 0 auto; padding: 20px 16px 80px; }
@@ -1388,7 +1399,14 @@ select {
 /* Verified — то, что подтверждено системой, поэтому чуть ярче ручных сборок. */
 .profile-agent-card .pac-sub.pac-counts span:first-child { color: var(--text-mid); }
 .profile-agent-card.broken { border-color: #b45309; }
-.profile-detail { flex: 1; min-width: 0; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+/* .profile-detail-col wraps the preset tab row + the detail panel so the
+   flex:1 sizing that used to live on .profile-detail directly (the panel was
+   the immediate .profile-layout child) now applies one level up — .profile-detail
+   itself just fills that column's width. The public-presets modal's
+   .profile-detail (below) isn't inside this wrapper, so it keeps its own
+   flex:1 rule untouched. */
+.profile-detail-col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.profile-detail { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
 .profile-detail-empty { color: var(--text-dim); font-size: 13px; text-align: center; padding: 60px 0; }
 .profile-favorites { display: flex; flex-wrap: wrap; gap: 6px; }
 
@@ -1983,7 +2001,11 @@ select {
      Everything except "+" acts on whichever of YOUR OWN presets is currently
      open in the detail panel — same "select then act" contract the Teams tab
      uses. Someone else's published presets stay read-only; ⇩ copies them.
-     Slot C: the UID / nickname search. Slot E: bookmarks + this-UID toggles. -->
+     Slot C: the UID / nickname search. Slot E: bookmarks + this-UID toggles.
+     (The preset tab-chip row used to sit here too, between slot B and the
+     search — moved to its own row above pd-head in the detail panel once an
+     agent could carry up to 12 presets and the chips started wrapping the
+     toolbar onto a second line. See #profilePresetTabs / .profile-preset-tabs.) -->
 <div class="tb-page-group hidden" id="tbGroupProfile">
   <div class="tb-group">
     <button class="tb-btn" id="profileSetMyBtn" onclick="setCurrentAsMyUid()" disabled title="Remember this UID and auto-load it on this tab">⌂</button>
@@ -1997,11 +2019,6 @@ select {
     <button class="tb-btn danger" id="tbPresetDelete" onclick="toolbarDeletePreset()" title="Delete the open preset" disabled>✕</button>
     <button class="tb-btn" id="tbPresetPublish" onclick="toolbarTogglePublishPreset()" title="Publish the open preset" disabled>⇪</button>
   </div>
-  <!-- No .tb-sep between the action row and the chip row on purpose:
-       #tbPresetTabs hides itself whenever nothing is open, and a separator on
-       both sides of it would collapse into a doubled line in that (very
-       common) state. -->
-  <div class="tb-group tb-preset-tabs hidden" id="tbPresetTabs"></div>
   <div class="tb-sep"></div>
   <div class="tb-group tb-group-search">
     <div class="tb-search">
@@ -2106,7 +2123,12 @@ select {
       <div class="profile-agent-list" id="profileAgentList"></div>
       <div class="profile-agent-list hidden" id="profilePresetBrowseList"></div>
     </div>
-    <div class="profile-detail" id="profileDetail"><div class="profile-detail-empty">Search for a UID in the toolbar and press Load.</div></div>
+    <div class="profile-detail-col">
+      <!-- Preset tab-chip row — populated by renderPresetTabs(), used to
+           live in the toolbar. See the comment on #tbGroupProfile. -->
+      <div class="profile-preset-tabs hidden" id="profilePresetTabs"></div>
+      <div class="profile-detail" id="profileDetail"><div class="profile-detail-empty">Search for a UID in the toolbar and press Load.</div></div>
+    </div>
   </div>
 </div>
 
@@ -9806,14 +9828,14 @@ async function renderAgentPresetView() {
     profilePresetViewPresetId = null;
     document.getElementById('profileDetail').innerHTML = `<div class="profile-detail-empty">Search for a UID in the toolbar and press Load.</div>`;
     renderProfileLeftExtra();
-    clearPresetTabsToolbar();
+    clearPresetTabs();
     updatePresetToolbar();
     return;
   }
   const preset = presets.find(p => p.id === profilePresetViewPresetId) || presets[0];
   profilePresetViewPresetId = preset.id;
 
-  renderPresetTabsToolbar(presets.map(p => {
+  renderPresetTabs(presets.map(p => {
     const missing = presetIsExternalSnapshot(p) ? [] : evaluatePresetApplicability(p, null).missing;
     const broken = missing.length > 0;
     const cat = presetCategory(p);
@@ -9978,20 +10000,21 @@ function toolbarTogglePublishPreset() {
   else publishPreset(t.agentKey, t.preset.id);
 }
 
-/* ── PRESET SELECTOR IN THE TOOLBAR (Profile slot C) ─────────────────────
-   The tab row that used to sit above the preset card. It moved next to the
-   act-on buttons so "which preset is open" and "what I can do with it" read
-   as one cluster, and it renders for BOTH your own presets and someone
-   else's published ones — where you're looking is always shown in the same
-   place; only whether slot B lights up differs. Items:
+/* ── PRESET TAB-CHIP ROW (above pd-head, #profilePresetTabs) ─────────────
+   Used to live in the toolbar, next to the act-on-preset buttons — moved
+   here (its original spot, before that move) once an agent could carry up
+   to 12 presets and the chip row started wrapping the toolbar's view-toggle
+   row onto a second line. Renders for BOTH your own presets and someone
+   else's published ones — where you're looking is always shown the same
+   way; only whether the toolbar's action buttons light up differs. Items:
      { id, name, wengine, title, selected, broken, badge, handler } */
-function renderPresetTabsToolbar(items) {
-  const el = document.getElementById('tbPresetTabs');
+function renderPresetTabs(items) {
+  const el = document.getElementById('profilePresetTabs');
   if (!el) return;
-  if (!items || !items.length) { clearPresetTabsToolbar(); return; }
+  if (!items || !items.length) { clearPresetTabs(); return; }
   el.classList.remove('hidden');
   el.innerHTML = items.map(it => `
-    <div class="tb-preset-chip${it.selected ? ' selected' : ''}${it.broken ? ' broken' : ''}"
+    <div class="pp-tab-chip${it.selected ? ' selected' : ''}${it.broken ? ' broken' : ''}"
          onclick="${it.handler}" title="${it.title}">
       <img src="${wengineUrl(it.wengine || '')}" onerror="this.style.opacity=.2">
       <span class="tpc-name">${escapeHtml(it.name)}</span>
@@ -9999,8 +10022,8 @@ function renderPresetTabsToolbar(items) {
     </div>`).join('');
 }
 
-function clearPresetTabsToolbar() {
-  const el = document.getElementById('tbPresetTabs');
+function clearPresetTabs() {
+  const el = document.getElementById('profilePresetTabs');
   if (!el) return;
   el.classList.add('hidden');
   el.innerHTML = '';
@@ -10893,7 +10916,7 @@ async function renderOwnerPresetView() {
     ownerPresetViewPresetId = null;
     document.getElementById('profileDetail').innerHTML = `<div class="profile-detail-empty">Search for a UID in the toolbar and press Load.</div>`;
     renderProfileLeftExtra();
-    clearPresetTabsToolbar();
+    clearPresetTabs();
     return;
   }
   const row = rows.find(r => String(r.id) === ownerPresetViewPresetId) || rows[0];
@@ -10901,7 +10924,7 @@ async function renderOwnerPresetView() {
   const preset = { id: row.id, name: row.name, wengine: row.wengine, wrank: row.wrank, discs: row.discs || [] };
   currentPublicPresetView = { agentKey, preset }; // lets the shared copyPublicPresetToMine() handler work
 
-  renderPresetTabsToolbar(rows.map(r => ({
+  renderPresetTabs(rows.map(r => ({
     id: r.id,
     name: r.name,
     wengine: r.wengine,
@@ -11121,7 +11144,7 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
 async function renderProfileDetail(i) {
   const panel = document.getElementById('profileDetail');
   const a = profileLastAvatars[i];
-  clearPresetTabsToolbar(); // a live stand agent, not a preset — no tabs to show
+  clearPresetTabs(); // a live stand agent, not a preset — no tabs to show
   if (!a) { profileCurrentLiveBuild = null; updateSaveBuildToolbar(); panel.innerHTML = '<div class="profile-detail-empty">Select an agent.</div>'; return; }
 
   const slug = ENKA_AGENT_MAP[a.Id];
