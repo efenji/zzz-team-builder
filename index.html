@@ -1541,8 +1541,8 @@ select {
 .preset-chip-lg:hover { border-color: var(--border2); color: var(--text); }
 .preset-chip-lg.selected { border-color: var(--accent); background: var(--accent-d); color: var(--accent); }
 .pd-preset-detail { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border2); }
-/* The dashed divider only earns its keep when something sits above it (the
-   read-only "Copy to my presets" row). Since the tab row moved to the
+/* The dashed divider only earns its keep when something sits above it (e.g.
+   action pills in the public-presets modal). Since the tab row moved to the
    toolbar, the detail is usually the panel's FIRST child — no divider then. */
 .pd-preset-detail:first-child { margin-top: 0; padding-top: 0; border-top: none; }
 .preset-view-tabs-row {
@@ -1968,8 +1968,7 @@ select {
      mental model, and the row stays exactly five buttons wide like Teams.
      Everything except "+" acts on whichever of YOUR OWN presets is currently
      open in the detail panel — same "select then act" contract the Teams tab
-     uses. Someone else's published presets stay read-only and keep their
-     in-panel button.
+     uses. Someone else's published presets stay read-only; ⇩ copies them.
      Slot C: the UID / nickname search. Slot E: bookmarks + this-UID toggles. -->
 <div class="tb-page-group hidden" id="tbGroupProfile">
   <div class="tb-group">
@@ -9839,9 +9838,8 @@ function refreshPresetViews(agentKey) {
    Same contract as the Teams tab: the detail panel holds the selection, the
    toolbar acts on it. The "selection" here is whichever of YOUR OWN presets is
    open in the right-hand panel (profilePresetViewAgentKey/PresetId). Someone
-   else's published preset stays read-only and keeps its single in-panel
-   "Copy to my presets" button — there is nothing else to do with it, and it
-   would be wrong to light up Delete/Publish for a build that isn't yours. */
+   else's published preset stays read-only — ⇩ copies it, and Edit/Delete/
+   Publish stay off because the build isn't yours. */
 function toolbarPresetTarget() {
   const agentKey = profilePresetViewAgentKey;
   const presetId = profilePresetViewPresetId;
@@ -9946,6 +9944,27 @@ function clearPresetTabsToolbar() {
 function updateSaveBuildToolbar() {
   const btn = document.getElementById('tbSaveBuild');
   if (!btn) return;
+
+  // Someone else's published preset — ⇩ copies it instead of saving a stand build.
+  if (ownerPresetViewAgentKey && currentPublicPresetView) {
+    const { agentKey, preset } = currentPublicPresetView;
+    const reason = (() => {
+      if (!currentUser) return 'Sign in with Discord to copy presets';
+      if (!myGameUid) return 'Verify your UID first to copy presets';
+      const matching = findMatchingPresetBySnapshots(agentKey, preset.wengine, preset.wrank || 1, preset.discs);
+      if (matching) return `Already saved as \u201c${matching.name}\u201d`;
+      if (getAgentPresets(agentKey).length >= PRESET_LIMIT) {
+        return `${cardName(agentKey)} already has the max presets (${PRESET_LIMIT}) — delete one to copy`;
+      }
+      return '';
+    })();
+    btn.disabled = !!reason;
+    btn.title = reason
+      ? `Copy to my presets — ${reason}`
+      : `Copy \u201c${preset.name}\u201d to your presets`;
+    return;
+  }
+
   const lb = profileCurrentLiveBuild;
   const slug = lb && lb.agentKey;
 
@@ -9975,6 +9994,10 @@ function updateSaveBuildToolbar() {
 }
 
 function toolbarSaveCurrentBuild() {
+  if (ownerPresetViewAgentKey && currentPublicPresetView) {
+    copyPublicPresetToMine();
+    return;
+  }
   const lb = profileCurrentLiveBuild;
   if (lb && lb.agentKey) saveCurrentShowcaseBuildAsPreset(lb.agentKey);
 }
@@ -10808,18 +10831,9 @@ async function renderOwnerPresetView() {
     handler: `selectOwnerPresetTab('${r.id}')`,
   })));
 
-  const matching = findMatchingPresetBySnapshots(agentKey, preset.wengine, preset.wrank || 1, preset.discs);
-  const actionsHtml = presetActionsHtml(agentKey, preset, { readOnly: true, matchingName: matching ? matching.name : null });
   const detailHtml = await presetDetailHtml(agentKey, preset, { hideActions: true, readOnly: true, ownerLabel: profileCurrentNickname });
-  // Someone else's build: the selector is in the toolbar like everywhere else,
-  // but "Copy to my presets" stays in the panel — slot B only ever acts on
-  // presets that are yours.
-  document.getElementById('profileDetail').innerHTML = `
-    <div class="preset-view-tabs-row">
-      <div class="pd-preset-actions-inline">${actionsHtml}</div>
-    </div>
-    ${detailHtml}
-  `;
+  document.getElementById('profileDetail').innerHTML = detailHtml;
+  updateSaveBuildToolbar();
 }
 
 // Saves whatever the Profile tab is currently showing for this agent's
@@ -10871,9 +10885,8 @@ async function saveCurrentShowcaseBuildAsPreset(agentKey) {
 // pulled out so callers can place these in a top action row next to the
 // preset tabs instead of leaving them pinned to presetDetailHtml's footer.
 /* In-panel action pills. NOTE: for your OWN presets both current call sites
-   pass hideActions:true (the toolbar owns those actions now), so only the
-   readOnly branch is actually reachable today — the rest is kept in sync with
-   the toolbar's behaviour so it stays correct if it's ever switched back on. */
+   pass hideActions:true (the toolbar owns those actions now). The readOnly
+   branch is still used by the public-presets modal. */
 function presetActionsHtml(agentKey, preset, opts = {}) {
   const { readOnly = false, matchingName = null } = opts;
   if (readOnly) {
