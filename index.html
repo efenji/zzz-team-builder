@@ -132,6 +132,7 @@ header {
 }
 .page-nav-btn:hover { color: var(--text); }
 .page-nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.page-nav-btn:focus-visible { outline: 2px solid var(--accent-60); outline-offset: 2px; }
 
 .auth-widget { display: flex; align-items: center; }
 .auth-user { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px 10px 5px 6px; border-radius: var(--r-sm); background: var(--bg3); border: 1px solid var(--border); transition: border-color .15s; }
@@ -159,6 +160,7 @@ header {
   flex-shrink: 0;
 }
 .tb-btn:hover:not(:disabled) { border-color: var(--border2); color: var(--text); background: var(--bg4); }
+.tb-btn:focus-visible { outline: 2px solid var(--accent-60); outline-offset: 2px; }
 .tb-btn:disabled { opacity: .3; cursor: not-allowed; }
 .tb-btn .tb-ico, .we-ph-ico .tb-ico { display: block; }
 .tb-btn.primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 900; font-size: 18px; }
@@ -192,6 +194,7 @@ header {
   flex-shrink: 0;
 }
 .tb-toggle:hover { border-color: var(--border2); color: var(--text); }
+.tb-toggle:focus-visible { outline: 2px solid var(--accent-60); outline-offset: 2px; }
 .tb-toggle.active { border-color: var(--accent); background: var(--accent-d); color: var(--accent); }
 
 /* ── TOOLBAR PAGE GROUPS (one toolbar, per-tab contents) ──
@@ -227,6 +230,7 @@ header {
   transition: border-color .15s;
 }
 .tb-input:focus { border-color: var(--accent); }
+.tb-input:focus-visible { outline: 2px solid var(--accent-60); outline-offset: 2px; }
 .tb-search .profile-search-results { top: calc(100% + 6px); }
 
 /* (The bookmarks dropdown that used to sit in Profile slot E is gone — the
