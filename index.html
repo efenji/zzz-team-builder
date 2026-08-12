@@ -1529,6 +1529,20 @@ select {
 .pd-agg-item .procs { color: var(--text-dim); }
 .pd-agg-item .val { color: var(--accent); font-weight: 700; }
 
+/* Compact "Discs" toggle off state — icon + name/slot + level only, no
+   sub-stat breakdown. Flex-wraps like .pd-sets-list rather than the grid
+   .pd-discs-grid uses, since these rows are short and don't need columns. */
+.pd-discs-compact { display: flex; flex-wrap: wrap; gap: 8px; }
+.pd-disc-compact {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+  padding: 6px 10px 6px 6px;
+}
+.pd-disc-compact img { width: 28px; height: 28px; object-fit: contain; flex-shrink: 0; }
+.pd-disc-compact-name { font-size: 12px; }
+.pd-disc-compact-slot { color: var(--text-dim); }
+.pd-disc-compact-lv { font-size: 10px; color: var(--text-dim); font-family: 'Share Tech Mono', monospace; }
+
 /* ── PRESETS (Profile tab) ── */
 .pd-presets-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .preset-chip-lg {
@@ -1996,6 +2010,23 @@ select {
     </div>
     <button class="tb-btn tb-btn-txt" onclick="closeProfileSearchResults();loadProfileShowcase()">Load</button>
     <button class="tb-btn hidden" id="profileReloadMyBtn" onclick="reloadMyShowcase()" title="Refresh your stand from Enka and save it to the site"><svg class="tb-ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg></button>
+  </div>
+  <div class="tb-sep"></div>
+  <!-- Slot E: view toggles for whatever's currently in #profileDetail — a
+       live stand agent, one of your own presets, or someone else's read-only
+       preset. Own state (profileDisplayOptions/toggleProfileVisOption), own
+       localStorage key: sharing keys/state with the Teams displayOptions row
+       would let a toggle flipped on Shiyu Defense silently change what the
+       Profile tab shows, and vice versa — see toggleProfileVisOption(). -->
+  <div class="tb-group">
+    <button class="tb-toggle" data-key="procs" onclick="toggleProfileVisOption('procs', this)" title="Highlight useful sub-stat procs, on disc cards and in the Sub-Stat Totals row">Procs</button>
+    <button class="tb-toggle" data-key="totals" onclick="toggleProfileVisOption('totals', this)" title="Show the Sub-Stat Totals section">Totals</button>
+    <button class="tb-toggle" data-key="skills" onclick="toggleProfileVisOption('skills', this)" title="Show skill levels — live stand agents, and Verified/Imported presets saved after this feature shipped">Skills</button>
+    <button class="tb-toggle" data-key="wengine" onclick="toggleProfileVisOption('wengine', this)" title="Show the W-Engine block">W-Engine</button>
+    <button class="tb-toggle" data-key="sets" onclick="toggleProfileVisOption('sets', this)" title="Show the Drive Disc Sets summary">Sets</button>
+    <button class="tb-toggle" data-key="discs" onclick="toggleProfileVisOption('discs', this)" title="Full disc cards with every sub-stat, vs. a compact icon + level row">Discs</button>
+    <button class="tb-toggle" data-key="approx" onclick="toggleProfileVisOption('approx', this)" title="Show the ⓘ hints that flag theoretical/approximate numbers">Approx</button>
+    <button class="tb-toggle" data-key="notes" onclick="toggleProfileVisOption('notes', this)" title="Show info banners (Imported/Verified/Shared build, missing-discs warning)">Notes</button>
   </div>
 </div>
 
@@ -7392,6 +7423,22 @@ document.addEventListener('keydown', e => {
 let displayOptions = Object.assign({attr:true, class:true, ability:true, wengine:true, boo:true, name:true, discs:true, shiyu:true, daphase:true, dabuff:true},
   JSON.parse(localStorage.getItem('zzz_display_options') || '{}'));
 
+/* ── PROFILE TAB DISPLAY TOGGLES ──
+   Separate object + localStorage key from `displayOptions` above on purpose:
+   same .tb-toggle pattern, but a different rendering surface (renderProfileDetail
+   / presetDetailHtml, not the Teams/DA card grid), so sharing keys would let a
+   toggle flipped on Shiyu Defense silently affect what the Profile tab shows.
+     procs   — useful-substat highlighting (disc cards + Sub-Stat Totals row)
+     totals  — the Sub-Stat Totals section itself
+     skills  — the Skills row (live stand agents, Verified/Imported presets)
+     wengine — the W-Engine block
+     sets    — the Drive Disc Sets summary
+     discs   — full per-disc stat cards vs. a compact icon+level row
+     approx  — the ⓘ "theoretical/approximate" hint spans
+     notes   — info banners (Imported/Verified/Shared/missing-discs) */
+let profileDisplayOptions = Object.assign({procs:true, totals:true, skills:true, wengine:true, sets:true, discs:true, approx:true, notes:true},
+  JSON.parse(localStorage.getItem('zzz_profile_display_options') || '{}'));
+
 /* ── DRIVE DISC PICKER MODE ──
    All library management (Agent/W-Engine/Bangboo/Drive Disc) is available by
    default now — there used to be a top-level "Advanced Mode" switch gating
@@ -10952,7 +10999,10 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
   const cat = presetCategory(preset);
   const isExternal = presetIsExternalSnapshot(preset);
   const { missing } = isExternal ? { missing: [] } : evaluatePresetApplicability(preset, null);
-  const missingBanner = (!readOnly && !isExternal && missing.length)
+  // "Notes" toggle gates all three banners below — the underlying conditions
+  // (broken preset, external snapshot, read-only) still get computed either
+  // way, since `missing`/`isExternal` also drive non-banner behavior above.
+  const missingBanner = (!readOnly && !isExternal && missing.length && profileDisplayOptions.notes)
     ? `<div class="pd-preset-warn">⚠ ${missing.length} of 6 discs no longer match anything in your Drive Disc Library (edited or deleted since this preset was saved). The stats below still use the saved snapshot, but applying this preset to a team will skip those slots. Delete and re-save the preset to fix.</div>`
     : '';
   // Wording forks on category: 'verified' is YOUR OWN stand (never "imported"
@@ -10961,12 +11011,12 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
   // be null on both the legacy copyPublicPresetToMine presets (predates
   // tagging entirely) and the 6-of-6-missing manual heuristic, so every field
   // read off it here has to be optional-chained.
-  const importedNote = (!readOnly && isExternal)
+  const importedNote = (!readOnly && isExternal && profileDisplayOptions.notes)
     ? (cat === 'verified'
         ? `<div class="pd-preset-warn pd-preset-note">ℹ Verified build — a frozen snapshot pulled from your own confirmed stand${preset.source?.uid ? ` (UID ${escapeHtml(preset.source.uid)})` : ''}. Not tied to your current Drive Disc Library, so it can't be applied directly to a team — save it again from the Profile tab to refresh the snapshot.</div>`
         : `<div class="pd-preset-warn pd-preset-note">ℹ Imported build${preset.source?.nickname ? ` — from ${escapeHtml(preset.source.nickname)}'s showcase` : ''}${preset.source?.uid ? ` (UID ${escapeHtml(preset.source.uid)})` : ''}. This is a reference snapshot straight off that account's stand, not tied to your own Drive Disc Library, so it can't be applied directly to a team.</div>`)
     : '';
-  const publicNote = readOnly
+  const publicNote = (readOnly && profileDisplayOptions.notes)
     ? `<div class="pd-preset-warn pd-preset-note">ℹ Shared build${ownerLabel ? ` by ${escapeHtml(ownerLabel)}` : ''}. The Level/Core Skill Enhancement shown use <em>your own</em> Agent Library settings for ${escapeHtml(cardName(agentKey))} — only the W-Engine and discs are actually part of what was published.</div>`
     : '';
 
@@ -10976,8 +11026,15 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
   const discEntries = (preset.discs || []).slice().sort((a, b) => a.slot - b.slot);
   const setCounts = {};
   discEntries.forEach(d => { setCounts[d.setName] = (setCounts[d.setName] || 0) + 1; });
-  const useful = resolveUsefulSubstats(agentKey, discEntries);
+  // "Procs" toggle off → resolveUsefulSubstats(null, …) short-circuits to its
+  // own empty {main:Set(),flat:Set(),rule:null,…} shape, which every consumer
+  // below (statSheetRowsHtml, discDetailBlockHtml, usefulProcsSummaryHtml,
+  // substatTotalsRowHtml) already treats as "nothing to highlight" — so this
+  // one branch is enough to turn off every highlight at once, no other call
+  // site needs to know the toggle exists.
+  const useful = resolveUsefulSubstats(profileDisplayOptions.procs ? agentKey : null, discEntries);
   const procCounts = countUsefulProcs(discEntries, useful);
+  const approxHint = title => profileDisplayOptions.approx ? ` <span class="pd-stat-approx" title="${escapeHtml(title)}">ⓘ</span>` : '';
 
   const statsHtml = statSheetRowsHtml(sheet, useful);
 
@@ -10986,12 +11043,12 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
   // presets, and any showcase preset saved before this field existed, simply
   // have preset.skills === null, so the row is omitted rather than shown empty.
   const snapshotCoreLetter = preset.coreSkillEnhancement ? enkaCoreSkillLetter(preset.coreSkillEnhancement) : null;
-  const skillsHtml = (preset.skills && preset.skills.length)
-    ? `<div class="pd-section-title">Skills <span class="pd-stat-approx" title="Actual skill levels on the stand at the moment this preset was saved — frozen with the rest of the snapshot, not kept in sync afterward">ⓘ</span></div>
+  const skillsHtml = (profileDisplayOptions.skills && preset.skills && preset.skills.length)
+    ? `<div class="pd-section-title">Skills${approxHint('Actual skill levels on the stand at the moment this preset was saved — frozen with the rest of the snapshot, not kept in sync afterward')}</div>
        <div class="pd-skills">${preset.skills.map(s => `<div class="pd-skill-pill">${escapeHtml(s.label)} <b>Lv.${s.level}</b></div>`).join('')}${snapshotCoreLetter ? `<div class="pd-skill-pill">Core Skill Enhancement <b>${snapshotCoreLetter}</b></div>` : ''}</div>`
     : '';
 
-  const wengineHtml = preset.wengine
+  const wengineBlock = preset.wengine
     ? `<div class="pd-wengine">
         <img src="${wengineUrl(preset.wengine)}" onerror="this.style.opacity=.2">
         <div>
@@ -11001,14 +11058,25 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
         </div>
       </div>`
     : '<div class="pd-sub">No W-Engine equipped.</div>';
+  const wengineHtml = profileDisplayOptions.wengine
+    ? `<div class="pd-section-title">W-Engine</div>${wengineBlock}`
+    : '';
 
-  const setsHtml = Object.entries(setCounts).map(([n, c]) => `<span class="pd-badge">${escapeHtml(n)} ×${c}</span>`).join('') || '<span class="pd-sub">—</span>';
+  const setsHtml = profileDisplayOptions.sets
+    ? `<div class="pd-section-title">Drive Disc Sets</div>
+       <div class="pd-sets-list">${Object.entries(setCounts).map(([n, c]) => `<span class="pd-badge">${escapeHtml(n)} ×${c}</span>`).join('') || '<span class="pd-sub">—</span>'}</div>`
+    : '';
   const discsHtml = discEntries.length
-    ? `<div class="pd-discs-grid">${discEntries.map(d => `<div class="pd-disc-card">${discDetailBlockHtml(d, { useful })}</div>`).join('')}</div>`
+    ? (profileDisplayOptions.discs
+        ? `<div class="pd-discs-grid">${discEntries.map(d => `<div class="pd-disc-card">${discDetailBlockHtml(d, { useful })}</div>`).join('')}</div>`
+        : `<div class="pd-discs-compact">${discEntries.map(discCompactCardHtml).join('')}</div>`)
     : '<div class="pd-sub">No Drive Discs equipped.</div>';
   const agg = aggregateProfileDiscSubstats(discEntries);
-  const aggHtml = substatTotalsRowHtml(agg, useful);
-  const usefulSummary = usefulProcsSummaryHtml(procCounts, useful);
+  const totalsHtml = profileDisplayOptions.totals
+    ? `<div class="pd-section-title">Sub-Stat Totals (all equipped discs)</div>
+       ${usefulProcsSummaryHtml(procCounts, useful)}
+       <div class="pd-agg-row">${substatTotalsRowHtml(agg, useful)}</div>`
+    : '';
 
   return `
     <div class="pd-preset-detail">
@@ -11029,20 +11097,13 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
       ${importedNote}
       ${publicNote}
 
-      <div class="pd-section-title">Stats <span class="pd-stat-approx" title="Theoretical build: Level/Core Skill from the Agent Library, this W-Engine's Level from the W-Engine Library — same formulas as the Enka import above">ⓘ</span></div>
+      <div class="pd-section-title">Stats${approxHint("Theoretical build: Level/Core Skill from the Agent Library, this W-Engine's Level from the W-Engine Library — same formulas as the Enka import above")}</div>
       <div class="pd-cols">${statsHtml}</div>
 
       ${skillsHtml}
-
-      <div class="pd-section-title">W-Engine</div>
       ${wengineHtml}
-
-      <div class="pd-section-title">Drive Disc Sets</div>
-      <div class="pd-sets-list">${setsHtml}</div>
-
-      <div class="pd-section-title">Sub-Stat Totals (all equipped discs)</div>
-      ${usefulSummary}
-      <div class="pd-agg-row">${aggHtml}</div>
+      ${setsHtml}
+      ${totalsHtml}
 
       <div class="pd-section-title">Drive Discs</div>
       ${discsHtml}
@@ -11094,16 +11155,20 @@ async function renderProfileDetail(i) {
 
   // slug пуст для агента, которого ещё нет в наших таблицах (свежий патч) —
   // тогда resolveUsefulSubstats() отдаёт пустые наборы, подсветки и итога нет,
-  // а всё остальное в панели рисуется как обычно.
-  const useful = resolveUsefulSubstats(slug, discEntries);
+  // а всё остальное в панели рисуется как обычно. "Procs" toggle off works
+  // the same way, on purpose — see the matching comment in presetDetailHtml.
+  const useful = resolveUsefulSubstats(profileDisplayOptions.procs ? slug : null, discEntries);
   const procCounts = countUsefulProcs(discEntries, useful);
 
   const statsHtml = statSheetRowsHtml(sheet, useful);
 
-  const skillsHtml = skillLevels.map(s => `<div class="pd-skill-pill">${escapeHtml(s.label)} <b>Lv.${s.level}</b></div>`).join('')
+  const skillsInner = skillLevels.map(s => `<div class="pd-skill-pill">${escapeHtml(s.label)} <b>Lv.${s.level}</b></div>`).join('')
     + (coreLetter ? `<div class="pd-skill-pill">Core Skill Enhancement <b>${coreLetter}</b></div>` : '');
+  const skillsHtml = (profileDisplayOptions.skills && (skillLevels.length || coreLetter))
+    ? `<div class="pd-section-title">Skills</div><div class="pd-skills">${skillsInner}</div>`
+    : '';
 
-  const wengineHtml = a.Weapon
+  const wengineBlock = a.Weapon
     ? `<div class="pd-wengine">
         <img src="${wengineUrl(wengineSlug || '')}" onerror="this.style.opacity=.2">
         <div>
@@ -11113,16 +11178,27 @@ async function renderProfileDetail(i) {
         </div>
       </div>`
     : '<div class="pd-sub">No W-Engine equipped.</div>';
+  const wengineHtml = profileDisplayOptions.wengine
+    ? `<div class="pd-section-title">W-Engine</div>${wengineBlock}`
+    : '';
 
   const discsHtml = discEntries.length
-    ? `<div class="pd-discs-grid">${discEntries.map(d => `<div class="pd-disc-card">${discDetailBlockHtml(d, { useful })}</div>`).join('')}</div>`
+    ? (profileDisplayOptions.discs
+        ? `<div class="pd-discs-grid">${discEntries.map(d => `<div class="pd-disc-card">${discDetailBlockHtml(d, { useful })}</div>`).join('')}</div>`
+        : `<div class="pd-discs-compact">${discEntries.map(discCompactCardHtml).join('')}</div>`)
     : '<div class="pd-sub">No Drive Discs equipped.</div>';
 
-  const setsHtml = Object.entries(setCounts).map(([n, c]) => `<span class="pd-badge">${escapeHtml(n)} ×${c}</span>`).join('') || '<span class="pd-sub">—</span>';
+  const setsHtml = profileDisplayOptions.sets
+    ? `<div class="pd-section-title">Drive Disc Sets</div>
+       <div class="pd-sets-list">${Object.entries(setCounts).map(([n, c]) => `<span class="pd-badge">${escapeHtml(n)} ×${c}</span>`).join('') || '<span class="pd-sub">—</span>'}</div>`
+    : '';
 
   const agg = aggregateProfileDiscSubstats(discEntries);
-  const aggHtml = substatTotalsRowHtml(agg, useful);
-  const usefulSummary = usefulProcsSummaryHtml(procCounts, useful);
+  const totalsHtml = profileDisplayOptions.totals
+    ? `<div class="pd-section-title">Sub-Stat Totals (all equipped discs)</div>
+       ${usefulProcsSummaryHtml(procCounts, useful)}
+       <div class="pd-agg-row">${substatTotalsRowHtml(agg, useful)}</div>`
+    : '';
 
   panel.innerHTML = `
     <div class="pd-head">
@@ -11140,18 +11216,10 @@ async function renderProfileDetail(i) {
     <div class="pd-section-title">Stats</div>
     <div class="pd-cols">${statsHtml}</div>
 
-    <div class="pd-section-title">Skills</div>
-    <div class="pd-skills">${skillsHtml}</div>
-
-    <div class="pd-section-title">W-Engine</div>
+    ${skillsHtml}
     ${wengineHtml}
-
-    <div class="pd-section-title">Drive Disc Sets</div>
-    <div class="pd-sets-list">${setsHtml}</div>
-
-    <div class="pd-section-title">Sub-Stat Totals (all equipped discs)</div>
-    ${usefulSummary}
-    <div class="pd-agg-row">${aggHtml}</div>
+    ${setsHtml}
+    ${totalsHtml}
 
     <div class="pd-section-title">Drive Discs</div>
     ${discsHtml}
@@ -11230,6 +11298,19 @@ function discDetailBlockHtml(d, opts = {}) {
     ${subsHtml || '<div class="disc-detail-row-empty">—</div>'}
     ${usefulLine}
     ${deleteBtn}`;
+}
+
+// Compact "just the essentials" disc chip — icon, set name, slot, level — used
+// by renderProfileDetail/presetDetailHtml instead of the full
+// discDetailBlockHtml() card when the Profile tab's "Discs" toggle is off.
+function discCompactCardHtml(d) {
+  return `<div class="pd-disc-compact" title="${escapeHtml(d.setName || 'Unknown Set')} [${d.slot || '?'}]">
+    <img src="${discUrl(d.setName)}" onerror="this.style.opacity=.15">
+    <div>
+      <div class="pd-disc-compact-name">${escapeHtml(d.setName || 'Unknown Set')} <span class="pd-disc-compact-slot">[${d.slot || '?'}]</span></div>
+      <div class="pd-disc-compact-lv">Lv.${d.level}/${d.maxLevel}</div>
+    </div>
+  </div>`;
 }
 
 function renderDriveDiscDetail() {
@@ -12363,6 +12444,34 @@ function initToolbarToggles() {
   document.querySelectorAll('#tbGroupTeams .tb-toggle[data-key], #tbGroupDeadly .tb-toggle[data-key]').forEach(btn => {
     btn.classList.toggle('active', !!displayOptions[btn.dataset.key]);
   });
+}
+
+/* ── TOOLBAR: PROFILE TAB DISPLAY TOGGLES ──
+   Mirrors toggleVisOption/initToolbarToggles above, against
+   profileDisplayOptions instead of displayOptions — see that object's comment
+   for why they're kept separate. */
+function toggleProfileVisOption(key, btn) {
+  profileDisplayOptions[key] = !profileDisplayOptions[key];
+  localStorage.setItem('zzz_profile_display_options', JSON.stringify(profileDisplayOptions));
+  document.querySelectorAll(`#tbGroupProfile .tb-toggle[data-key="${key}"]`)
+    .forEach(el => el.classList.toggle('active', profileDisplayOptions[key]));
+  refreshProfileDetailView();
+}
+function initProfileToolbarToggles() {
+  document.querySelectorAll('#tbGroupProfile .tb-toggle[data-key]').forEach(btn => {
+    btn.classList.toggle('active', !!profileDisplayOptions[btn.dataset.key]);
+  });
+}
+// Re-renders whichever of the four things can currently occupy #profileDetail
+// — live showcase agent, one of your own presets, a preset viewed off someone
+// else's published index, or (in the separate feed-linked modal) a public
+// preset — so a toggle flip is reflected immediately no matter what's open.
+function refreshProfileDetailView() {
+  if (ownerPresetViewAgentKey) { renderOwnerPresetView(); return; }
+  if (profilePresetViewAgentKey) { renderAgentPresetView(); return; }
+  if (profileSelectedIndex != null) { renderProfileDetail(profileSelectedIndex); return; }
+  const feedModalOpen = currentPublicPresetView && !document.getElementById('publicPresetsBg')?.classList.contains('hidden');
+  if (feedModalOpen) viewPublicPresetDetail(currentPublicPresetView.preset.id);
 }
 
 /* ── TOOLBAR: ACCENT COLOR ── */
@@ -14406,6 +14515,7 @@ async function submitComment(postId) {
 initAuth();
 initAccentColor();
 initToolbarToggles();
+initProfileToolbarToggles();
 populateShiyuFilterSelect();
 populateDaFilterSelect();
 populateFeedFilterOptions();
