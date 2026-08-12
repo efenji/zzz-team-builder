@@ -34,8 +34,8 @@
   --text-dim:#4a4a4a;
   --text-mid:#777;
   --red:     #ef4444;
-  --r:       12px;
-  --r-sm:    8px;
+  --r:       10px;
+  --r-sm:    6px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -111,8 +111,8 @@ header {
 .account-dropdown-user { display: flex; align-items: center; gap: 9px; padding: 12px; border-bottom: 1px solid var(--border); }
 .account-dropdown-user img { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; }
 .account-dropdown-name { font-size: 12px; font-weight: 700; font-family: 'Barlow Condensed', 'Oswald', sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.account-dropdown-admin-badge { font-size: 9px; font-family: 'Share Tech Mono', monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); background: var(--accent-d); border: 1px solid var(--accent-30); border-radius: 20px; padding: 1px 7px; margin-top: 4px; display: inline-block; width: fit-content; }
-.account-dropdown-item { display: block; width: 100%; text-align: left; background: none; border: none; color: var(--text); font: inherit; font-size: 12px; padding: 10px 12px; cursor: pointer; }
+.account-dropdown-admin-badge { font-size: 9px; font-family: 'Share Tech Mono', monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); background: var(--accent-d); border: 1px solid var(--accent-30); border-radius: var(--r-sm); padding: 1px 7px; margin-top: 4px; display: inline-block; width: fit-content; }
+.account-dropdown-item { display: block; width: calc(100% - 12px); text-align: left; background: none; border: none; color: var(--text); font: inherit; font-size: 12px; padding: 8px 10px; margin: 2px 6px; border-radius: var(--r-sm); cursor: pointer; }
 .account-dropdown-item:hover { background: var(--bg4); }
 .account-dropdown-item:focus-visible { outline: 2px solid var(--accent-60); outline-offset: -2px; }
 .account-dropdown-item.danger { color: var(--red); }
@@ -349,7 +349,7 @@ header {
   display: inline-flex; align-items: center; gap: 5px;
   font-family: 'Share Tech Mono', monospace; font-size: 11px; line-height: 13px;
   color: var(--text-mid); background: var(--accent-d);
-  padding: 2px 8px; border-radius: 100px; white-space: nowrap;
+  padding: 2px 8px; border-radius: var(--r-sm); white-space: nowrap;
 }
 .tc-time b, .tc-score b { color: var(--accent); }
 .tc-shiyu {
@@ -366,13 +366,13 @@ header {
 .tc-strip {
   display: grid; grid-template-columns: repeat(3, 1fr);
   border-top: 1px solid var(--border);
+  gap: 1px; background: var(--border);
 }
 .tc-cell {
   position: relative; overflow: hidden;
   background: var(--bg3);
   display: flex; flex-direction: column;
 }
-.tc-cell + .tc-cell { border-left: 1px solid var(--border); }
 .tc-cell-img { height: 102px; overflow: hidden; }
 .tc-cell-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .tc-icon-row {
@@ -1253,7 +1253,7 @@ select {
 }
 
 /* Post moderation status badge */
-.post-status-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 20px; margin-left: auto; }
+.post-status-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: var(--r-sm); margin-left: auto; }
 .post-status-badge.pending  { color: var(--accent); background: var(--accent-d); border: 1px solid var(--accent-30); }
 .post-status-badge.approved { color: #22c55e; background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.35); }
 .post-status-badge.rejected { color: var(--red); background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.35); }
@@ -1290,7 +1290,7 @@ select {
 /* Player search dropdown / bookmarks / feed controls now live in the toolbar — see .tb-* above. */
 .profile-search-results { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 40; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r-sm); max-height: 320px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
 .profile-search-results.hidden { display: none; }
-.profile-search-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; cursor: pointer; font-size: 12px; }
+.profile-search-item { display: flex; align-items: center; gap: 8px; width: calc(100% - 12px); box-sizing: border-box; margin: 2px 6px; padding: 8px 10px; border-radius: var(--r-sm); cursor: pointer; font-size: 12px; }
 .profile-search-item:hover { background: var(--bg4); }
 .profile-search-item img { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; }
 .profile-search-item .psi-names { display: flex; flex-direction: column; min-width: 0; }
@@ -1414,7 +1414,7 @@ select {
   object-fit: cover; object-position: left center;
 }
 .profile-agent-card:hover { border-color: var(--border2); }
-.profile-agent-card.selected { border-color: var(--accent); background: var(--accent-d); }
+.profile-agent-card.selected { border-color: var(--accent); background: var(--bg3); }
 .profile-agent-card .pac-name { font-weight: 700; }
 .profile-agent-card .pac-sub { color: var(--text-dim); font-size: 11px; margin-top: 2px; }
 /* Два счётчика в одной строке: flex вместо разделителя «·» — точка между
