@@ -8112,6 +8112,21 @@ function getPresetById(agentKey, presetId) { return getAgentPresets(agentKey).fi
 // именно так они и создавались раньше (единственный тогдашний способ).
 function presetCategory(p) { return p.category || 'manual'; }
 
+// Stand snapshots (verified/imported, or mis-tagged copies) store disc data as
+// frozen snapshots, not Drive Disc Library references — "missing from library"
+// warnings don't apply to them.
+function presetIsExternalSnapshot(p) {
+  if (p.source) return true;
+  const cat = presetCategory(p);
+  if (cat === 'imported' || cat === 'verified') return true;
+  // Legacy: copyPublicPresetToMine used to save as manual without source.
+  if (cat === 'manual' && (p.discs || []).length === 6) {
+    const { missing } = evaluatePresetApplicability(p, null);
+    if (missing.length === 6) return true;
+  }
+  return false;
+}
+
 /* ── ЗНАЧКИ КАТЕГОРИЙ ПРЕСЕТОВ ──
    Монохромные SVG вместо эмодзи (были ✅ / 🛠 / 📥). Эмодзи рисует сама
    система — на маке они цветные и объёмные, на винде другой формы, в размер
@@ -9743,7 +9758,7 @@ async function renderAgentPresetView() {
   profilePresetViewPresetId = preset.id;
 
   renderPresetTabsToolbar(presets.map(p => {
-    const missing = p.source ? [] : evaluatePresetApplicability(p, null).missing;
+    const missing = presetIsExternalSnapshot(p) ? [] : evaluatePresetApplicability(p, null).missing;
     const broken = missing.length > 0;
     const cat = presetCategory(p);
     // Никнейм приходит со стенда чужого аккаунта, то есть это НЕ доверенная
