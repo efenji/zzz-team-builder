@@ -10355,11 +10355,14 @@ function statSheetBucket(row, useful) {
    двумя одинаковыми правками и они бы разъехались при следующей. */
 function statSheetRowsHtml(sheet, useful) {
   if (!sheet) return '<div class="disc-detail-row-empty">No reference data available for this agent.</div>';
+  // Same "approximate value" concept as the section-level ⓘ hints (both use
+  // .pd-stat-approx), just flagged per-row instead of per-section — so it
+  // rides the same Profile-tab "Approx" toggle rather than always showing.
   return sheet.map(s => {
     const b = statSheetBucket(s, useful);
     return `
       <div class="disc-detail-row pd-stat-row${b ? ' up-' + b : ''}">
-        <div class="disc-detail-row-label">${escapeHtml(s.label)}${s.approximate ? ' <span class="pd-stat-approx" title="Kit-specific conditional bonus not modeled — may run slightly under the true value">⚠</span>' : ''}</div>
+        <div class="disc-detail-row-label">${escapeHtml(s.label)}${(s.approximate && profileDisplayOptions.approx) ? ' <span class="pd-stat-approx" title="Kit-specific conditional bonus not modeled — may run slightly under the true value">⚠</span>' : ''}</div>
         <div class="disc-detail-row-val">${formatEnkaStatValue(s.total, s.isPercent, s.fam)}
           <span class="pd-stat-note">(${formatEnkaStatValue(s.base, s.isPercent, s.fam)} + ${formatEnkaStatValue(s.bonus, s.isPercent, s.fam)})</span>
         </div>
