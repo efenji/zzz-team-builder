@@ -11187,9 +11187,8 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
       } : null,
       // Владелец пресета: у чужого/публичного это ownerLabel, у своего — свой
       // же ник со стенда. UID есть только в снимке, снятом со стенда.
-      owner: profileDisplayOptions.owner
-        ? { nickname: ownerLabel || (preset.source?.nickname) || profileCurrentNickname, uid: preset.source?.uid || null }
-        : null,
+      owner: { nickname: ownerLabel || (preset.source?.nickname) || profileCurrentNickname, uid: preset.source?.uid || null },
+      showOwner: profileDisplayOptions.owner,
       presetName: preset.name || null,
     }));
   }
@@ -11470,7 +11469,7 @@ function ccDrawPortrait(ctx, C, m, IM) {
   });
 
   // Ник и UID — вертикально вдоль правого края, как на карточках Энки.
-  if (m.owner && (m.owner.nickname || m.owner.uid)) {
+  if (m.showOwner && m.owner && (m.owner.nickname || m.owner.uid)) {
     ctx.save();
     ctx.translate(x + w - 26, y + h - 40);
     ctx.rotate(-Math.PI / 2);
@@ -11796,13 +11795,29 @@ function ccMakeModel(src) {
   const slug = src.agentKey ? assetSlug(src.agentKey) : 'agent';
   const attr = src.agentKey ? AGENT_ATTRIBUTE[src.agentKey] : null;
   const cls = src.agentKey ? (getAgentClasses(src.agentKey) || [])[0] : null;
-  const tail = src.presetName ? assetSlug(src.presetName)
-    : (src.owner && src.owner.uid ? String(src.owner.uid) : '');
-  return Object.assign({
+  /* Хвост имени файла. Ник приоритетнее UID: имя файла человек видит в папке
+     «Загрузки», и «zhu-yuan-omgkawaiiangel» ему что-то говорит, а
+     «zhu-yuan-1500146847» — нет.
+     Откат на UID нужен не для красоты: assetSlug() оставляет только [a-z0-9],
+     поэтому ник целиком из иероглифов, кириллицы или эмодзи схлопывается в
+     пустую строку — без отката файл потерял бы всякую привязку к владельцу.
+     Обрезка до 40 символов — против ников-простыней в имени файла.
+     Считается ВСЕГДА, независимо от тумблера Owner: тот управляет подписью на
+     самой картинке, а не тем, как файл называется. Раньше это было связано, и
+     выключенная подпись молча меняла имя файла. */
+  const ownerTag = src.owner
+    ? (assetSlug(src.owner.nickname || '') || (src.owner.uid ? String(src.owner.uid) : ''))
+    : '';
+  const tail = ((src.presetName ? assetSlug(src.presetName) : '') || ownerTag).slice(0, 40).replace(/-+$/, '');
+  /* Вычисленные поля идут ВТОРЫМ аргументом, то есть побеждают. При обратном
+     порядке модель, случайно прогнанная через ccMakeModel() дважды, унесла бы
+     старый fileBase из первого прогона — молча, потому что имя файла видно
+     только в момент скачивания. */
+  return Object.assign({}, src, {
     attributeIcon: attr ? (attr.special || attr.base) : null,
     specialtyIcon: cls || null,
     fileBase: tail ? `${slug}-${tail}` : slug,
-  }, src);
+  });
 }
 
 async function renderProfileDetail(i) {
@@ -11911,7 +11926,8 @@ async function renderProfileDetail(i) {
         line1: `Lv.${a.Weapon.Level} · P${a.Weapon.UpgradeLevel || 1}${wengineInfo ? ` · ${wengineInfo.rarity}-Rank ${wengineInfo.specialty}` : ''}`,
         line2: wengineInfo ? `Base ATK ${wengineInfo.baseATK} · ${wengineInfo.secondaryStat?.name || ''} ${wengineInfo.secondaryStat?.value || ''}` : '',
       } : null,
-      owner: profileDisplayOptions.owner ? { nickname: profileCurrentNickname, uid: profileCurrentUid } : null,
+      owner: { nickname: profileCurrentNickname, uid: profileCurrentUid },
+      showOwner: profileDisplayOptions.owner,
       presetName: null,
     }));
     return;
