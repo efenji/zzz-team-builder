@@ -40,6 +40,7 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--text); font-family: 'Barlow', 'Inter', sans-serif; min-height: 100vh; }
+button { appearance: none; -webkit-appearance: none; font: inherit; color: inherit; }
 
 /* ── PINNED BAR STACK (header + primary nav + toolbar) ──
    One sticky element holding all three bars, instead of three independently
@@ -153,7 +154,7 @@ header {
 .tb-group { display: flex; align-items: center; gap: 5px; }
 .tb-sep { width: 1px; height: 24px; background: var(--border2); margin: 0 5px; flex-shrink: 0; }
 .tb-btn {
-  background: var(--bg3); border: 1px solid var(--border); color: var(--text-mid);
+  background-color: var(--bg3); background-image: none; border: 1px solid var(--border); color: var(--text-mid);
   width: 34px; height: 34px; border-radius: var(--r-sm);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; font-size: 15px; line-height: 1;
@@ -2054,7 +2055,7 @@ select {
       <input type="text" class="tb-input" id="profileUidInput" placeholder="⌕ UID, nickname (game/Discord)…" autocomplete="off" oninput="onProfileSearchInput()" onkeydown="if(event.key==='Enter'){closeProfileSearchResults();loadProfileShowcase();}else if(event.key==='Escape')closeProfileSearchResults()">
       <div class="profile-search-results hidden" id="profileSearchResults"></div>
     </div>
-    <button class="tb-btn tb-btn-txt" onclick="closeProfileSearchResults();loadProfileShowcase()">Load</button>
+    <button type="button" class="tb-btn tb-btn-txt" onclick="closeProfileSearchResults();loadProfileShowcase()">Load</button>
     <button class="tb-btn hidden" id="profileReloadMyBtn" onclick="reloadMyShowcase()" title="Refresh your stand from Enka and save it to the site"><svg class="tb-ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg></button>
   </div>
   <div class="tb-sep"></div>
