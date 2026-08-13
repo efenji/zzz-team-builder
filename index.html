@@ -1393,8 +1393,9 @@ select {
 .profile-agent-list.with-divider { margin-top: 14px; padding-top: 16px; border-top: 1px solid var(--border); }
 .profile-agent-card {
   background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-sm);
-  padding: 8px 10px; cursor: pointer; font-size: 13px;
+  padding: 8px 0 8px 10px; cursor: pointer; font-size: 13px;
   display: flex; align-items: center; gap: 10px;
+  overflow: hidden;
 }
 /* Текст занимает всё свободное место и жмёт портрет к правому краю. min-width:0
    обязателен: без него длинное имя не даст флекс-элементу сжаться и выпихнет
@@ -1413,7 +1414,8 @@ select {
    Число подобрано по содержимому файла, а не по пропорциям арта: если у
    какого-то агента лицо смещено, кадр у него съедет — тогда правится здесь. */
 .profile-agent-card .pac-art {
-  width: 88px; height: 38px; flex-shrink: 0;
+  width: 88px; flex-shrink: 0; align-self: stretch;
+  margin: -8px 0;
   object-fit: cover; object-position: left center;
 }
 .profile-agent-card:hover { border-color: var(--border2); }
