@@ -1403,9 +1403,9 @@ select {
 .profile-agent-card .pac-text { flex: 1; min-width: 0; }
 /* square.webp — не квадрат, а плашка 180×64 со скошенными краями. Лицо в ней
    занимает левые ~72% ширины, дальше идёт тёмная полоса фона плашки и торчащая
-   прядь. Кадр 88×38 показывает левые 82% файла — лицо с запасом, отрезан только
+   прядь. Кадр 88×45 показывает левые ~70% файла — лицо с запасом, отрезан только
    правый хвост: cover масштабирует картинку по высоте (соотношение файла 2.81
-   больше, чем у рамки 2.32), а лишнее по ширине уходит за границу рамки.
+   больше, чем у рамки 1.96), а лишнее по ширине уходит за границу рамки.
      · object-position: left — рамка совпадает с левым краем файла, поэтому
        скос виден целиком, а обрезается только справа и ровно по вертикали;
      · ни фона, ни скругления: под скосом прозрачность, и любая заливка
@@ -1416,7 +1416,7 @@ select {
 .profile-agent-card .pac-art {
   width: 88px; flex-shrink: 0; align-self: stretch;
   margin: -8px 0;
-  object-fit: cover; object-position: -18px center;
+  object-fit: cover; object-position: left center;
 }
 .profile-agent-card:hover { border-color: var(--border2); }
 .profile-agent-card.selected { border-color: var(--accent); background: var(--bg3); }
