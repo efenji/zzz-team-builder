@@ -1390,7 +1390,6 @@ select {
 .profile-layout { display: flex; gap: 16px; margin-top: 16px; align-items: flex-start; }
 .profile-agent-list-col { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; }
 .profile-agent-list { display: flex; flex-direction: column; gap: 6px; }
-.profile-agent-list.with-divider { margin-top: 14px; padding-top: 16px; border-top: 1px solid var(--border); }
 .profile-agent-card {
   background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-sm);
   padding: 8px 0 8px 10px; cursor: pointer; font-size: 13px;
@@ -1446,6 +1445,14 @@ select {
    flex:1 rule untouched. */
 .profile-detail-col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .profile-detail { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 18px; }
+/* ── КОМПАКТНАЯ КАРТОЧКА ──
+   Холст всегда ровно 1920×1080 пикселей (см. CC.W/CC.H), а на экран его кладёт
+   CSS: width:100% + height:auto. То есть на экране картинка масштабируется, но
+   скачивается всегда в исходном разрешении — превью и файл это буквально один
+   и тот же буфер, разойтись они не могут. display:block убирает щель под
+   inline-элементом, из-за которой рамка панели не прилегала бы к холсту. */
+.cc-canvas { display: block; width: 100%; height: auto; border-radius: var(--r-sm); }
+.cc-note { margin-top: 10px; color: var(--text-mid); font-size: 12px; }
 .profile-detail-empty { color: var(--text-dim); font-size: 13px; text-align: center; padding: 60px 0; }
 .profile-favorites { display: flex; flex-wrap: wrap; gap: 6px; }
 
@@ -2075,14 +2082,26 @@ select {
        localStorage key: sharing keys/state with the Teams displayOptions row
        would let a toggle flipped on Shiyu Defense silently change what the
        Profile tab shows, and vice versa — see toggleProfileVisOption(). -->
+  <!-- Вид панели: развёрнутый (HTML, вся детализация) или компактный
+       (одна карточка 1920×1080 на canvas, её же можно скачать). Тумблеры
+       ниже помечены data-modes: часть из них управляет блоками, которых в
+       компактной карточке нет как отдельных секций, поэтому в компактном
+       режиме они прячутся — см. syncProfileViewModeUI(). -->
   <div class="tb-group">
-    <button class="tb-toggle" data-key="procs" onclick="toggleProfileVisOption('procs', this)" title="Highlight useful sub-stat procs, on disc cards and in the Sub-Stat Totals row">Procs</button>
-    <button class="tb-toggle" data-key="totals" onclick="toggleProfileVisOption('totals', this)" title="Show the Sub-Stat Totals section">Totals</button>
-    <button class="tb-toggle" data-key="skills" onclick="toggleProfileVisOption('skills', this)" title="Show skill levels — live stand agents, and Verified/Imported presets saved after this feature shipped">Skills</button>
-    <button class="tb-toggle" data-key="wengine" onclick="toggleProfileVisOption('wengine', this)" title="Show the W-Engine block">W-Engine</button>
-    <button class="tb-toggle" data-key="sets" onclick="toggleProfileVisOption('sets', this)" title="Show the Drive Disc Sets summary">Sets</button>
-    <button class="tb-toggle" data-key="discs" onclick="toggleProfileVisOption('discs', this)" title="Full disc cards with every sub-stat, vs. a compact icon + level row">Discs</button>
-    <button class="tb-toggle" data-key="notes" onclick="toggleProfileVisOption('notes', this)" title="Show info banners (Imported/Verified/Shared build, missing-discs warning)">Notes</button>
+    <button class="tb-toggle" id="tbViewFull" onclick="setProfileViewMode('full')" title="Full view — every section, expandable">Full</button>
+    <button class="tb-toggle" id="tbViewCompact" onclick="setProfileViewMode('compact')" title="Compact view — one 1920×1080 card you can download">Compact</button>
+    <button class="tb-btn" id="tbCardDownload" onclick="downloadCompactCard()" title="Download this card as a 1920×1080 PNG" disabled><svg class="tb-ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M4 20h16"/></svg></button>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-group">
+    <button class="tb-toggle" data-modes="full compact" data-key="procs" onclick="toggleProfileVisOption('procs', this)" title="Highlight useful sub-stat procs, on disc cards and in the Sub-Stat Totals row">Procs</button>
+    <button class="tb-toggle" data-modes="full compact" data-key="totals" onclick="toggleProfileVisOption('totals', this)" title="Show the Sub-Stat Totals section">Totals</button>
+    <button class="tb-toggle" data-modes="compact" data-key="owner" onclick="toggleProfileVisOption('owner', this)" title="Print the nickname and UID on the card">Owner</button>
+    <button class="tb-toggle" data-modes="full" data-key="skills" onclick="toggleProfileVisOption('skills', this)" title="Show skill levels — live stand agents, and Verified/Imported presets saved after this feature shipped">Skills</button>
+    <button class="tb-toggle" data-modes="full" data-key="wengine" onclick="toggleProfileVisOption('wengine', this)" title="Show the W-Engine block">W-Engine</button>
+    <button class="tb-toggle" data-modes="full" data-key="sets" onclick="toggleProfileVisOption('sets', this)" title="Show the Drive Disc Sets summary">Sets</button>
+    <button class="tb-toggle" data-modes="full" data-key="discs" onclick="toggleProfileVisOption('discs', this)" title="Full disc cards with every sub-stat, vs. a compact icon + level row">Discs</button>
+    <button class="tb-toggle" data-modes="full" data-key="notes" onclick="toggleProfileVisOption('notes', this)" title="Show info banners (Imported/Verified/Shared build, missing-discs warning)">Notes</button>
   </div>
 </div>
 
@@ -7500,7 +7519,11 @@ let displayOptions = Object.assign({attr:true, class:true, ability:true, wengine
    hints — removed per user feedback: the hints themselves just confused
    people more than the numbers they were annotating, toggle or not, so both
    are gone rather than hidden-by-default.) */
-let profileDisplayOptions = Object.assign({procs:true, totals:true, skills:true, wengine:true, sets:true, discs:true, notes:true},
+/* 'full' | 'compact'. Своя ячейка localStorage, а не поле profileDisplayOptions:
+   это не «показать/скрыть блок», а выбор рендерера, и мешать их в один объект
+   значит однажды случайно сбросить режим при миграции набора тумблеров. */
+let profileViewMode = localStorage.getItem('zzz_profile_view_mode') === 'compact' ? 'compact' : 'full';
+let profileDisplayOptions = Object.assign({procs:true, totals:true, skills:true, wengine:true, sets:true, discs:true, notes:true, owner:true},
   JSON.parse(localStorage.getItem('zzz_profile_display_options') || '{}'));
 
 /* ── DRIVE DISC PICKER MODE ──
@@ -9914,7 +9937,6 @@ async function renderProfileLeftExtra() {
   if (isMyOwnStand) {
     // Мой стенд — список ниже браузит МОИ локальные пресеты, как и раньше.
     // Кнопка создания пресета переехала в тулбар (слот B, #tbPresetNew).
-    el.classList.remove('with-divider');
     const agentsWithPresets = Object.keys(agentPresets).filter(k => (agentPresets[k] || []).length > 0);
     if (!agentsWithPresets.length) { el.innerHTML = ''; el.classList.add('hidden'); return; }
     el.classList.remove('hidden');
@@ -9941,7 +9963,6 @@ async function renderProfileLeftExtra() {
   const rows = await loadAllProfileOwnerPresets(profileCurrentOwnerId);
   if (!rows.length) { el.innerHTML = ''; el.classList.add('hidden'); return; }
   el.classList.remove('hidden');
-  el.classList.add('with-divider');
   const agentKeys = [...new Set(rows.map(r => r.agent_key))];
   el.innerHTML = sortAgentsByRarity(agentKeys).map(k => {
     const count = rows.filter(r => r.agent_key === k).length;
@@ -11140,6 +11161,39 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
         : `<div class="pd-discs-compact">${discEntries.map(discCompactCardHtml).join('')}</div>`)
     : '<div class="pd-sub">No Drive Discs equipped.</div>';
   const agg = aggregateProfileDiscSubstats(discEntries);
+
+  /* Компактный вид. Уровень и Core Skill Enhancement у пресета берутся из
+     Agent Library (как и в развёрнутом виде — см. publicNote), а снимок
+     навыков есть только у пресетов, сохранённых со стенда: у остальных
+     preset.skills === null, и карточка рисует иконки навыков без уровней. */
+  if (profileViewMode === 'compact') {
+    const skillMap = {};
+    (preset.skills || []).forEach(sk => { skillMap[sk.index] = sk.level; });
+    return compactCardShellHtml(ccMakeModel({
+      agentKey,
+      displayName: cardName(agentKey),
+      subLine: profile ? [profile.fullName, profile.gender, profile.stature].filter(Boolean).join(' · ') : '',
+      level: libEntry.level, levelMax: null,
+      mindscape: libEntry.mindscape || 0,
+      coreRank: preset.coreSkillEnhancement || libEntry.coreSkillEnhancement || 0,
+      skills: (preset.skills && preset.skills.length) ? skillMap : null,
+      sheet, useful, procCounts, agg,
+      discs: discEntries, setCounts,
+      wengine: preset.wengine ? {
+        key: preset.wengine,
+        name: prettyName(preset.wengine),
+        line1: `Lv.${wengineLibLevel} · R${preset.wrank || 1}${wengineInfo ? ` · ${wengineInfo.rarity}-Rank ${wengineInfo.specialty}` : ''}`,
+        line2: wengineInfo ? `Base ATK ${wengineInfo.baseATK} · ${wengineInfo.secondaryStat?.name || ''} ${wengineInfo.secondaryStat?.value || ''}` : '',
+      } : null,
+      // Владелец пресета: у чужого/публичного это ownerLabel, у своего — свой
+      // же ник со стенда. UID есть только в снимке, снятом со стенда.
+      owner: profileDisplayOptions.owner
+        ? { nickname: ownerLabel || (preset.source?.nickname) || profileCurrentNickname, uid: preset.source?.uid || null }
+        : null,
+      presetName: preset.name || null,
+    }));
+  }
+
   const totalsHtml = profileDisplayOptions.totals
     ? `<div class="pd-section-title">Sub-Stat Totals (all equipped discs)</div>
        ${usefulProcsSummaryHtml(procCounts, useful)}
@@ -11179,6 +11233,576 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
       ${hideActions ? '' : `<div class="pd-preset-actions">${presetActionsHtml(agentKey, preset, opts)}</div>`}
     </div>
   `;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   КОМПАКТНАЯ КАРТОЧКА — РЕНДЕР НА CANVAS
+
+   Почему canvas, а не вёрстка. Смысл этого режима — кнопка «скачать»:
+   пользователь получает картинку, которую можно кинуть в чат. Браузер не умеет
+   сохранять кусок DOM в PNG, а обходные пути (foreignObject в SVG, html2canvas)
+   требуют вшивать шрифты base64-строкой и всё равно дают расхождение между
+   экраном и файлом — классическая беда, когда вместо Barlow в скачанном PNG
+   вылезает системный шрифт. Здесь превью и файл — буквально один и тот же
+   пиксельный буфер: то, что нарисовано, то и сохранится.
+
+   Размер холста фиксированный, 1920×1080, потому что это и есть формат
+   результата. На экран его кладёт CSS (.cc-canvas: width:100%), поэтому
+   раскладка НЕ адаптивная и не должна быть: все числа ниже — пиксели готовой
+   картинки, а не экрана.
+
+   Цвета читаются из CSS-переменных в момент отрисовки, поэтому акцент из
+   настроек сайта попадает и в скачанный файл; сменил цвет — перерисовалось.
+
+   Раскладка (при CC.PAD=34):
+     ├ портрет      x   34 …  554   (520)
+     ├ центр        x  574 … 1234   (660): статы, навыки, W-Engine, сеты, итоги
+     └ диски        x 1254 … 1886   (632): шесть плашек на всю высоту
+   ══════════════════════════════════════════════════════════════════════════ */
+const CC = {
+  W: 1920, H: 1080, PAD: 34, GAP: 20,
+  LEFT_W: 520, MID_W: 660,
+  R: 14, R_SM: 10,
+  F: 'Barlow', FC: '"Barlow Condensed"', FM: '"Share Tech Mono"',
+};
+CC.RIGHT_W = CC.W - CC.PAD * 2 - CC.LEFT_W - CC.MID_W - CC.GAP * 2;
+
+/* Полноростовой арт — тот же файл, что у Энки слева на карточке. Лежит рядом с
+   card.webp/square.webp в папке агента. Размер у всех разный (у Lucia
+   1176×2164, у Hugo 1592×2704), поэтому кадрируется по правилу «cover, якорь
+   сверху»: лица в этих файлах всегда в верхней трети. */
+const agentPortraitUrl = k => `${BASE}/agents/${assetSlug(k)}/portrait.webp`;
+
+// Семейство стата → ключ иконки в assets/stats/. Ключи в том же виде, что в
+// MAIN_STAT_ICON_MAP, чтобы имена файлов собирались одним и тем же assetSlug().
+const CC_STAT_ICON = {
+  '111':'HP','121':'ATK','131':'DEF','122':'Impact','201':'CRIT_Rate','211':'CRIT_DMG',
+  '231':'PEN_Ratio','232':'PEN','305':'Energy_Regen','312':'Anomaly_Proficiency',
+  '314':'Anomaly_Mastery','315':'Physical','316':'Fire','317':'Ice','318':'Electric',
+  '319':'Ether','323':'Wind','sheer':'Sheer_Force',
+};
+// Порядок показа навыков — как в игровом меню агента, а не как в ответе Enka
+// (там они приходят по внутреннему Index: 0,1,2,3,5,6).
+const CC_SKILL_ORDER = [
+  { index: 0, icon: 'basic-attack'   },
+  { index: 2, icon: 'dodge'          },
+  { index: 6, icon: 'assist-attack'  },
+  { index: 1, icon: 'special-attack' },
+  { index: 3, icon: 'ultimate'       },
+  { index: 5, icon: 'core-skill'     },
+];
+
+function ccStatIconKey(statName) {
+  return mainStatToIconKey(statName) || (discStatLabel(statName) === 'PEN' ? 'PEN' : null);
+}
+
+function ccColors() {
+  const cs = getComputedStyle(document.documentElement);
+  const v = (n, f) => (cs.getPropertyValue(n) || '').trim() || f;
+  return {
+    bg: v('--bg','#111111'), bg2: v('--bg2','#181818'), bg3: v('--bg3','#1f1f1f'),
+    bg4: v('--bg4','#282828'), border: v('--border','#2c2c2c'), border2: v('--border2','#3a3a3a'),
+    accent: v('--accent','#ffcc00'), accent60: v('--accent-60','rgba(255,204,0,.6)'),
+    accent30: v('--accent-30','rgba(255,204,0,.3)'), accent2: v('--accent2','#c084fc'),
+    text: v('--text','#efefef'), textMid: v('--text-mid','#777777'), textDim: v('--text-dim','#4a4a4a'),
+  };
+}
+// Цвет зачёта — те же три, что у классов .up-main/.up-flat/.up-pen в вёрстке.
+function ccBucketColor(C, bucket) {
+  return bucket === 'main' ? C.accent : bucket === 'flat' ? C.accent60 : bucket === 'pen' ? C.accent2 : null;
+}
+
+/* ── ЗАГРУЗКА КАРТИНОК ──
+   Кэш общий на всю сессию и хранит ПРОМИСЫ, а не картинки: иначе два рендера
+   подряд (переключил тумблер) запустили бы вторую загрузку тех же файлов, пока
+   первая ещё в полёте. Ошибка резолвится в null, а не реджектится — отсутствие
+   арта у свежего агента это нормальное состояние, рисуем без него.
+   crossOrigin нужен не ради самого сайта (ассеты лежат на том же домене
+   efenji.github.io), а на случай открытия файла локально — без него холст стал
+   бы «испорченным» и toBlob() бросил бы SecurityError уже на скачивании. */
+const ccImgCache = new Map();
+function ccImage(url) {
+  if (!url) return Promise.resolve(null);
+  if (ccImgCache.has(url)) return ccImgCache.get(url);
+  const p = new Promise(res => {
+    const im = new Image();
+    im.crossOrigin = 'anonymous';
+    im.onload = () => res(im);
+    im.onerror = () => res(null);
+    im.src = url;
+  });
+  ccImgCache.set(url, p);
+  return p;
+}
+/* Шрифты: без этого первый кадр рисуется системным шрифтом. document.fonts.ready
+   ждёт только уже запрошенные начертания, а canvas — не элемент вёрстки и сам
+   ничего не запрашивает, поэтому каждое нужное начертание заказывается явно. */
+async function ccEnsureFonts() {
+  const wanted = [
+    `900 70px ${CC.FC}`, `700 30px ${CC.FC}`,
+    `700 34px ${CC.F}`, `600 22px ${CC.F}`, `500 20px ${CC.F}`, `400 18px ${CC.F}`,
+    `400 16px ${CC.FM}`,
+  ];
+  try {
+    await Promise.all(wanted.map(f => document.fonts.load(f).catch(() => {})));
+    await document.fonts.ready;
+  } catch (e) { /* шрифты не критичны — упадём на системный, но карточку нарисуем */ }
+}
+// Собирает все адреса, нужные модели, грузит их разом и отдаёт геттер url→img.
+async function ccPreload(m) {
+  const urls = new Set();
+  const add = u => { if (u) urls.add(u); };
+  if (m.agentKey) { add(agentPortraitUrl(m.agentKey)); }
+  if (m.attributeIcon) add(attributeUrl(m.attributeIcon));
+  if (m.specialtyIcon) add(specialtyUrl(m.specialtyIcon));
+  if (m.wengine && m.wengine.key) add(wengineUrl(m.wengine.key));
+  (m.sheet || []).forEach(r => { const k = CC_STAT_ICON[r.fam]; if (k) add(iconUrl(k)); });
+  CC_SKILL_ORDER.forEach(s => add(iconUrl(s.icon)));
+  for (let i = 0; i < 6; i++) add(iconUrl('core-skill-' + 'abcdef'[i]));
+  (m.discs || []).forEach(d => {
+    if (!d) return;
+    add(discSlotIconUrl(d.setName)); add(discUrl(d.setName));
+    const mk = ccStatIconKey(d.mainStat); if (mk) add(iconUrl(mk));
+    (d.subStats || []).forEach(sub => { const k = ccStatIconKey(sub.name); if (k) add(iconUrl(k)); });
+  });
+  Object.keys(m.agg || {}).forEach(n => { const k = ccStatIconKey(n); if (k) add(iconUrl(k)); });
+  const list = [...urls];
+  const imgs = await Promise.all(list.map(ccImage));
+  const map = new Map(list.map((u, i) => [u, imgs[i]]));
+  return u => (u ? map.get(u) || null : null);
+}
+
+/* ── ПРИМИТИВЫ РИСОВАНИЯ ── */
+function ccRR(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+function ccPanel(ctx, x, y, w, h, o) {
+  o = o || {};
+  ccRR(ctx, x, y, w, h, o.r == null ? CC.R_SM : o.r);
+  if (o.fill) { ctx.fillStyle = o.fill; ctx.fill(); }
+  if (o.stroke) { ctx.strokeStyle = o.stroke; ctx.lineWidth = o.lw || 1; ctx.stroke(); }
+}
+function ccFont(ctx, weight, size, fam) { ctx.font = `${weight} ${size}px ${fam || CC.F}`; }
+// Обрезка по ширине с многоточием — длинные имена сетов и агентов не должны
+// вылезать за свою колонку, а переносить их некуда: высота строк фиксирована.
+function ccFit(ctx, text, maxW) {
+  let t = String(text == null ? '' : text);
+  if (!maxW || ctx.measureText(t).width <= maxW) return t;
+  while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+  return t + '…';
+}
+function ccText(ctx, text, x, y, o) {
+  o = o || {};
+  ctx.textAlign = o.align || 'left';
+  ctx.textBaseline = o.baseline || 'alphabetic';
+  ctx.fillStyle = o.color || '#ffffff';
+  const t = ccFit(ctx, text, o.max);
+  ctx.fillText(t, x, y);
+  return ctx.measureText(t).width;
+}
+/* Разрядка вручную, посимвольно: ctx.letterSpacing есть не во всех браузерах, а
+   заголовки секций без разрядки теряют сходство с остальным интерфейсом. */
+function ccTrackText(ctx, text, x, y, sp, o) {
+  o = o || {};
+  ctx.textAlign = 'left'; ctx.textBaseline = o.baseline || 'alphabetic';
+  ctx.fillStyle = o.color || '#ffffff';
+  let cx = x;
+  for (const ch of String(text)) { ctx.fillText(ch, cx, y); cx += ctx.measureText(ch).width + sp; }
+  return cx - x - sp;
+}
+// Заголовок секции: моноширинный, в разрядку, как .pd-section-title в вёрстке.
+function ccSectionTitle(ctx, C, text, x, y, w) {
+  ccFont(ctx, 400, 15, CC.FM);
+  const used = ccTrackText(ctx, String(text).toUpperCase(), x, y, 2.2, { color: C.textMid, baseline: 'alphabetic' });
+  const lineX = x + used + 14;
+  if (lineX < x + w) {
+    ctx.strokeStyle = C.border; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(lineX, y - 5); ctx.lineTo(x + w, y - 5); ctx.stroke();
+  }
+}
+// object-fit: cover. ax/ay — якорь (0 = прижать к левому/верхнему краю).
+function ccCover(ctx, img, x, y, w, h, ax, ay) {
+  if (!img || !img.width) return;
+  const scale = Math.max(w / img.width, h / img.height);
+  const dw = img.width * scale, dh = img.height * scale;
+  ctx.drawImage(img, x - (dw - w) * (ax == null ? .5 : ax), y - (dh - h) * (ay == null ? .5 : ay), dw, dh);
+}
+// object-fit: contain, по центру отведённого квадрата.
+function ccContain(ctx, img, x, y, w, h) {
+  if (!img || !img.width) return;
+  const scale = Math.min(w / img.width, h / img.height);
+  const dw = img.width * scale, dh = img.height * scale;
+  ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+}
+
+/* ── ЛЕВАЯ КОЛОНКА: ПОРТРЕТ ── */
+function ccDrawPortrait(ctx, C, m, IM) {
+  const x = CC.PAD, y = CC.PAD, w = CC.LEFT_W, h = CC.H - CC.PAD * 2;
+  ctx.save();
+  ccRR(ctx, x, y, w, h, CC.R); ctx.clip();
+  ctx.fillStyle = C.bg2; ctx.fillRect(x, y, w, h);
+
+  const art = IM(m.agentKey ? agentPortraitUrl(m.agentKey) : null);
+  if (art) ccCover(ctx, art, x, y, w, h, .5, 0);
+
+  // Затемнение снизу — под ним лежат имя и уровень. Без него светлый арт
+  // (белые волосы, яркий фон) съедает текст.
+  const g = ctx.createLinearGradient(0, y + h * .42, 0, y + h);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(.55, 'rgba(0,0,0,.72)');
+  g.addColorStop(1, 'rgba(0,0,0,.94)');
+  ctx.fillStyle = g; ctx.fillRect(x, y + h * .42, w, h * .58);
+
+  // Атрибут и специальность — кружки в левом верхнем углу.
+  let cx = x + 22;
+  [[m.attributeIcon, attributeUrl], [m.specialtyIcon, specialtyUrl]].forEach(([key, fn]) => {
+    if (!key) return;
+    ccPanel(ctx, cx, y + 22, 52, 52, { r: 26, fill: 'rgba(0,0,0,.55)', stroke: C.border2 });
+    ccContain(ctx, IM(fn(key)), cx + 11, y + 33, 30, 30);
+    cx += 62;
+  });
+
+  // Ник и UID — вертикально вдоль правого края, как на карточках Энки.
+  if (m.owner && (m.owner.nickname || m.owner.uid)) {
+    ctx.save();
+    ctx.translate(x + w - 26, y + h - 40);
+    ctx.rotate(-Math.PI / 2);
+    ccFont(ctx, 400, 17, CC.FM);
+    ccTrackText(ctx, [m.owner.nickname, m.owner.uid].filter(Boolean).join(' · '), 0, 0, 1.5, { color: 'rgba(255,255,255,.55)' });
+    ctx.restore();
+  }
+
+  const bottom = y + h;
+  // Подпись под именем: полное имя, пол, рост — то же, что в развёрнутом виде.
+  if (m.subLine) {
+    ccFont(ctx, 400, 19);
+    ccText(ctx, m.subLine, x + 24, bottom - 34, { color: 'rgba(255,255,255,.55)', max: w - 48 });
+  }
+  // Имя. Кегль подбирается под ширину колонки: «Ye Shunguang» и «Alice» не
+  // могут быть одного размера без обрезки.
+  let size = 74;
+  ccFont(ctx, 900, size, CC.FC);
+  const nameUp = String(m.displayName || '').toUpperCase();
+  while (size > 34 && ctx.measureText(nameUp).width > w - 48) { size -= 2; ccFont(ctx, 900, size, CC.FC); }
+  ccText(ctx, nameUp, x + 24, bottom - (m.subLine ? 68 : 44), { color: '#ffffff' });
+
+  // Строка «Lv.60/60» + шесть делений mindscape.
+  const rowY = bottom - (m.subLine ? 68 : 44) - size * .82 - 22;
+  ccFont(ctx, 700, 22);
+  const lvW = ccText(ctx, `Lv.${m.level}${m.levelMax ? '/' + m.levelMax : ''}`, x + 24, rowY, { color: C.accent });
+  let px = x + 24 + lvW + 20;
+  for (let i = 1; i <= 6; i++) {
+    const on = i <= (m.mindscape || 0);
+    ccPanel(ctx, px, rowY - 15, 26, 18, { r: 4, fill: on ? C.accent : 'rgba(255,255,255,.10)' });
+    ccFont(ctx, 700, 12, CC.FM);
+    ccText(ctx, 'M' + i, px + 13, rowY - 2, { color: on ? '#000000' : 'rgba(255,255,255,.45)', align: 'center' });
+    px += 32;
+  }
+
+  // Имя пресета — отдельной плашкой, чтобы не путалось с именем агента.
+  if (m.presetName) {
+    ccFont(ctx, 600, 18);
+    const tw = Math.min(ctx.measureText(m.presetName).width, w - 90);
+    ccPanel(ctx, x + 22, rowY - 62, tw + 26, 32, { r: 16, fill: 'rgba(0,0,0,.55)', stroke: C.border2 });
+    ccText(ctx, m.presetName, x + 35, rowY - 40, { color: C.text, max: w - 90 });
+  }
+  ctx.restore();
+
+  ccRR(ctx, x, y, w, h, CC.R);
+  ctx.strokeStyle = C.border; ctx.lineWidth = 1; ctx.stroke();
+}
+
+/* ── ЦЕНТР: СТАТЫ ── */
+const CC_STAT_ROW_H = 52;
+function ccStatsHeight(m) {
+  const n = (m.sheet || []).length;
+  return 26 + Math.max(1, Math.ceil(n / 2)) * CC_STAT_ROW_H;
+}
+function ccDrawStats(ctx, C, m, IM, x, y, w) {
+  ccSectionTitle(ctx, C, 'Stats', x, y + 14, w);
+  const rows = m.sheet || [];
+  if (!rows.length) {
+    ccFont(ctx, 400, 20);
+    ccText(ctx, 'No reference data for this agent.', x, y + 56, { color: C.textMid, max: w });
+    return;
+  }
+  const colW = (w - 24) / 2, perCol = Math.ceil(rows.length / 2);
+  rows.forEach((r, i) => {
+    const cx = x + (i < perCol ? 0 : colW + 24);
+    const cy = y + 26 + (i % perCol) * CC_STAT_ROW_H;
+    const bucket = statSheetBucket(r, m.useful);
+    const col = ccBucketColor(C, bucket) || C.text;
+    const icoKey = CC_STAT_ICON[r.fam];
+    if (icoKey) ccContain(ctx, IM(iconUrl(icoKey)), cx, cy + 8, 28, 28);
+    ccFont(ctx, 500, 20);
+    ccText(ctx, r.label, cx + 38, cy + 29, { color: bucket ? col : C.text, max: colW - 150 });
+    ccFont(ctx, 700, 24);
+    ccText(ctx, formatEnkaStatValue(r.total, r.isPercent, r.fam), cx + colW, cy + 30, { color: col, align: 'right' });
+    ccFont(ctx, 400, 15);
+    ccText(ctx, `${formatEnkaStatValue(r.base, r.isPercent, r.fam)} + ${formatEnkaStatValue(r.bonus, r.isPercent, r.fam)}`,
+      cx + colW, cy + 48, { color: C.textMid, align: 'right' });
+    ctx.strokeStyle = C.border; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx, cy + CC_STAT_ROW_H - 3); ctx.lineTo(cx + colW, cy + CC_STAT_ROW_H - 3); ctx.stroke();
+  });
+}
+
+/* ── ЦЕНТР: НАВЫКИ ── */
+const CC_SKILLS_H = 26 + 88 + 14 + 46;
+function ccDrawSkills(ctx, C, m, IM, x, y, w) {
+  ccSectionTitle(ctx, C, 'Skills', x, y + 14, w);
+  const tile = 74, gap = (w - tile * 6) / 5;
+  CC_SKILL_ORDER.forEach((sk, i) => {
+    const tx = x + i * (tile + gap), ty = y + 26;
+    ccPanel(ctx, tx, ty, tile, tile, { r: CC.R_SM, fill: C.bg3, stroke: C.border });
+    ccContain(ctx, IM(iconUrl(sk.icon)), tx + 15, ty + 10, 44, 44);
+    const lv = m.skills ? m.skills[sk.index] : null;
+    // Пресеты без снимка навыков рисуются теми же иконками без уровней —
+    // договорённость по задаче: снимок появится позже, дыры в композиции нет.
+    if (lv != null) {
+      ccFont(ctx, 700, 16);
+      ccText(ctx, 'Lv.' + lv, tx + tile / 2, ty + tile - 8, { color: C.accent, align: 'center' });
+    }
+  });
+  // Core Skill Enhancement: шесть кружков A–F, открытые в полную силу.
+  const cy = y + 26 + tile + 14;
+  const cd = 40, cgap = 12;
+  let cx = x;
+  for (let i = 0; i < 6; i++) {
+    const on = (m.coreRank || 0) >= i + 1;
+    ctx.save();
+    ctx.globalAlpha = on ? 1 : .22;
+    ccContain(ctx, IM(iconUrl('core-skill-' + 'abcdef'[i])), cx, cy, cd, cd);
+    ctx.restore();
+    cx += cd + cgap;
+  }
+  ccFont(ctx, 400, 17);
+  ccText(ctx, m.coreRank ? `Core Skill ${'ABCDEF'[m.coreRank - 1]}` : 'Core Skill locked',
+    x + w, cy + 27, { color: C.textMid, align: 'right' });
+}
+
+/* ── ЦЕНТР: W-ENGINE ── */
+const CC_WENGINE_H = 26 + 104;
+function ccDrawWengine(ctx, C, m, IM, x, y, w) {
+  ccSectionTitle(ctx, C, 'W-Engine', x, y + 14, w);
+  const ty = y + 26, h = 104;
+  ccPanel(ctx, x, ty, w, h, { r: CC.R_SM, fill: C.bg3, stroke: C.border });
+  const we = m.wengine;
+  if (!we) {
+    ccFont(ctx, 400, 20);
+    ccText(ctx, 'No W-Engine equipped', x + 24, ty + 58, { color: C.textMid, max: w - 48 });
+    return;
+  }
+  ccContain(ctx, IM(we.key ? wengineUrl(we.key) : null), x + 12, ty + 12, 80, 80);
+  const tx = x + 106, tw = w - 106 - 20;
+  ccFont(ctx, 700, 25);
+  ccText(ctx, we.name, tx, ty + 36, { color: C.text, max: tw });
+  ccFont(ctx, 400, 18);
+  ccText(ctx, we.line1, tx, ty + 62, { color: C.textMid, max: tw });
+  if (we.line2) ccText(ctx, we.line2, tx, ty + 86, { color: C.textMid, max: tw });
+}
+
+/* ── ЦЕНТР: СЕТЫ ── */
+const CC_SETS_H = 26 + 44;
+function ccDrawSets(ctx, C, m, IM, x, y, w) {
+  ccSectionTitle(ctx, C, 'Drive Disc Sets', x, y + 14, w);
+  const entries = Object.entries(m.setCounts || {});
+  if (!entries.length) {
+    ccFont(ctx, 400, 19);
+    ccText(ctx, '—', x, y + 54, { color: C.textMid });
+    return;
+  }
+  let cx = x;
+  const ty = y + 28;
+  entries.forEach(([name, count]) => {
+    ccFont(ctx, 600, 19);
+    const label = `${name} ×${count}`;
+    const tw = Math.min(ctx.measureText(label).width, w - 40);
+    if (cx + tw + 46 > x + w) return; // не влезло — лучше обрезать список, чем налезать на соседний блок
+    ccPanel(ctx, cx, ty, tw + 40, 36, { r: 18, fill: C.bg3, stroke: count >= 2 ? C.accent30 : C.border });
+    ccContain(ctx, IM(discUrl(name)), cx + 6, ty + 4, 28, 28);
+    ccText(ctx, label, cx + 38, ty + 25, { color: count >= 2 ? C.text : C.textMid, max: tw });
+    cx += tw + 52;
+  });
+}
+
+/* ── ЦЕНТР: ИТОГИ ПО САБСТАТАМ ── */
+function ccTotalsHeight(m) {
+  const n = Object.keys(m.agg || {}).length;
+  return 26 + 30 + Math.max(1, Math.ceil(n / 4)) * 42;
+}
+function ccDrawTotals(ctx, C, m, IM, x, y, w) {
+  ccSectionTitle(ctx, C, 'Sub-Stat Totals', x, y + 14, w);
+  // Та же сводка «N useful / +N flat / +N PEN of M», что и в развёрнутом виде,
+  // но собранная руками: usefulProcSegments() отдаёт HTML, а здесь нужен текст.
+  const t = m.procCounts && m.procCounts.total;
+  if (t && m.useful && m.useful.rule) {
+    let sx = x;
+    ccFont(ctx, 700, 19);
+    if (t.main > 0) sx += ccText(ctx, `${t.main} useful`, sx, y + 46, { color: C.accent }) + 16;
+    if (t.flat > 0) sx += ccText(ctx, `+${t.flat} flat`, sx, y + 46, { color: C.accent60 }) + 16;
+    if (t.pen  > 0) sx += ccText(ctx, `+${t.pen} PEN`, sx, y + 46, { color: C.accent2 }) + 16;
+    if (sx > x) { ccFont(ctx, 400, 17); ccText(ctx, `of ${t.all} procs`, sx, y + 46, { color: C.textMid }); }
+  }
+  const entries = Object.entries(m.agg || {});
+  const colW = (w - 30) / 4;
+  entries.forEach(([name, v], i) => {
+    const cx = x + (i % 4) * (colW + 10), cy = y + 56 + Math.floor(i / 4) * 42;
+    const bucket = m.useful && m.useful.rule ? usefulProcBucket(name, m.useful) : '';
+    const col = ccBucketColor(C, bucket) || C.text;
+    const k = ccStatIconKey(name);
+    if (k) ccContain(ctx, IM(iconUrl(k)), cx, cy, 26, 26);
+    ccFont(ctx, 700, 15, CC.FM);
+    ccText(ctx, String(v.procs), cx + 30, cy + 19, { color: C.textMid });
+    ccFont(ctx, 600, 18);
+    ccText(ctx, discStatValueDisplay(name, v.value), cx + colW, cy + 19, { color: col, align: 'right' });
+  });
+}
+
+/* ── ЦЕНТР: СБОРКА КОЛОНКИ ──
+   Блоки складываются сверху вниз, а свободный остаток раздаётся в промежутки
+   между ними. Иначе при выключенных Totals внизу колонки оставалась бы дыра в
+   треть высоты: карточка — картинка фиксированного размера, «просто короче»
+   она стать не может. Прибавка ограничена, чтобы при пустой сборке блоки не
+   разлетелись по углам. */
+function ccDrawMiddle(ctx, C, m, IM) {
+  const x = CC.PAD + CC.LEFT_W + CC.GAP, w = CC.MID_W;
+  const top = CC.PAD, avail = CC.H - CC.PAD * 2;
+  const blocks = [
+    { h: ccStatsHeight(m), draw: (y) => ccDrawStats(ctx, C, m, IM, x, y, w) },
+    { h: CC_SKILLS_H,      draw: (y) => ccDrawSkills(ctx, C, m, IM, x, y, w) },
+    { h: CC_WENGINE_H,     draw: (y) => ccDrawWengine(ctx, C, m, IM, x, y, w) },
+    { h: CC_SETS_H,        draw: (y) => ccDrawSets(ctx, C, m, IM, x, y, w) },
+  ];
+  if (profileDisplayOptions.totals) {
+    blocks.push({ h: ccTotalsHeight(m), draw: (y) => ccDrawTotals(ctx, C, m, IM, x, y, w) });
+  }
+  const used = blocks.reduce((a, b) => a + b.h, 0);
+  const gaps = blocks.length - 1;
+  const gap = gaps > 0 ? Math.max(18, Math.min(58, 18 + (avail - used - 18 * gaps) / gaps)) : 0;
+  let y = top;
+  blocks.forEach((b, i) => { b.draw(y); y += b.h + (i < gaps ? gap : 0); });
+}
+
+/* ── ПРАВАЯ КОЛОНКА: ШЕСТЬ ДИСКОВ ── */
+function ccDrawDiscs(ctx, C, m, IM) {
+  const x = CC.PAD + CC.LEFT_W + CC.MID_W + CC.GAP * 2, w = CC.RIGHT_W;
+  const top = CC.PAD, avail = CC.H - CC.PAD * 2;
+  const gap = 8, h = (avail - gap * 5) / 6;
+  for (let i = 0; i < 6; i++) {
+    const d = (m.discs || [])[i] || null;
+    const y = top + i * (h + gap);
+    ccPanel(ctx, x, y, w, h, { r: CC.R_SM, fill: C.bg3, stroke: C.border });
+    if (!d) {
+      ccFont(ctx, 400, 19);
+      ccText(ctx, `Slot ${i + 1} — empty`, x + 24, y + h / 2 + 7, { color: C.textDim });
+      continue;
+    }
+    // Иконка сета: сначала вариант «в слоте», как в библиотеке дисков, при его
+    // отсутствии — обычная иконка сета.
+    const ico = IM(discSlotIconUrl(d.setName)) || IM(discUrl(d.setName));
+    ccContain(ctx, ico, x + 12, y + 16, 86, 86);
+    ccFont(ctx, 400, 14, CC.FM);
+    ccText(ctx, `LV.${d.level}`, x + 55, y + h - 14, { color: C.textMid, align: 'center' });
+    ccFont(ctx, 700, 14, CC.FM);
+    ccText(ctx, String(d.slot || i + 1), x + 20, y + 26, { color: C.textMid });
+
+    // Главный стат — крупно, как на карточке в игре.
+    const mk = ccStatIconKey(d.mainStat);
+    if (mk) ccContain(ctx, IM(iconUrl(mk)), x + 112, y + 30, 32, 32);
+    ccFont(ctx, 700, 32);
+    ccText(ctx, d.mainStatValue, x + 152, y + 58, { color: C.text, max: 140 });
+    ccFont(ctx, 400, 15);
+    ccText(ctx, discStatLabel(d.mainStat), x + 152, y + 82, { color: C.textMid, max: 140 });
+
+    // Сабстаты 2×2. Подсветка — тот же зачёт, что и в развёрнутом виде.
+    const sx = x + 306, cw = (w - 306 - 14) / 2, ch = (h - 24) / 2;
+    (d.subStats || []).slice(0, 4).forEach((sub, si) => {
+      const cx = sx + (si % 2) * cw, cy = y + 12 + Math.floor(si / 2) * ch;
+      const bucket = m.useful && m.useful.rule ? usefulProcBucket(sub.name, m.useful) : '';
+      const col = ccBucketColor(C, bucket) || C.text;
+      const k = ccStatIconKey(sub.name);
+      if (k) ccContain(ctx, IM(iconUrl(k)), cx, cy + (ch - 26) / 2 - 2, 26, 26);
+      ccFont(ctx, 600, 21);
+      const vw = ccText(ctx, sub.value, cx + 34, cy + ch / 2 + 6, { color: col, max: cw - 70 });
+      const extra = (sub.procs || 1) - 1; // первый прок — базовый ролл диска, в бейдже только докрутки
+      if (extra > 0) {
+        ccFont(ctx, 700, 14, CC.FM);
+        ccText(ctx, '+' + extra, cx + 40 + vw, cy + ch / 2 + 4, { color: C.textMid });
+      }
+    });
+  }
+}
+
+/* ── ТОЧКА ВХОДА ── */
+let ccLastModel = null;   // для имени файла при скачивании
+let ccDrawPromise = null; // скачивание должно дождаться незавершённой отрисовки
+async function drawCompactCard(canvas, m) {
+  const ctx = canvas.getContext('2d');
+  const C = ccColors();
+  ctx.clearRect(0, 0, CC.W, CC.H);
+  ctx.fillStyle = C.bg; ctx.fillRect(0, 0, CC.W, CC.H);
+  await ccEnsureFonts();
+  const IM = await ccPreload(m);
+  ctx.fillStyle = C.bg; ctx.fillRect(0, 0, CC.W, CC.H);
+  ccDrawPortrait(ctx, C, m, IM);
+  ccDrawMiddle(ctx, C, m, IM);
+  ccDrawDiscs(ctx, C, m, IM);
+}
+
+/* Панель получает готовый HTML строкой (так устроены все три места, которые её
+   заполняют), поэтому рисовать можно только после того, как строка попала в
+   DOM. requestAnimationFrame и есть этот момент: он сработает после того, как
+   вызвавший код закончит свою синхронную часть, то есть уже после innerHTML. */
+function compactCardShellHtml(m) {
+  ccLastModel = m;
+  requestAnimationFrame(() => {
+    const cv = document.getElementById('compactCardCanvas');
+    if (!cv) return;
+    ccDrawPromise = drawCompactCard(cv, m).catch(err => console.error('compact card draw failed', err));
+    const btn = document.getElementById('tbCardDownload');
+    if (btn) btn.disabled = false;
+  });
+  return `<canvas id="compactCardCanvas" class="cc-canvas" width="${CC.W}" height="${CC.H}"></canvas>
+    <div class="cc-note">1920×1080 · the ⤓ button in the toolbar saves this exact image.</div>`;
+}
+
+async function downloadCompactCard() {
+  const cv = document.getElementById('compactCardCanvas');
+  if (!cv) return;
+  if (ccDrawPromise) { try { await ccDrawPromise; } catch (e) {} }
+  const name = ((ccLastModel && ccLastModel.fileBase) || 'zzz-card') + '.png';
+  cv.toBlob(blob => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    // Освобождать сразу нельзя: Safari успевает отменить скачивание.
+    setTimeout(() => URL.revokeObjectURL(url), 20000);
+  }, 'image/png');
+}
+
+/* Общая сборка модели. Единственное место, где живут правила «что показывать»,
+   чтобы живой стенд и пресет расходились только в источнике данных, а не в
+   поведении карточки. */
+function ccMakeModel(src) {
+  const slug = src.agentKey ? assetSlug(src.agentKey) : 'agent';
+  const attr = src.agentKey ? AGENT_ATTRIBUTE[src.agentKey] : null;
+  const cls = src.agentKey ? (getAgentClasses(src.agentKey) || [])[0] : null;
+  const tail = src.presetName ? assetSlug(src.presetName)
+    : (src.owner && src.owner.uid ? String(src.owner.uid) : '');
+  return Object.assign({
+    attributeIcon: attr ? (attr.special || attr.base) : null,
+    specialtyIcon: cls || null,
+    fileBase: tail ? `${slug}-${tail}` : slug,
+  }, src);
 }
 
 async function renderProfileDetail(i) {
@@ -11262,6 +11886,37 @@ async function renderProfileDetail(i) {
     : '';
 
   const agg = aggregateProfileDiscSubstats(discEntries);
+
+  /* Компактный вид — одна картинка вместо всей разметки ниже. Ветка стоит
+     здесь, а не в начале функции, намеренно: всё, что карточке нужно (лист
+     статов, диски, зачёты проков, снимок сборки для «сохранить»), уже
+     посчитано выше и считается одинаково для обоих видов. Переключение режима
+     не должно менять НИЧЕГО, кроме способа показать одни и те же числа. */
+  if (profileViewMode === 'compact') {
+    const skillMap = {};
+    skillLevels.forEach(sk => { skillMap[sk.index] = sk.level; });
+    panel.innerHTML = compactCardShellHtml(ccMakeModel({
+      agentKey: slug,
+      displayName: slug ? cardName(slug) : `Unknown (Id ${a.Id})`,
+      subLine: profile ? [profile.fullName, profile.gender, profile.stature].filter(Boolean).join(' · ') : '',
+      level: a.Level, levelMax: (a.PromotionLevel || 1) * 10,
+      mindscape: a.TalentLevel || 0,
+      coreRank: a.CoreSkillEnhancement || 0,
+      skills: skillLevels.length ? skillMap : null,
+      sheet, useful, procCounts, agg,
+      discs: discEntries, setCounts,
+      wengine: a.Weapon ? {
+        key: wengineSlug,
+        name: wengineSlug ? prettyName(wengineSlug) : `Unknown (Id ${a.Weapon.Id})`,
+        line1: `Lv.${a.Weapon.Level} · P${a.Weapon.UpgradeLevel || 1}${wengineInfo ? ` · ${wengineInfo.rarity}-Rank ${wengineInfo.specialty}` : ''}`,
+        line2: wengineInfo ? `Base ATK ${wengineInfo.baseATK} · ${wengineInfo.secondaryStat?.name || ''} ${wengineInfo.secondaryStat?.value || ''}` : '',
+      } : null,
+      owner: profileDisplayOptions.owner ? { nickname: profileCurrentNickname, uid: profileCurrentUid } : null,
+      presetName: null,
+    }));
+    return;
+  }
+
   const totalsHtml = profileDisplayOptions.totals
     ? `<div class="pd-section-title">Sub-Stat Totals (all equipped discs)</div>
        ${usefulProcsSummaryHtml(procCounts, useful)}
@@ -12529,12 +13184,45 @@ function initProfileToolbarToggles() {
   document.querySelectorAll('#tbGroupProfile .tb-toggle[data-key]').forEach(btn => {
     btn.classList.toggle('active', !!profileDisplayOptions[btn.dataset.key]);
   });
+  syncProfileViewModeUI();
+}
+
+/* ── ПЕРЕКЛЮЧАТЕЛЬ ВИДА ──
+   Тумблеры видимости живут одним набором на оба режима, но часть из них в
+   компактной карточке управлять нечем (Skills/W-Engine/Sets/Discs/Notes — там
+   это не отдельные секции, а фиксированная композиция). Прячем их по
+   data-modes, а не отключаем: неактивная кнопка выглядит как «сломано», а
+   отсутствующая — как «здесь этого просто нет». */
+function syncProfileViewModeUI() {
+  const compact = profileViewMode === 'compact';
+  document.getElementById('tbViewFull')?.classList.toggle('active', !compact);
+  document.getElementById('tbViewCompact')?.classList.toggle('active', compact);
+  document.querySelectorAll('#tbGroupProfile .tb-toggle[data-modes]').forEach(btn => {
+    btn.classList.toggle('hidden', !btn.dataset.modes.split(' ').includes(profileViewMode));
+  });
+  // Кнопка скачивания оживает только когда на экране действительно есть холст:
+  // в развёрнутом виде и на пустой панели скачивать нечего.
+  const btn = document.getElementById('tbCardDownload');
+  if (btn) btn.disabled = !(compact && document.getElementById('compactCardCanvas'));
+}
+
+function setProfileViewMode(mode) {
+  if (mode !== 'full' && mode !== 'compact') return;
+  if (profileViewMode === mode) return;
+  profileViewMode = mode;
+  localStorage.setItem('zzz_profile_view_mode', mode);
+  syncProfileViewModeUI();
+  refreshProfileDetailView();
 }
 // Re-renders whichever of the four things can currently occupy #profileDetail
 // — live showcase agent, one of your own presets, a preset viewed off someone
 // else's published index, or (in the separate feed-linked modal) a public
 // preset — so a toggle flip is reflected immediately no matter what's open.
 function refreshProfileDetailView() {
+  // Холст пересоздаётся каждым рендером, поэтому кнопка скачивания гаснет до
+  // тех пор, пока новый не появится в DOM (её включит compactCardShellHtml).
+  const dlBtn = document.getElementById('tbCardDownload');
+  if (dlBtn) dlBtn.disabled = true;
   if (ownerPresetViewAgentKey) { renderOwnerPresetView(); return; }
   if (profilePresetViewAgentKey) { renderAgentPresetView(); return; }
   if (profileSelectedIndex != null) { renderProfileDetail(profileSelectedIndex); return; }
