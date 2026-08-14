@@ -11182,8 +11182,13 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
       wengine: preset.wengine ? {
         key: preset.wengine,
         name: prettyName(preset.wengine),
-        line1: `Lv.${wengineLibLevel} · R${preset.wrank || 1}${wengineInfo ? ` · ${wengineInfo.rarity}-Rank ${wengineInfo.specialty}` : ''}`,
-        line2: wengineInfo ? `Base ATK ${wengineInfo.baseATK} · ${wengineInfo.secondaryStat?.name || ''} ${wengineInfo.secondaryStat?.value || ''}` : '',
+        level: wengineLibLevel,
+        rankLabel: `R${preset.wrank || 1}`,
+        rarity: wengineInfo?.rarity || null,
+        specialty: wengineInfo?.specialty || null,
+        baseATK: wengineInfo?.baseATK || null,
+        secName: wengineInfo?.secondaryStat?.name || null,
+        secValue: wengineInfo?.secondaryStat?.value || null,
       } : null,
       // Владелец пресета: у чужого/публичного это ownerLabel, у своего — свой
       // же ник со стенда. UID есть только в снимке, снятом со стенда.
@@ -11260,17 +11265,48 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
    ══════════════════════════════════════════════════════════════════════════ */
 const CC = {
   W: 1920, H: 1080, PAD: 34, GAP: 20,
-  LEFT_W: 520, MID_W: 660,
+  LEFT_W: 520,   // портрет
+  MID_W: 630,    // статы, W-Engine, навыки, крупные цифры проков
   R: 14, R_SM: 10,
   F: 'Barlow', FC: '"Barlow Condensed"', FM: '"Share Tech Mono"',
 };
-CC.RIGHT_W = CC.W - CC.PAD * 2 - CC.LEFT_W - CC.MID_W - CC.GAP * 2;
+/* Три колонки во всю высоту. Производные координаты считаются один раз здесь, а
+   не по месту в каждой функции рисования: подложек у блоков больше нет, границы
+   держит только выравнивание, и расхождение на пиксель сразу читается как
+   кривизна. */
+CC.MID_X   = CC.PAD + CC.LEFT_W + CC.GAP;              // 574
+CC.DISCS_X = CC.MID_X + CC.MID_W + CC.GAP;             // 1224
+CC.DISCS_W = CC.W - CC.PAD - CC.DISCS_X;               // 662
+CC.COL_TOP = CC.PAD;                                   // 34
+CC.COL_H = CC.H - CC.PAD * 2;                          // 1012
 
 /* Полноростовой арт — тот же файл, что у Энки слева на карточке. Лежит рядом с
    card.webp/square.webp в папке агента. Размер у всех разный (у Lucia
    1176×2164, у Hugo 1592×2704), поэтому кадрируется по правилу «cover, якорь
    сверху»: лица в этих файлах всегда в верхней трети. */
 const agentPortraitUrl = k => `${BASE}/agents/${assetSlug(k)}/portrait.webp`;
+
+/* Горизонтальный якорь портрета: доля ширины файла, которую надо совместить
+   с центром рамки. Посчитано по alpha-каналу — центр средних 90% массы
+   непрозрачных пикселей: по 5% с каждого края отбрасывается, чтобы копья,
+   хвосты и крылья не тянули кадр на себя. Границы непрозрачной области для
+   этого не годятся: у всех портретов что-нибудь да упирается в оба края
+   файла, и такой замер на любом агенте отвечает «уже по центру».
+   В таблице только те, у кого отклонение больше 0.5%; остальные и так стоят
+   ровно и берут 0.5 по умолчанию. Значения можно править руками — арт есть
+   арт, и глазу иногда виднее, чем счётчику пикселей. */
+const CC_PORTRAIT_ANCHOR = {
+  'alice': 0.438, 'anby-demara': 0.619, 'anton': 0.487, 'aria': 0.494, 'astra-yao': 0.458,
+  'banyue': 0.485, 'ben': 0.479, 'burnice': 0.571, 'caesar': 0.565, 'cissia': 0.481,
+  'corin': 0.465, 'ellen': 0.531, 'evelyn': 0.485, 'harumasa': 0.487, 'hugo': 0.583,
+  'jane-doe': 0.465, 'ju-fufu': 0.512, 'koleda': 0.512, 'lighter': 0.473, 'lucia': 0.479,
+  'lucy': 0.51, 'manato': 0.517, 'miyabi': 0.56, 'nekomata': 0.523, 'nicole-demara': 0.479,
+  'orphie-and-magus': 0.481, 'pan-yinhu': 0.481, 'piper': 0.492, 'promeia': 0.492,
+  'pulchra': 0.49, 'pyrois': 0.604, 'rina': 0.49, 'seed': 0.508, 'seth': 0.506, 'sigrid': 0.46,
+  'soldier-0': 0.467, 'soldier-11': 0.575, 'soukaku': 0.51, 'starlight-billy': 0.525,
+  'sunna': 0.517, 'trigger': 0.529, 'velina': 0.477, 'vivian': 0.588, 'yanagi': 0.373,
+  'ye-shunguang': 0.515, 'yidhari': 0.481, 'yixuan': 0.51, 'yuzuha': 0.494,
+};
 
 // Семейство стата → ключ иконки в assets/stats/. Ключи в том же виде, что в
 // MAIN_STAT_ICON_MAP, чтобы имена файлов собирались одним и тем же assetSlug().
@@ -11290,6 +11326,23 @@ const CC_SKILL_ORDER = [
   { index: 3, icon: 'ultimate'       },
   { index: 5, icon: 'core-skill'     },
 ];
+
+/* «Anomaly Proficiency» — единственное название сабстата в игре, которое не
+   помещается в строку мини-карточки рядом с бейджем докруток. Подбирать под
+   него кегль всей карточки — плохой размен: у аномальщиков этот сабстат почти
+   всегда есть, и текст падал бы до 14px сразу на всех шести дисках. Поэтому
+   кегль фиксирован и крупный, а конкретно это название сокращается. Порядок
+   попыток: полное → сокращённое → обрезка многоточием как последняя страховка. */
+const CC_SUB_SHORT = { 'Anomaly Proficiency': 'Anomaly Prof.' };
+function ccSubName(ctx, name, maxW) {
+  const full = discStatLabel(name);
+  if (ctx.measureText(full).width <= maxW) return full;
+  const short = CC_SUB_SHORT[full];
+  if (short && ctx.measureText(short).width <= maxW) return short;
+  return ccFit(ctx, full, maxW);
+}
+
+const ccProcWord = n => (n === 1 ? 'proc' : 'procs');
 
 function ccStatIconKey(statName) {
   return mainStatToIconKey(statName) || (discStatLabel(statName) === 'PEN' ? 'PEN' : null);
@@ -11354,13 +11407,18 @@ async function ccPreload(m) {
   if (m.agentKey) { add(agentPortraitUrl(m.agentKey)); }
   if (m.attributeIcon) add(attributeUrl(m.attributeIcon));
   if (m.specialtyIcon) add(specialtyUrl(m.specialtyIcon));
-  if (m.wengine && m.wengine.key) add(wengineUrl(m.wengine.key));
+  if (m.wengine) {
+    if (m.wengine.key) add(wengineUrl(m.wengine.key));
+    if (m.wengine.rarity) add(iconUrl('item-rank-' + String(m.wengine.rarity).toLowerCase()));
+    if (m.wengine.specialty) add(specialtyUrl(m.wengine.specialty));
+    if (m.wengine.baseATK != null) add(iconUrl('ATK'));
+    if (m.wengine.secName) { const k = ccStatIconKey(m.wengine.secName); if (k) add(iconUrl(k)); }
+  }
   (m.sheet || []).forEach(r => { const k = CC_STAT_ICON[r.fam]; if (k) add(iconUrl(k)); });
   CC_SKILL_ORDER.forEach(s => add(iconUrl(s.icon)));
-  for (let i = 0; i < 6; i++) add(iconUrl('core-skill-' + 'abcdef'[i]));
   (m.discs || []).forEach(d => {
     if (!d) return;
-    add(discSlotIconUrl(d.setName)); add(discUrl(d.setName));
+    add(discUrl(d.setName));
     const mk = ccStatIconKey(d.mainStat); if (mk) add(iconUrl(mk));
     (d.subStats || []).forEach(sub => { const k = ccStatIconKey(sub.name); if (k) add(iconUrl(k)); });
   });
@@ -11416,16 +11474,6 @@ function ccTrackText(ctx, text, x, y, sp, o) {
   for (const ch of String(text)) { ctx.fillText(ch, cx, y); cx += ctx.measureText(ch).width + sp; }
   return cx - x - sp;
 }
-// Заголовок секции: моноширинный, в разрядку, как .pd-section-title в вёрстке.
-function ccSectionTitle(ctx, C, text, x, y, w) {
-  ccFont(ctx, 400, 15, CC.FM);
-  const used = ccTrackText(ctx, String(text).toUpperCase(), x, y, 2.2, { color: C.textMid, baseline: 'alphabetic' });
-  const lineX = x + used + 14;
-  if (lineX < x + w) {
-    ctx.strokeStyle = C.border; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(lineX, y - 5); ctx.lineTo(x + w, y - 5); ctx.stroke();
-  }
-}
 // object-fit: cover. ax/ay — якорь (0 = прижать к левому/верхнему краю).
 function ccCover(ctx, img, x, y, w, h, ax, ay) {
   if (!img || !img.width) return;
@@ -11433,6 +11481,18 @@ function ccCover(ctx, img, x, y, w, h, ax, ay) {
   const dw = img.width * scale, dh = img.height * scale;
   ctx.drawImage(img, x - (dw - w) * (ax == null ? .5 : ax), y - (dh - h) * (ay == null ? .5 : ay), dw, dh);
 }
+/* cover, но точка `fx` (доля ширины файла) совмещается с ЦЕНТРОМ рамки —
+   в отличие от ccCover, где доля файла совмещается с той же долей рамки.
+   Прижатие обязательно: без него портрет с сильным смещением якоря оголил бы
+   край рамки, а рамка непрозрачная и дыра была бы видна. */
+function ccCoverAnchorX(ctx, img, x, y, w, h, fx) {
+  if (!img || !img.width) return;
+  const scale = Math.max(w / img.width, h / img.height);
+  const dw = img.width * scale, dh = img.height * scale;
+  const dx = Math.min(x, Math.max(x + w - dw, x + w / 2 - fx * dw));
+  ctx.drawImage(img, dx, y, dw, dh);
+}
+
 // object-fit: contain, по центру отведённого квадрата.
 function ccContain(ctx, img, x, y, w, h) {
   if (!img || !img.width) return;
@@ -11449,7 +11509,12 @@ function ccDrawPortrait(ctx, C, m, IM) {
   ctx.fillStyle = C.bg2; ctx.fillRect(x, y, w, h);
 
   const art = IM(m.agentKey ? agentPortraitUrl(m.agentKey) : null);
-  if (art) ccCover(ctx, art, x, y, w, h, .5, 0);
+  if (art) {
+    // По вертикали по-прежнему прижимаем к верху: лица в этих файлах всегда
+    // в верхней трети, и любое смещение вниз срезало бы головы.
+    const anchor = (m.agentKey && CC_PORTRAIT_ANCHOR[assetSlug(m.agentKey)]) || .5;
+    ccCoverAnchorX(ctx, art, x, y, w, h, anchor);
+  }
 
   // Затемнение снизу — под ним лежат имя и уровень. Без него светлый арт
   // (белые волосы, яркий фон) съедает текст.
@@ -11518,224 +11583,335 @@ function ccDrawPortrait(ctx, C, m, IM) {
   ctx.strokeStyle = C.border; ctx.lineWidth = 1; ctx.stroke();
 }
 
-/* ── ЦЕНТР: СТАТЫ ── */
-const CC_STAT_ROW_H = 52;
-function ccStatsHeight(m) {
-  const n = (m.sheet || []).length;
-  return 26 + Math.max(1, Math.ceil(n / 2)) * CC_STAT_ROW_H;
-}
+/* ── СРЕДНЯЯ КОЛОНКА: СТАТЫ ──
+   Одна колонка. Место отведено под ЧЕТЫРНАДЦАТЬ строк, хотя обычно их
+   двенадцать: у Rupture-агента есть отдельная строка Sheer Force, и вместе с
+   PEN Ratio и бонусом атрибута семейств набирается четырнадцать. Резерв
+   постоянный, поэтому шаг строки не пляшет от агента к агенту, а W-Engine под
+   блоком всегда стоит на одном месте — при редком полном наборе ничего не
+   съезжает и не ужимается. Плата — воздух внизу блока у большинства агентов.
+   Разбивка «база + бонус» стоит В СТРОКЕ, слева от итога: итоги прижаты к
+   правому краю и выстраиваются ровным столбиком, а скобка — плавающей левее.
+   Обратный порядок читался бы естественнее, но тогда столбик итогов гулял бы
+   на десятки пикселей, потому что длина скобки у всех разная. */
+const CC_STAT_ROW = 42, CC_STAT_MAX = 14;
+const CC_STATS_H = CC_STAT_ROW * CC_STAT_MAX;
+// Карточка диска: шапка 56 + отступ 8 + четыре строки того же шага, что и у
+// статов агента. Строки в средней и правой колонках идут в один ритм.
+/* Значок стата рядом с числом: на карточке диска и в блоке W-Engine это одно и
+   то же, поэтому размер общий. Привязан к кеглю главного стата (30 × 1.2). */
+const CC_MAIN_FONT = 30, CC_MAIN_ICO = Math.round(CC_MAIN_FONT * 1.2);
+const CC_DISC_HEAD = 80;
+// Пять строк одного шага: четыре сабстата и строка зачёта.
+const CC_DISC_H = CC_DISC_HEAD + 8 + CC_STAT_ROW * 5;
 function ccDrawStats(ctx, C, m, IM, x, y, w) {
-  ccSectionTitle(ctx, C, 'Stats', x, y + 14, w);
   const rows = m.sheet || [];
   if (!rows.length) {
     ccFont(ctx, 400, 20);
-    ccText(ctx, 'No reference data for this agent.', x, y + 56, { color: C.textMid, max: w });
+    ccText(ctx, 'No reference data for this agent.', x, y + 30, { color: C.textMid, max: w });
     return;
   }
-  const colW = (w - 24) / 2, perCol = Math.ceil(rows.length / 2);
-  rows.forEach((r, i) => {
-    const cx = x + (i < perCol ? 0 : colW + 24);
-    const cy = y + 26 + (i % perCol) * CC_STAT_ROW_H;
+  rows.slice(0, CC_STAT_MAX).forEach((r, i) => {
+    const cy = y + i * CC_STAT_ROW, mid = cy + CC_STAT_ROW / 2;
     const bucket = statSheetBucket(r, m.useful);
     const col = ccBucketColor(C, bucket) || C.text;
     const icoKey = CC_STAT_ICON[r.fam];
-    if (icoKey) ccContain(ctx, IM(iconUrl(icoKey)), cx, cy + 8, 28, 28);
-    ccFont(ctx, 500, 20);
-    ccText(ctx, r.label, cx + 38, cy + 29, { color: bucket ? col : C.text, max: colW - 150 });
-    ccFont(ctx, 700, 24);
-    ccText(ctx, formatEnkaStatValue(r.total, r.isPercent, r.fam), cx + colW, cy + 30, { color: col, align: 'right' });
-    ccFont(ctx, 400, 15);
-    ccText(ctx, `${formatEnkaStatValue(r.base, r.isPercent, r.fam)} + ${formatEnkaStatValue(r.bonus, r.isPercent, r.fam)}`,
-      cx + colW, cy + 48, { color: C.textMid, align: 'right' });
+    if (icoKey) ccContain(ctx, IM(iconUrl(icoKey)), x, mid - 15, 30, 30);
+    ccFont(ctx, 500, 22);
+    ccText(ctx, r.label, x + 42, mid + 8, { color: bucket ? col : C.text, max: w * .5 });
+    // Итог рисуется первым, потому что его ширина задаёт правую границу скобки.
+    ccFont(ctx, 700, 27);
+    const valTxt = formatEnkaStatValue(r.total, r.isPercent, r.fam);
+    ccText(ctx, valTxt, x + w, mid + 9, { color: col, align: 'right' });
+    const valW = ctx.measureText(valTxt).width;
+    ccFont(ctx, 400, 17);
+    ccText(ctx, `(${formatEnkaStatValue(r.base, r.isPercent, r.fam)} + ${formatEnkaStatValue(r.bonus, r.isPercent, r.fam)})`,
+      x + w - valW - 14, mid + 8, { color: C.textMid, align: 'right' });
     ctx.strokeStyle = C.border; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(cx, cy + CC_STAT_ROW_H - 3); ctx.lineTo(cx + colW, cy + CC_STAT_ROW_H - 3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, cy + CC_STAT_ROW - 1); ctx.lineTo(x + w, cy + CC_STAT_ROW - 1); ctx.stroke();
   });
 }
 
-/* ── ЦЕНТР: НАВЫКИ ── */
-const CC_SKILLS_H = 26 + 88 + 14 + 46;
-function ccDrawSkills(ctx, C, m, IM, x, y, w) {
-  ccSectionTitle(ctx, C, 'Skills', x, y + 14, w);
-  const tile = 74, gap = (w - tile * 6) / 5;
-  CC_SKILL_ORDER.forEach((sk, i) => {
-    const tx = x + i * (tile + gap), ty = y + 26;
-    ccPanel(ctx, tx, ty, tile, tile, { r: CC.R_SM, fill: C.bg3, stroke: C.border });
-    ccContain(ctx, IM(iconUrl(sk.icon)), tx + 15, ty + 10, 44, 44);
-    const lv = m.skills ? m.skills[sk.index] : null;
-    // Пресеты без снимка навыков рисуются теми же иконками без уровней —
-    // договорённость по задаче: снимок появится позже, дыры в композиции нет.
-    if (lv != null) {
-      ccFont(ctx, 700, 16);
-      ccText(ctx, 'Lv.' + lv, tx + tile / 2, ty + tile - 8, { color: C.accent, align: 'center' });
-    }
-  });
-  // Core Skill Enhancement: шесть кружков A–F, открытые в полную силу.
-  const cy = y + 26 + tile + 14;
-  const cd = 40, cgap = 12;
-  let cx = x;
-  for (let i = 0; i < 6; i++) {
-    const on = (m.coreRank || 0) >= i + 1;
-    ctx.save();
-    ctx.globalAlpha = on ? 1 : .22;
-    ccContain(ctx, IM(iconUrl('core-skill-' + 'abcdef'[i])), cx, cy, cd, cd);
-    ctx.restore();
-    cx += cd + cgap;
-  }
-  ccFont(ctx, 400, 17);
-  ccText(ctx, m.coreRank ? `Core Skill ${'ABCDEF'[m.coreRank - 1]}` : 'Core Skill locked',
-    x + w, cy + 27, { color: C.textMid, align: 'right' });
-}
-
-/* ── ЦЕНТР: W-ENGINE ── */
-const CC_WENGINE_H = 26 + 104;
+/* ── СРЕДНЯЯ КОЛОНКА: W-ENGINE ──
+   Подложки нет. Ранг, специальность и оба стата обозначены картинками, а не
+   словами: «S-Rank Anomaly · Base ATK 743 · CRIT Rate 24%» — четыре подписи,
+   которые в игре и так узнаются по значкам, и текстом они занимали две строки
+   мелким кеглем.
+   Иконки статов ровно того же размера, что главный стат на карточке диска
+   (CC_MAIN_ICO): это одна и та же сущность — значок стата рядом с числом, — и
+   разъезжаться в размерах ей незачем. */
+const CC_WENGINE_H = 140, CC_WENGINE_ICO = 132;
 function ccDrawWengine(ctx, C, m, IM, x, y, w) {
-  ccSectionTitle(ctx, C, 'W-Engine', x, y + 14, w);
-  const ty = y + 26, h = 104;
-  ccPanel(ctx, x, ty, w, h, { r: CC.R_SM, fill: C.bg3, stroke: C.border });
   const we = m.wengine;
   if (!we) {
-    ccFont(ctx, 400, 20);
-    ccText(ctx, 'No W-Engine equipped', x + 24, ty + 58, { color: C.textMid, max: w - 48 });
-    return;
-  }
-  ccContain(ctx, IM(we.key ? wengineUrl(we.key) : null), x + 12, ty + 12, 80, 80);
-  const tx = x + 106, tw = w - 106 - 20;
-  ccFont(ctx, 700, 25);
-  ccText(ctx, we.name, tx, ty + 36, { color: C.text, max: tw });
-  ccFont(ctx, 400, 18);
-  ccText(ctx, we.line1, tx, ty + 62, { color: C.textMid, max: tw });
-  if (we.line2) ccText(ctx, we.line2, tx, ty + 86, { color: C.textMid, max: tw });
-}
-
-/* ── ЦЕНТР: СЕТЫ ── */
-const CC_SETS_H = 26 + 44;
-function ccDrawSets(ctx, C, m, IM, x, y, w) {
-  ccSectionTitle(ctx, C, 'Drive Disc Sets', x, y + 14, w);
-  const entries = Object.entries(m.setCounts || {});
-  if (!entries.length) {
     ccFont(ctx, 400, 19);
-    ccText(ctx, '—', x, y + 54, { color: C.textMid });
+    ccText(ctx, 'No W-Engine equipped', x, y + 74, { color: C.textMid, max: w });
     return;
   }
-  let cx = x;
-  const ty = y + 28;
-  entries.forEach(([name, count]) => {
-    ccFont(ctx, 600, 19);
-    const label = `${name} ×${count}`;
-    const tw = Math.min(ctx.measureText(label).width, w - 40);
-    if (cx + tw + 46 > x + w) return; // не влезло — лучше обрезать список, чем налезать на соседний блок
-    ccPanel(ctx, cx, ty, tw + 40, 36, { r: 18, fill: C.bg3, stroke: count >= 2 ? C.accent30 : C.border });
-    ccContain(ctx, IM(discUrl(name)), cx + 6, ty + 4, 28, 28);
-    ccText(ctx, label, cx + 38, ty + 25, { color: count >= 2 ? C.text : C.textMid, max: tw });
-    cx += tw + 52;
+  /* Ширина группы считается по самой длинной из трёх строк, а не по колонке:
+     иначе «центрировать» означало бы центрировать пустоту справа от короткого
+     названия, и блок съезжал бы влево тем сильнее, чем короче имя движка. */
+  ccFont(ctx, 700, 26);
+  let bodyW = ctx.measureText(we.name).width;
+  ccFont(ctx, 400, 20);
+  bodyW = Math.max(bodyW, ctx.measureText(`Lv.${we.level} · ${we.rankLabel}`).width + 14
+    + (we.rarity ? 40 : 0) + (we.specialty ? 32 : 0));
+  ccFont(ctx, 700, 23);
+  let statsW = 0;
+  if (we.baseATK != null) statsW += CC_MAIN_ICO + 8 + ctx.measureText(String(we.baseATK)).width + 26;
+  if (we.secValue != null) statsW += CC_MAIN_ICO + 8 + ctx.measureText(String(we.secValue)).width;
+  bodyW = Math.max(bodyW, statsW);
+  const groupW = Math.min(CC_WENGINE_ICO + 16 + bodyW, w);
+  x += (w - groupW) / 2;
+
+  ccContain(ctx, IM(we.key ? wengineUrl(we.key) : null), x, y + 4, CC_WENGINE_ICO, CC_WENGINE_ICO);
+  const tx = x + CC_WENGINE_ICO + 16, tw = w - CC_WENGINE_ICO - 16;
+
+  ccFont(ctx, 700, 26);
+  ccText(ctx, we.name, tx, y + 38, { color: C.text, max: tw });
+
+  // Уровень и ранг словами, дальше ранг предмета и специальность картинками.
+  let cx = tx;
+  ccFont(ctx, 400, 20);
+  cx += ccText(ctx, `Lv.${we.level} · ${we.rankLabel}`, tx, y + 76, { color: C.textMid }) + 14;
+  if (we.rarity) { ccContain(ctx, IM(iconUrl('item-rank-' + String(we.rarity).toLowerCase())), cx, y + 52, 32, 32); cx += 40; }
+  if (we.specialty) ccContain(ctx, IM(specialtyUrl(we.specialty)), cx, y + 52, 32, 32);
+
+  // Базовая атака и второй стат: значок плюс число, как на карточках дисков.
+  let sx = tx;
+  const statSeg = (iconKey, value) => {
+    if (!value && value !== 0) return;
+    if (iconKey) ccContain(ctx, IM(iconUrl(iconKey)), sx, y + 96, CC_MAIN_ICO, CC_MAIN_ICO);
+    sx += CC_MAIN_ICO + 8;
+    ccFont(ctx, 700, 23);
+    sx += ccText(ctx, String(value), sx, y + 121, { color: C.text }) + 26;
+  };
+  statSeg('ATK', we.baseATK);
+  statSeg(we.secName ? ccStatIconKey(we.secName) : null, we.secValue);
+}
+
+/* ── СРЕДНЯЯ КОЛОНКА: НАВЫКИ ──
+   Плиток больше нет, только иконки с уровнем. Ряд букв A-F убран целиком: Core
+   Skill Lv.7 в этом же ряду уже означает, что открыты все шесть, и второй ряд
+   повторял ту же мысль картинками. */
+/* Шаг ФИКСИРОВАННЫЙ, а не «ширина колонки на шесть»: при делении колонки
+   значки расползались на все 630 и ряд читался как шесть отдельных элементов, а
+   не как одна группа. Теперь ряд прижат к левому краю и занимает 442 из 630 —
+   подпись «Lv.12» уже значка, так что 26px между значками её не поджимают. */
+const CC_SKILL_ICO = 52, CC_SKILL_GAP = 26;
+const CC_SKILLS_H = 82;
+function ccDrawSkills(ctx, C, m, IM, x, y, w) {
+  const slot = CC_SKILL_ICO + CC_SKILL_GAP;
+  const rowW = CC_SKILL_ICO * 6 + CC_SKILL_GAP * 5;
+  const x0 = x + (w - rowW) / 2;
+  CC_SKILL_ORDER.forEach((sk, i) => {
+    const centre = x0 + slot * i + CC_SKILL_ICO / 2;
+    ccContain(ctx, IM(iconUrl(sk.icon)), centre - CC_SKILL_ICO / 2, y, CC_SKILL_ICO, CC_SKILL_ICO);
+    const lv = m.skills ? m.skills[sk.index] : null;
+    // Пресеты без снимка навыков рисуются теми же иконками без уровней.
+    if (lv != null) {
+      ccFont(ctx, 700, 18);
+      ccText(ctx, 'Lv.' + lv, centre, y + 76, { color: C.accent, align: 'center' });
+    }
   });
 }
 
-/* ── ЦЕНТР: ИТОГИ ПО САБСТАТАМ ── */
-function ccTotalsHeight(m) {
-  const n = Object.keys(m.agg || {}).length;
-  return 26 + 30 + Math.max(1, Math.ceil(n / 4)) * 42;
-}
-function ccDrawTotals(ctx, C, m, IM, x, y, w) {
-  ccSectionTitle(ctx, C, 'Sub-Stat Totals', x, y + 14, w);
-  // Та же сводка «N useful / +N flat / +N PEN of M», что и в развёрнутом виде,
-  // но собранная руками: usefulProcSegments() отдаёт HTML, а здесь нужен текст.
-  const t = m.procCounts && m.procCounts.total;
-  if (t && m.useful && m.useful.rule) {
-    let sx = x;
-    ccFont(ctx, 700, 19);
-    if (t.main > 0) sx += ccText(ctx, `${t.main} useful`, sx, y + 46, { color: C.accent }) + 16;
-    if (t.flat > 0) sx += ccText(ctx, `+${t.flat} flat`, sx, y + 46, { color: C.accent60 }) + 16;
-    if (t.pen  > 0) sx += ccText(ctx, `+${t.pen} PEN`, sx, y + 46, { color: C.accent2 }) + 16;
-    if (sx > x) { ccFont(ctx, 400, 17); ccText(ctx, `of ${t.all} procs`, sx, y + 46, { color: C.textMid }); }
+/* ── СРЕДНЯЯ КОЛОНКА: КРУПНЫЕ ЦИФРЫ ПРОКОВ ──
+   Три равновеликие цифры: основной зачёт, плоский, PEN. У main метки нет: она
+   повторяла бы хвост «of N procs» в той же строке. Нулевые зачёты не
+   печатаются вовсе, как и в развёрнутом виде: «+0 flat» занимает место, но не
+   сообщает ничего. */
+const CC_PROCNUM_H = 72;
+function ccDrawProcNumbers(ctx, C, m, IM, x, y, w) {
+  const t = (m.procCounts && m.procCounts.total) || null;
+  const base = y + 52;
+  if (!t || !m.useful || !m.useful.rule) {
+    ccFont(ctx, 400, 19);
+    ccText(ctx, 'No proc rule for this agent', x, base - 12, { color: C.textMid, max: w });
+    return;
   }
-  const entries = Object.entries(m.agg || {});
-  const colW = (w - 30) / 4;
-  entries.forEach(([name, v], i) => {
-    const cx = x + (i % 4) * (colW + 10), cy = y + 56 + Math.floor(i / 4) * 42;
-    const bucket = m.useful && m.useful.rule ? usefulProcBucket(name, m.useful) : '';
-    const col = ccBucketColor(C, bucket) || C.text;
-    const k = ccStatIconKey(name);
-    if (k) ccContain(ctx, IM(iconUrl(k)), cx, cy, 26, 26);
-    ccFont(ctx, 700, 15, CC.FM);
-    ccText(ctx, String(v.procs), cx + 30, cy + 19, { color: C.textMid });
-    ccFont(ctx, 600, 18);
-    ccText(ctx, discStatValueDisplay(name, v.value), cx + colW, cy + 19, { color: col, align: 'right' });
+  /* Строка собирается сегментами и замеряется целиком до отрисовки: состав
+     переменный (нулевые зачёты не печатаются), поэтому ширину нельзя взять из
+     константы, а центрировать надо по факту. */
+  const segs = [];
+  if (t.main > 0) segs.push([String(t.main), '', C.accent]);
+  if (t.flat > 0) segs.push(['+' + t.flat, 'flat', C.accent60]);
+  if (t.pen  > 0) segs.push(['+' + t.pen, 'PEN', C.accent2]);
+  const tail = `of ${t.all} ${ccProcWord(t.all)}`;
+  let total = 0;
+  segs.forEach(([num, label]) => {
+    ccFont(ctx, 700, 50); total += ctx.measureText(num).width + 8;
+    if (label) { ccFont(ctx, 600, 20); total += ctx.measureText(label).width + 24; }
+    else total += 16;
+  });
+  ccFont(ctx, 400, 19);
+  total += ctx.measureText(tail).width;
+
+  let cx = x + Math.max(0, (w - total) / 2);
+  segs.forEach(([num, label, color]) => {
+    ccFont(ctx, 700, 50);
+    cx += ccText(ctx, num, cx, base, { color }) + 8;
+    if (label) { ccFont(ctx, 600, 20); cx += ccText(ctx, label, cx, base, { color }) + 24; }
+    else cx += 16;
+  });
+  ccFont(ctx, 400, 19);
+  ccText(ctx, tail, cx, base, { color: C.textMid, max: Math.max(0, x + w - cx) });
+}
+
+/* ── СРЕДНЯЯ КОЛОНКА: ПОЛЕЗНЫЕ ПРОКИ ──
+   Значок стата и количество прокрутов. Значений статов нет — они уже стоят
+   строкой выше в колонке статов. Бесполезные проки не гаснут и не белеют, а
+   не показываются вовсе: раз блок называется «полезные», серые строки в нём
+   только отвлекают.
+   Порядок задан, а не взят из порядка обхода дисков: сначала основной зачёт,
+   потом плоский, потом PEN, внутри группы по убыванию количества. Иначе строка
+   пересобиралась бы при каждом изменении сборки без всякой логики.
+   Потолок шести элементов заложен правилами: основной зачёт максимум четыре
+   стата, плюс подтянутый плоский аналог, плюс PEN.
+   Высота блока постоянная, даже когда показывать нечего (агент без правила):
+   иначе всё, что ниже, подпрыгивало бы вверх у одних агентов и не подпрыгивало
+   у других. */
+const CC_PROCROW_H = 44, CC_PROC_ICO = 28, CC_PROC_MAX_PITCH = 90;
+const CC_BUCKET_ORDER = { main: 0, flat: 1, pen: 2 };
+function ccDrawProcRow(ctx, C, m, IM, x, y, w) {
+  if (!m.useful || !m.useful.rule) return;
+  const items = Object.entries(m.agg || {})
+    .map(([name, v]) => ({ name, procs: v.procs, bucket: usefulProcBucket(name, m.useful) }))
+    .filter(it => it.bucket)
+    .sort((a, b) => (CC_BUCKET_ORDER[a.bucket] - CC_BUCKET_ORDER[b.bucket]) || (b.procs - a.procs));
+  if (!items.length) return;
+
+  ccFont(ctx, 700, 22);
+  items.forEach(it => { it.w = CC_PROC_ICO + 8 + ctx.measureText(String(it.procs)).width; });
+  const lastW = items[items.length - 1].w;
+  const pitch = items.length > 1
+    ? Math.min((w - lastW) / (items.length - 1), CC_PROC_MAX_PITCH)
+    : 0;
+  const used = pitch * (items.length - 1) + lastW;
+  const startX = x + (w - used) / 2;
+
+  items.forEach((it, i) => {
+    const cx = startX + i * pitch;
+    const col = ccBucketColor(C, it.bucket) || C.text;
+    const k = ccStatIconKey(it.name);
+    if (k) ccContain(ctx, IM(iconUrl(k)), cx, y + 6, CC_PROC_ICO, CC_PROC_ICO);
+    ccFont(ctx, 700, 22);
+    ccText(ctx, String(it.procs), cx + CC_PROC_ICO + 8, y + 29,
+      { color: col, max: Math.max(20, pitch - CC_PROC_ICO - 12) });
   });
 }
 
-/* ── ЦЕНТР: СБОРКА КОЛОНКИ ──
-   Блоки складываются сверху вниз, а свободный остаток раздаётся в промежутки
-   между ними. Иначе при выключенных Totals внизу колонки оставалась бы дыра в
-   треть высоты: карточка — картинка фиксированного размера, «просто короче»
-   она стать не может. Прибавка ограничена, чтобы при пустой сборке блоки не
-   разлетелись по углам. */
+/* ── СБОРКА СРЕДНЕЙ КОЛОНКИ ──
+   Заголовков секций и подложек нет: блоки разделяет только воздух, поэтому
+   свободный остаток раздаётся в промежутки. */
 function ccDrawMiddle(ctx, C, m, IM) {
-  const x = CC.PAD + CC.LEFT_W + CC.GAP, w = CC.MID_W;
-  const top = CC.PAD, avail = CC.H - CC.PAD * 2;
+  const x = CC.MID_X, w = CC.MID_W;
   const blocks = [
-    { h: ccStatsHeight(m), draw: (y) => ccDrawStats(ctx, C, m, IM, x, y, w) },
-    { h: CC_SKILLS_H,      draw: (y) => ccDrawSkills(ctx, C, m, IM, x, y, w) },
-    { h: CC_WENGINE_H,     draw: (y) => ccDrawWengine(ctx, C, m, IM, x, y, w) },
-    { h: CC_SETS_H,        draw: (y) => ccDrawSets(ctx, C, m, IM, x, y, w) },
+    { h: CC_STATS_H,   draw: (y) => ccDrawStats(ctx, C, m, IM, x, y, w) },
+    { h: CC_WENGINE_H, draw: (y) => ccDrawWengine(ctx, C, m, IM, x, y, w) },
+    { h: CC_SKILLS_H,  draw: (y) => ccDrawSkills(ctx, C, m, IM, x, y, w) },
   ];
   if (profileDisplayOptions.totals) {
-    blocks.push({ h: ccTotalsHeight(m), draw: (y) => ccDrawTotals(ctx, C, m, IM, x, y, w) });
+    blocks.push({ h: CC_PROCROW_H, draw: (y) => ccDrawProcRow(ctx, C, m, IM, x, y, w) });
+    blocks.push({ h: CC_PROCNUM_H, draw: (y) => ccDrawProcNumbers(ctx, C, m, IM, x, y, w) });
   }
   const used = blocks.reduce((a, b) => a + b.h, 0);
   const gaps = blocks.length - 1;
-  const gap = gaps > 0 ? Math.max(18, Math.min(58, 18 + (avail - used - 18 * gaps) / gaps)) : 0;
-  let y = top;
+  const gap = gaps > 0 ? Math.max(10, Math.min(56, (CC.COL_H - used) / gaps)) : 0;
+  let y = CC.COL_TOP;
   blocks.forEach((b, i) => { b.draw(y); y += b.h + (i < gaps ? gap : 0); });
 }
 
-/* ── ПРАВАЯ КОЛОНКА: ШЕСТЬ ДИСКОВ ── */
-function ccDrawDiscs(ctx, C, m, IM) {
-  const x = CC.PAD + CC.LEFT_W + CC.MID_W + CC.GAP * 2, w = CC.RIGHT_W;
-  const top = CC.PAD, avail = CC.H - CC.PAD * 2;
-  const gap = 8, h = (avail - gap * 5) / 6;
-  for (let i = 0; i < 6; i++) {
-    const d = (m.discs || [])[i] || null;
-    const y = top + i * (h + gap);
-    ccPanel(ctx, x, y, w, h, { r: CC.R_SM, fill: C.bg3, stroke: C.border });
-    if (!d) {
-      ccFont(ctx, 400, 19);
-      ccText(ctx, `Slot ${i + 1} — empty`, x + 24, y + h / 2 + 7, { color: C.textDim });
-      continue;
+/* ── ПРАВАЯ КОЛОНКА: ШЕСТЬ ДИСКОВ 2×3 ──
+   Подложек нет. Диски разделяют тонкие линейки между сабстатами — те же, что
+   стоят внутри диска, поэтому нижняя линейка одного диска работает границей до
+   следующего. Ни номера слота, ни названия сета, ни уровня, ни ранга: слот
+   читается по позиции в сетке, сет по иконке.
+
+   ЦВЕТ ЗДЕСЬ ОЗНАЧАЕТ РОВНО ОДНО — полезность прока:
+     · главный стат белый: он не «полезен» и не «бесполезен», он просто есть;
+     · полезный сабстат красится целиком, и название, и значение, цветом
+       своего зачёта (main — акцент, flat — приглушённый акцент, PEN — второй);
+     · бесполезный сабстат белый, а не серый: приглушение читалось бы как
+       «данные хуже качеством», хотя дело только в зачёте;
+     · цифра докруток красится тем же цветом, подложки под ней нет.
+   Это отличается от развёрнутого вида, где у сабстата красится только подпись,
+   а значение остаётся нейтральным. Расхождение намеренное. */
+function ccDrawDiscCard(ctx, C, m, IM, d, slot, procRow, x, y, w) {
+  if (!d) {
+    ccFont(ctx, 400, 18);
+    ccText(ctx, `Slot ${slot} — empty`, x, y + 38, { color: C.textDim, max: w });
+    return;
+  }
+  const headH = CC_DISC_HEAD;
+  ccContain(ctx, IM(discUrl(d.setName)), x, y, headH, headH);
+  /* Номер слота стоит НАД значком главного стата, а не отдельной плашкой:
+     слот и главный стат связаны (в четвёртом слоте всегда CRIT, в пятом урон
+     атрибута и так далее), и читать их одной колонкой удобнее. */
+  const hx = x + headH + 14;
+  ccFont(ctx, 400, 15, CC.FM);
+  ccTrackText(ctx, 'SLOT ' + slot, hx, y + 24, 1.6, { color: C.textMid });
+  const mIco = CC_MAIN_ICO, mIcoY = y + 32;
+  const mk = ccStatIconKey(d.mainStat);
+  if (mk) ccContain(ctx, IM(iconUrl(mk)), hx, mIcoY, mIco, mIco);
+  ccFont(ctx, 700, CC_MAIN_FONT);
+  ccText(ctx, d.mainStatValue, x + w, mIcoY + mIco / 2 + 11,
+    { color: C.text, align: 'right', max: w - headH - mIco - 40 });
+
+  const subTop = y + headH + 8, subH = CC_STAT_ROW;
+  (d.subStats || []).slice(0, 4).forEach((sub, si) => {
+    const sy = subTop + si * subH, sMid = sy + subH / 2;
+    const bucket = m.useful && m.useful.rule ? usefulProcBucket(sub.name, m.useful) : '';
+    const col = ccBucketColor(C, bucket) || C.text;
+    ccFont(ctx, 600, 22);
+    const vW = ccText(ctx, sub.value, x + w, sMid + 8, { color: col, align: 'right' });
+    const extra = (sub.procs || 1) - 1; // первый прок — базовый ролл, в бейдже только докрутки
+    let nameMax = w - vW - 14;
+    if (extra > 0) nameMax -= 48;
+    ccFont(ctx, 500, 20);
+    const nW = ccText(ctx, ccSubName(ctx, sub.name, nameMax), x, sMid + 8, { color: col });
+    if (extra > 0) {
+      ccFont(ctx, 700, 20);
+      ccText(ctx, '+' + extra, x + nW + 10, sMid + 8, { color: col });
     }
-    // Иконка сета: сначала вариант «в слоте», как в библиотеке дисков, при его
-    // отсутствии — обычная иконка сета.
-    const ico = IM(discSlotIconUrl(d.setName)) || IM(discUrl(d.setName));
-    ccContain(ctx, ico, x + 12, y + 16, 86, 86);
-    ccFont(ctx, 400, 14, CC.FM);
-    ccText(ctx, `LV.${d.level}`, x + 55, y + h - 14, { color: C.textMid, align: 'center' });
-    ccFont(ctx, 700, 14, CC.FM);
-    ccText(ctx, String(d.slot || i + 1), x + 20, y + 26, { color: C.textMid });
+    ctx.strokeStyle = C.border; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, sy + subH - 1); ctx.lineTo(x + w, sy + subH - 1); ctx.stroke();
+  });
 
-    // Главный стат — крупно, как на карточке в игре.
-    const mk = ccStatIconKey(d.mainStat);
-    if (mk) ccContain(ctx, IM(iconUrl(mk)), x + 112, y + 30, 32, 32);
-    ccFont(ctx, 700, 32);
-    ccText(ctx, d.mainStatValue, x + 152, y + 58, { color: C.text, max: 140 });
-    ccFont(ctx, 400, 15);
-    ccText(ctx, discStatLabel(d.mainStat), x + 152, y + 82, { color: C.textMid, max: 140 });
+  // Зачёт полезных проков этого диска — такая же строка, как сабстаты выше:
+  // тот же шаг, тот же вертикальный центр, та же линейка снизу.
+  const fRow = subTop + 4 * subH, fMid = fRow + subH / 2;
+  if (procRow && m.useful && m.useful.rule) {
+    let fx = x;
+    const seg = (num, label, color) => {
+      ccFont(ctx, 700, 20); fx += ccText(ctx, num, fx, fMid + 7, { color }) + 5;
+      ccFont(ctx, 400, 16); fx += ccText(ctx, label, fx, fMid + 7, { color }) + 14;
+    };
+    if (procRow.main > 0) seg(String(procRow.main), ccProcWord(procRow.main), C.accent);
+    if (procRow.flat > 0) seg('+' + procRow.flat, 'flat', C.accent60);
+    if (procRow.pen  > 0) seg('+' + procRow.pen, 'PEN', C.accent2);
+  }
+  ctx.strokeStyle = C.border; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x, fRow + subH - 1); ctx.lineTo(x + w, fRow + subH - 1); ctx.stroke();
+}
 
-    // Сабстаты 2×2. Подсветка — тот же зачёт, что и в развёрнутом виде.
-    const sx = x + 306, cw = (w - 306 - 14) / 2, ch = (h - 24) / 2;
-    (d.subStats || []).slice(0, 4).forEach((sub, si) => {
-      const cx = sx + (si % 2) * cw, cy = y + 12 + Math.floor(si / 2) * ch;
-      const bucket = m.useful && m.useful.rule ? usefulProcBucket(sub.name, m.useful) : '';
-      const col = ccBucketColor(C, bucket) || C.text;
-      const k = ccStatIconKey(sub.name);
-      if (k) ccContain(ctx, IM(iconUrl(k)), cx, cy + (ch - 26) / 2 - 2, 26, 26);
-      ccFont(ctx, 600, 21);
-      const vw = ccText(ctx, sub.value, cx + 34, cy + ch / 2 + 6, { color: col, max: cw - 70 });
-      const extra = (sub.procs || 1) - 1; // первый прок — базовый ролл диска, в бейдже только докрутки
-      if (extra > 0) {
-        ccFont(ctx, 700, 14, CC.FM);
-        ccText(ctx, '+' + extra, cx + 40 + vw, cy + ch / 2 + 4, { color: C.textMid });
-      }
-    });
+function ccDrawDiscs(ctx, C, m, IM) {
+  const colGap = 22;
+  const discsH = CC.COL_H;
+  const cw = (CC.DISCS_W - colGap) / 2;
+  /* Высота карточки теперь ЗАДАНА содержимым, а не остатком места: шапка плюс
+     четыре строки по CC_STAT_ROW. Свободный остаток уходит в промежутки между
+     рядами — при отсутствии подложек именно воздух отделяет один диск от
+     другого, поэтому щедрый промежуток тут работает на читаемость. Предел 64,
+     чтобы при коротком блоке проков ряды не разъехались по всей колонке. */
+  const ch = CC_DISC_H;
+  const rowGap = Math.max(18, Math.min(64, (discsH - ch * 3) / 2));
+  for (let i = 0; i < 6; i++) {
+    const x = CC.DISCS_X + (i % 2) * (cw + colGap);
+    const y = CC.COL_TOP + Math.floor(i / 2) * (ch + rowGap);
+    const d = (m.discs || [])[i] || null;
+    const procRow = m.procCounts && m.procCounts.perDisc ? m.procCounts.perDisc[i] : null;
+    ccDrawDiscCard(ctx, C, m, IM, d, (d && d.slot) || i + 1, procRow, x, y, cw);
   }
 }
 
@@ -11923,8 +12099,13 @@ async function renderProfileDetail(i) {
       wengine: a.Weapon ? {
         key: wengineSlug,
         name: wengineSlug ? prettyName(wengineSlug) : `Unknown (Id ${a.Weapon.Id})`,
-        line1: `Lv.${a.Weapon.Level} · P${a.Weapon.UpgradeLevel || 1}${wengineInfo ? ` · ${wengineInfo.rarity}-Rank ${wengineInfo.specialty}` : ''}`,
-        line2: wengineInfo ? `Base ATK ${wengineInfo.baseATK} · ${wengineInfo.secondaryStat?.name || ''} ${wengineInfo.secondaryStat?.value || ''}` : '',
+        level: a.Weapon.Level,
+        rankLabel: `P${a.Weapon.UpgradeLevel || 1}`,
+        rarity: wengineInfo?.rarity || null,
+        specialty: wengineInfo?.specialty || null,
+        baseATK: wengineInfo?.baseATK || null,
+        secName: wengineInfo?.secondaryStat?.name || null,
+        secValue: wengineInfo?.secondaryStat?.value || null,
       } : null,
       owner: { nickname: profileCurrentNickname, uid: profileCurrentUid },
       showOwner: profileDisplayOptions.owner,
