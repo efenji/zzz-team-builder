@@ -11600,8 +11600,8 @@ const CC_STATS_H = CC_STAT_ROW * CC_STAT_MAX;
 // статов агента. Строки в средней и правой колонках идут в один ритм.
 /* Значок стата рядом с числом: на карточке диска и в блоке W-Engine это одно и
    то же, поэтому размер общий. Привязан к кеглю главного стата (30 × 1.2). */
-const CC_MAIN_FONT = 30, CC_MAIN_ICO = Math.round(CC_MAIN_FONT * 1.2);
-const CC_DISC_HEAD = 80;
+const CC_MAIN_FONT = 32, CC_MAIN_ICO = Math.round(CC_MAIN_FONT * 1.2);
+const CC_DISC_HEAD = 100;
 // Пять строк одного шага: четыре сабстата и строка зачёта.
 const CC_DISC_H = CC_DISC_HEAD + 8 + CC_STAT_ROW * 5;
 function ccDrawStats(ctx, C, m, IM, x, y, w) {
@@ -11844,18 +11844,18 @@ function ccDrawDiscCard(ctx, C, m, IM, d, slot, procRow, x, y, w) {
     return;
   }
   const headH = CC_DISC_HEAD;
-  ccContain(ctx, IM(discUrl(d.setName)), x, y, headH, headH);
-  /* Номер слота стоит НАД значком главного стата, а не отдельной плашкой:
-     слот и главный стат связаны (в четвёртом слоте всегда CRIT, в пятом урон
-     атрибута и так далее), и читать их одной колонкой удобнее. */
+  // Значок сета и цифра слота здесь НЕ рисуются — они накладываются поверх
+  // отдельным слоем, потому что вращаются. См. ccDrawDiscArt().
+
+  /* Главный стат центрован по высоте шапки. Строка с рангом и уровнем над ним
+     была и убрана: у дисков со стенда ранг почти всегда S, а уровень почти
+     всегда 15, так что шесть карточек показывали шесть одинаковых пар. */
   const hx = x + headH + 14;
-  ccFont(ctx, 400, 15, CC.FM);
-  ccTrackText(ctx, 'SLOT ' + slot, hx, y + 24, 1.6, { color: C.textMid });
-  const mIco = CC_MAIN_ICO, mIcoY = y + 32;
+  const mIco = CC_MAIN_ICO, mid = y + headH / 2;
   const mk = ccStatIconKey(d.mainStat);
-  if (mk) ccContain(ctx, IM(iconUrl(mk)), hx, mIcoY, mIco, mIco);
+  if (mk) ccContain(ctx, IM(iconUrl(mk)), hx, mid - mIco / 2, mIco, mIco);
   ccFont(ctx, 700, CC_MAIN_FONT);
-  ccText(ctx, d.mainStatValue, x + w, mIcoY + mIco / 2 + 11,
+  ccText(ctx, d.mainStatValue, x + w, mid + 11,
     { color: C.text, align: 'right', max: w - headH - mIco - 40 });
 
   const subTop = y + headH + 8, subH = CC_STAT_ROW;
@@ -11863,15 +11863,15 @@ function ccDrawDiscCard(ctx, C, m, IM, d, slot, procRow, x, y, w) {
     const sy = subTop + si * subH, sMid = sy + subH / 2;
     const bucket = m.useful && m.useful.rule ? usefulProcBucket(sub.name, m.useful) : '';
     const col = ccBucketColor(C, bucket) || C.text;
-    ccFont(ctx, 600, 22);
+    ccFont(ctx, 600, 23);
     const vW = ccText(ctx, sub.value, x + w, sMid + 8, { color: col, align: 'right' });
     const extra = (sub.procs || 1) - 1; // первый прок — базовый ролл, в бейдже только докрутки
     let nameMax = w - vW - 14;
-    if (extra > 0) nameMax -= 48;
-    ccFont(ctx, 500, 20);
+    if (extra > 0) nameMax -= 44;
+    ccFont(ctx, 500, 21);
     const nW = ccText(ctx, ccSubName(ctx, sub.name, nameMax), x, sMid + 8, { color: col });
     if (extra > 0) {
-      ccFont(ctx, 700, 20);
+      ccFont(ctx, 700, 22);
       ccText(ctx, '+' + extra, x + nW + 10, sMid + 8, { color: col });
     }
     ctx.strokeStyle = C.border; ctx.lineWidth = 1;
@@ -11884,8 +11884,8 @@ function ccDrawDiscCard(ctx, C, m, IM, d, slot, procRow, x, y, w) {
   if (procRow && m.useful && m.useful.rule) {
     let fx = x;
     const seg = (num, label, color) => {
-      ccFont(ctx, 700, 20); fx += ccText(ctx, num, fx, fMid + 7, { color }) + 5;
-      ccFont(ctx, 400, 16); fx += ccText(ctx, label, fx, fMid + 7, { color }) + 14;
+      ccFont(ctx, 700, 21); fx += ccText(ctx, num, fx, fMid + 7, { color }) + 5;
+      ccFont(ctx, 400, 17); fx += ccText(ctx, label, fx, fMid + 7, { color }) + 14;
     };
     if (procRow.main > 0) seg(String(procRow.main), ccProcWord(procRow.main), C.accent);
     if (procRow.flat > 0) seg('+' + procRow.flat, 'flat', C.accent60);
@@ -11895,24 +11895,223 @@ function ccDrawDiscCard(ctx, C, m, IM, d, slot, procRow, x, y, w) {
   ctx.beginPath(); ctx.moveTo(x, fRow + subH - 1); ctx.lineTo(x + w, fRow + subH - 1); ctx.stroke();
 }
 
+/* Положение карточки в сетке. Вынесено отдельно, потому что этими координатами
+   пользуются трое: отрисовка карточки, наложение вращаемой иконки поверх и
+   попадание курсора при перетаскивании. Раньше геометрия жила внутри цикла, и
+   любое расхождение между тремя копиями означало бы, что диск крутится не там,
+   где нарисован.
+   Высота карточки ЗАДАНА содержимым (шапка плюс пять строк), а свободный
+   остаток уходит в промежутки между рядами: подложек нет, и именно воздух
+   отделяет один диск от другого. Предел 64 — чтобы ряды не разъехались. */
+function ccDiscRect(i) {
+  const colGap = 22, cw = (CC.DISCS_W - colGap) / 2, ch = CC_DISC_H;
+  const rowGap = Math.max(18, Math.min(64, (CC.COL_H - ch * 3) / 2));
+  return {
+    x: CC.DISCS_X + (i % 2) * (cw + colGap),
+    y: CC.COL_TOP + Math.floor(i / 2) * (ch + rowGap),
+    w: cw, h: ch,
+  };
+}
+
 function ccDrawDiscs(ctx, C, m, IM) {
-  const colGap = 22;
-  const discsH = CC.COL_H;
-  const cw = (CC.DISCS_W - colGap) / 2;
-  /* Высота карточки теперь ЗАДАНА содержимым, а не остатком места: шапка плюс
-     четыре строки по CC_STAT_ROW. Свободный остаток уходит в промежутки между
-     рядами — при отсутствии подложек именно воздух отделяет один диск от
-     другого, поэтому щедрый промежуток тут работает на читаемость. Предел 64,
-     чтобы при коротком блоке проков ряды не разъехались по всей колонке. */
-  const ch = CC_DISC_H;
-  const rowGap = Math.max(18, Math.min(64, (discsH - ch * 3) / 2));
   for (let i = 0; i < 6; i++) {
-    const x = CC.DISCS_X + (i % 2) * (cw + colGap);
-    const y = CC.COL_TOP + Math.floor(i / 2) * (ch + rowGap);
+    const r = ccDiscRect(i);
     const d = (m.discs || [])[i] || null;
     const procRow = m.procCounts && m.procCounts.perDisc ? m.procCounts.perDisc[i] : null;
-    ccDrawDiscCard(ctx, C, m, IM, d, (d && d.slot) || i + 1, procRow, x, y, cw);
+    ccDrawDiscCard(ctx, C, m, IM, d, (d && d.slot) || i + 1, procRow, r.x, r.y, r.w);
   }
+}
+
+/* Иконка сета и цифра слота рисуются ОТДЕЛЬНО от остальной карточки: только
+   они меняются при вращении, и держать их в статичном слое значило бы
+   перерисовывать все две сотни операций на каждое движение мыши.
+   Крутится только картинка. Цифра слота остаётся ровной — иначе на половине
+   углов она висела бы вверх ногами. */
+function ccDrawDiscArt(ctx, C, IM, d, slot, i, angle) {
+  const r = ccDiscRect(i), s = CC_DISC_HEAD;
+  const cx = r.x + s / 2, cy = r.y + s / 2;
+  const img = IM(discUrl(d.setName));
+  if (img) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle || 0);
+    ccContain(ctx, img, -s / 2, -s / 2, s, s);
+    ctx.restore();
+  }
+  const bd = Math.round(s * 0.46);
+  ccPanel(ctx, cx - bd / 2, cy - bd / 2, bd, bd, { r: bd / 2, fill: 'rgba(0,0,0,.72)', stroke: C.accent30 });
+  ccFont(ctx, 700, Math.round(bd * 0.62));
+  ccText(ctx, String(slot), cx, cy + bd * 0.22, { color: C.text, align: 'center' });
+}
+
+/* ── ВРАЩЕНИЕ ДИСКОВ ──
+   Иконку сета можно раскрутить: зажать, потянуть, отпустить — диск продолжит
+   вращаться по инерции с затуханием. Угол попадает в скачанный PNG, потому что
+   рисуется на том же холсте: это способ «подписать» свою карточку.
+
+   Два слоя. Статичный (всё, кроме иконок сетов и цифр слотов) рисуется один раз
+   в закадровый холст, а каждый кадр только копируется целиком и поверх кладутся
+   шесть иконок. Иначе движение мыши стоило бы полной перерисовки — двух сотен
+   операций с загруженными картинками вместо семи.
+
+   Угол считается от направления НА КУРСОР относительно центра диска, а не от
+   горизонтального смещения: тянуть можно в любую сторону, диск поворачивается
+   вслед, как настоящий под пальцем. Скорость броска берётся из последнего
+   заметного движения, поэтому «дотянул и подержал» отпускает диск неподвижным,
+   а короткий резкий рывок раскручивает сильно. */
+let ccSpin = null;
+
+const CC_SPIN = {
+  FRICTION: 1.9,      // затухание в секунду, экспоненциальное
+  STOP: 0.05,         // ниже этой угловой скорости считаем, что диск встал
+  MAX_VEL: 40,        // предел броска, рад/с — защита от рывка на один кадр
+  MIN_RADIUS: 12,     // ближе к центру угол скачет, там перетаскивание игнорируем
+  IDLE_MS: 90,        // пауза перед отпусканием, после которой бросок не считается
+};
+
+// Разница углов, приведённая к (-π, π]: без этого переход через ±π давал бы
+// скачок на полный оборот и диск дёргался бы раз в круг.
+function ccAngleDelta(a, b) {
+  let d = a - b;
+  while (d > Math.PI) d -= Math.PI * 2;
+  while (d < -Math.PI) d += Math.PI * 2;
+  return d;
+}
+
+// Холст показан отмасштабированным (1920 внутренних пикселей на ~1900 экранных),
+// поэтому координаты события переводим через фактический коэффициент.
+function ccPointerPos(canvas, ev) {
+  const r = canvas.getBoundingClientRect();
+  return { x: (ev.clientX - r.left) * (canvas.width / r.width),
+           y: (ev.clientY - r.top) * (canvas.height / r.height) };
+}
+
+// Какой диск под курсором. Попадание круглое, а не по всей шапке: иконка круглая,
+// и хвататься за пустой угол вокруг неё было бы странно.
+function ccDiscAt(m, px, py) {
+  for (let i = 0; i < 6; i++) {
+    if (!(m.discs || [])[i]) continue;
+    const r = ccDiscRect(i), s = CC_DISC_HEAD;
+    const dx = px - (r.x + s / 2), dy = py - (r.y + s / 2);
+    if (dx * dx + dy * dy <= (s / 2) * (s / 2)) return i;
+  }
+  return -1;
+}
+
+function ccComposite() {
+  const S = ccSpin;
+  if (!S) return;
+  S.ctx.clearRect(0, 0, CC.W, CC.H);
+  S.ctx.drawImage(S.base, 0, 0);
+  for (let i = 0; i < 6; i++) {
+    const d = (S.m.discs || [])[i];
+    if (d) ccDrawDiscArt(S.ctx, S.C, S.IM, d, d.slot || i + 1, i, S.angle[i]);
+  }
+}
+
+function ccSpinTick(ts) {
+  const S = ccSpin;
+  if (!S) return;
+  const dt = S.lastTs ? Math.min(0.05, (ts - S.lastTs) / 1000) : 0;
+  S.lastTs = ts;
+  let alive = false;
+  for (let i = 0; i < 6; i++) {
+    if (i === S.drag) { alive = true; continue; }
+    if (Math.abs(S.vel[i]) > CC_SPIN.STOP) {
+      S.angle[i] += S.vel[i] * dt;
+      S.vel[i] *= Math.exp(-dt * CC_SPIN.FRICTION);
+      alive = true;
+    } else S.vel[i] = 0;
+  }
+  ccComposite();
+  S.raf = alive ? requestAnimationFrame(ccSpinTick) : 0;
+}
+
+function ccSpinWake() {
+  const S = ccSpin;
+  if (S && !S.raf) { S.lastTs = 0; S.raf = requestAnimationFrame(ccSpinTick); }
+}
+
+/* Отпускание слушается на ОКНЕ, а не на холсте, и это принципиально.
+   setPointerCapture должен переадресовывать события холсту даже за его
+   пределами, но на практике захват теряется: браузер может отобрать его сам,
+   а на macOS это случается регулярно. Тогда pointerup уходит тому элементу,
+   над которым оказался курсор, холст его не видит, перетаскивание остаётся
+   «зажатым» навсегда — диск крутится без кнопки, а курсор залипает кулаком.
+   Три страховки сразу, потому что каждая закрывает свой случай:
+     · pointerup/pointercancel на окне — отпускание где угодно на странице;
+     · blur — отпускание за пределами вкладки (переключился по Cmd+Tab);
+     · проверка ev.buttons в движении — если кнопка уже не нажата, а мы всё
+       ещё «тянем», значит событие потерялось; первое же движение это чинит.
+   Слушатели окна вешаются ОДИН раз за сессию: холст пересоздаётся при каждой
+   перерисовке карточки, и привязка к нему плодила бы их десятками. */
+let ccSpinWindowBound = false;
+
+function ccSpinRelease() {
+  const S = ccSpin;
+  if (!S || S.drag == null) return;
+  // Если перед отпусканием курсор стоял, бросок не засчитывается: иначе диск
+  // улетал бы от скорости, набранной секунду назад.
+  if (performance.now() - S.lastMoveTs > CC_SPIN.IDLE_MS) S.vel[S.drag] = 0;
+  S.drag = null;
+  if (S.canvas) S.canvas.style.cursor = '';
+  ccSpinWake();
+}
+
+function ccAttachSpin(canvas) {
+  canvas.style.touchAction = 'none';
+
+  canvas.addEventListener('pointerdown', ev => {
+    const S = ccSpin;
+    if (!S || ev.button !== 0) return;
+    const p = ccPointerPos(canvas, ev);
+    const i = ccDiscAt(S.m, p.x, p.y);
+    if (i < 0) return;
+    const r = ccDiscRect(i), s = CC_DISC_HEAD;
+    S.drag = i;
+    S.vel[i] = 0;
+    S.cx = r.x + s / 2; S.cy = r.y + s / 2;
+    S.lastAngle = Math.atan2(p.y - S.cy, p.x - S.cx);
+    S.lastMoveTs = performance.now();
+    canvas.style.cursor = 'grabbing';
+    ev.preventDefault();
+  });
+
+  // Наведение: только вид курсора, само вращение живёт в слушателе окна.
+  canvas.addEventListener('pointermove', ev => {
+    const S = ccSpin;
+    if (!S || S.drag != null) return;
+    const p = ccPointerPos(canvas, ev);
+    canvas.style.cursor = ccDiscAt(S.m, p.x, p.y) >= 0 ? 'grab' : '';
+  });
+  canvas.addEventListener('pointerleave', () => {
+    const S = ccSpin;
+    if (S && S.drag == null) canvas.style.cursor = '';
+  });
+
+  if (ccSpinWindowBound) return;
+  ccSpinWindowBound = true;
+
+  window.addEventListener('pointermove', ev => {
+    const S = ccSpin;
+    if (!S || S.drag == null || !S.canvas) return;
+    if (!(ev.buttons & 1)) { ccSpinRelease(); return; }
+    const p = ccPointerPos(S.canvas, ev);
+    const dx = p.x - S.cx, dy = p.y - S.cy;
+    if (Math.hypot(dx, dy) < CC_SPIN.MIN_RADIUS) return;
+    const a = Math.atan2(dy, dx);
+    const delta = ccAngleDelta(a, S.lastAngle);
+    const now = performance.now();
+    const dt = Math.max(0.008, (now - S.lastMoveTs) / 1000);
+    S.angle[S.drag] += delta;
+    S.vel[S.drag] = Math.max(-CC_SPIN.MAX_VEL, Math.min(CC_SPIN.MAX_VEL, delta / dt));
+    S.lastAngle = a;
+    S.lastMoveTs = now;
+    ccComposite();
+  });
+  window.addEventListener('pointerup', ccSpinRelease);
+  window.addEventListener('pointercancel', ccSpinRelease);
+  window.addEventListener('blur', ccSpinRelease);
 }
 
 /* ── ТОЧКА ВХОДА ── */
@@ -11925,10 +12124,30 @@ async function drawCompactCard(canvas, m) {
   ctx.fillStyle = C.bg; ctx.fillRect(0, 0, CC.W, CC.H);
   await ccEnsureFonts();
   const IM = await ccPreload(m);
-  ctx.fillStyle = C.bg; ctx.fillRect(0, 0, CC.W, CC.H);
-  ccDrawPortrait(ctx, C, m, IM);
-  ccDrawMiddle(ctx, C, m, IM);
-  ccDrawDiscs(ctx, C, m, IM);
+
+  /* Всё, кроме иконок сетов и цифр слотов, рисуется в закадровый холст один
+     раз. Дальше каждый кадр вращения — это копия готового слоя плюс шесть
+     иконок, а не полная перерисовка карточки. */
+  const base = document.createElement('canvas');
+  base.width = CC.W; base.height = CC.H;
+  const bctx = base.getContext('2d');
+  bctx.fillStyle = C.bg; bctx.fillRect(0, 0, CC.W, CC.H);
+  ccDrawPortrait(bctx, C, m, IM);
+  ccDrawMiddle(bctx, C, m, IM);
+  ccDrawDiscs(bctx, C, m, IM);
+
+  // Углы обнуляются вместе с моделью: сменил агента — диски снова ровно.
+  if (ccSpin && ccSpin.raf) cancelAnimationFrame(ccSpin.raf);
+  ccSpin = {
+    base, ctx, C, m, IM, canvas,
+    angle: [0, 0, 0, 0, 0, 0], vel: [0, 0, 0, 0, 0, 0],
+    drag: null, raf: 0, lastTs: 0, lastAngle: 0, lastMoveTs: 0, cx: 0, cy: 0,
+  };
+  ccComposite();
+  if (!canvas.dataset.ccSpinBound) {
+    ccAttachSpin(canvas);
+    canvas.dataset.ccSpinBound = '1';
+  }
 }
 
 /* Панель получает готовый HTML строкой (так устроены все три места, которые её
@@ -11945,7 +12164,7 @@ function compactCardShellHtml(m) {
     if (btn) btn.disabled = false;
   });
   return `<canvas id="compactCardCanvas" class="cc-canvas" width="${CC.W}" height="${CC.H}"></canvas>
-    <div class="cc-note">1920×1080 · the ⤓ button in the toolbar saves this exact image.</div>`;
+    <div class="cc-note">1920×1080 · drag a disc icon to spin it · the ⤓ button saves this exact image.</div>`;
 }
 
 async function downloadCompactCard() {
