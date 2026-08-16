@@ -1563,6 +1563,15 @@ select {
 .pd-head { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 16px; }
 .pd-portrait { width: 96px; height: 96px; border-radius: var(--r); overflow: hidden; background: var(--bg4); flex-shrink: 0; }
 .pd-portrait img { width: 100%; height: 100%; object-fit: cover; }
+/* Баннер агента над шапкой. Пропорция задана через aspect-ratio, а не пикселями:
+   блок тянется вместе с панелью, а кадрирование внутри от этого не зависит —
+   сдвиги в таблице кадров заданы в долях кадра. Холст всегда 1170×488 в своих
+   пикселях, CSS его масштабирует. */
+.pd-banner {
+  width: 100%; aspect-ratio: 1170 / 488; margin-bottom: 16px;
+  border-radius: var(--r); overflow: hidden; background: var(--bg4);
+}
+.pd-banner canvas { display: block; width: 100%; height: 100%; }
 .pd-name { font-family: 'Barlow Condensed', 'Oswald', sans-serif; font-size: 22px; font-weight: 700; }
 .pd-sub { color: var(--text-dim); font-size: 12.5px; margin-top: 2px; }
 .pd-badges { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
@@ -2096,6 +2105,7 @@ select {
   <div class="tb-group">
     <button class="tb-toggle" data-modes="full compact" data-key="procs" onclick="toggleProfileVisOption('procs', this)" title="Highlight useful sub-stat procs, on disc cards and in the Sub-Stat Totals row">Procs</button>
     <button class="tb-toggle" data-modes="full compact" data-key="totals" onclick="toggleProfileVisOption('totals', this)" title="Show the Sub-Stat Totals section">Totals</button>
+    <button class="tb-toggle" data-modes="full compact" data-key="live2d" onclick="toggleProfileVisOption('live2d', this)" title="Animated agent banner instead of static art">Live2D</button>
     <button class="tb-toggle" data-modes="compact" data-key="owner" onclick="toggleProfileVisOption('owner', this)" title="Print the nickname and UID on the card">Owner</button>
     <button class="tb-toggle" data-modes="full" data-key="skills" onclick="toggleProfileVisOption('skills', this)" title="Show skill levels — live stand agents, and Verified/Imported presets saved after this feature shipped">Skills</button>
     <button class="tb-toggle" data-modes="full" data-key="wengine" onclick="toggleProfileVisOption('wengine', this)" title="Show the W-Engine block">W-Engine</button>
@@ -7523,7 +7533,9 @@ let displayOptions = Object.assign({attr:true, class:true, ability:true, wengine
    это не «показать/скрыть блок», а выбор рендерера, и мешать их в один объект
    значит однажды случайно сбросить режим при миграции набора тумблеров. */
 let profileViewMode = localStorage.getItem('zzz_profile_view_mode') === 'compact' ? 'compact' : 'full';
-let profileDisplayOptions = Object.assign({procs:true, totals:true, skills:true, wengine:true, sets:true, discs:true, notes:true, owner:true},
+/* live2d по умолчанию ВЫКЛЮЧЕН: анимация тянет по мегабайту на агента и жжёт
+   видеокарту, включать её человеку без спроса неправильно. */
+let profileDisplayOptions = Object.assign({procs:true, totals:true, skills:true, wengine:true, sets:true, discs:true, notes:true, owner:true, live2d:false},
   JSON.parse(localStorage.getItem('zzz_profile_display_options') || '{}'));
 
 /* ── DRIVE DISC PICKER MODE ──
@@ -11206,8 +11218,8 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
 
   return `
     <div class="pd-preset-detail">
+      ${pdBannerHtml(agentKey)}
       <div class="pd-head">
-        <div class="pd-portrait"><img src="${agentUrl(agentKey)}" onerror="this.style.opacity=.15"></div>
         <div>
           <div class="pd-name">${escapeHtml(cardName(agentKey))} <span style="color:var(--text-mid);font-weight:500">· ${escapeHtml(preset.name)}</span></div>
           <div class="pd-sub">${profile ? `${escapeHtml(profile.fullName || '')} · ${escapeHtml(profile.gender || '')} · ${escapeHtml(profile.stature || '')}` : ''}</div>
@@ -11396,13 +11408,17 @@ function ccBucketColor(C, bucket) {
    efenji.github.io), а на случай открытия файла локально — без него холст стал
    бы «испорченным» и toBlob() бросил бы SecurityError уже на скачивании. */
 const ccImgCache = new Map();
+/* Отдельно храним уже загруженные картинки СИНХРОННО: баннер развёрнутого вида
+   перерисовывается покадрово, и ждать промис на каждом кадре нельзя. */
+const ccImgDone = new Map();
+function ccImgReady(url) { return url ? (ccImgDone.get(url) || null) : null; }
 function ccImage(url) {
   if (!url) return Promise.resolve(null);
   if (ccImgCache.has(url)) return ccImgCache.get(url);
   const p = new Promise(res => {
     const im = new Image();
     im.crossOrigin = 'anonymous';
-    im.onload = () => res(im);
+    im.onload = () => { ccImgDone.set(url, im); res(im); };
     im.onerror = () => res(null);
     im.src = url;
   });
@@ -11536,22 +11552,43 @@ function ccContain(ctx, img, x, y, w, h) {
    заодно ловит Pyrois, Lucy, Zhao и ещё несколько широких файлов. */
 const CC_BAND_TOP = 26;      // воздух над макушкой
 const CC_FIG_MAX_W = 660;    // предел ширины фигуры в баннере
-function ccDrawBanner(ctx, C, m, IM) {
+/* Кадрирование статичного арта вынесено отдельно, потому что его рисуют ДВА
+   места: баннер компактной карточки и баннер развёрнутого вида. Держать эту
+   математику в двух копиях нельзя — разъедется при первой правке, и один и тот
+   же агент будет закадрирован по-разному в двух режимах. Координаты задаются
+   снаружи, поэтому функция одинаково работает и в холсте 1920×1080, и в
+   отдельном холсте баннера. */
+function ccBannerArt(ctx, art, agentKey, x, y, w, h) {
+  if (!art || !art.width) return;
+  const band = (agentKey && CC_PORTRAIT_BAND[assetSlug(agentKey)]) || [0, 0.5, 0.5];
+  const bandH = Math.max(0.05, band[1] - band[0]) * art.height;
+  // Подгонка по высоте полосы, но не шире предела — иначе широкий файл
+  // растянет фигуру на весь баннер.
+  const scale = Math.min((h - CC_BAND_TOP * (h / CC.BANNER_H)) / bandH, (CC_FIG_MAX_W * (w / CC.LEFT_W)) / art.width);
+  const dw = art.width * scale, dh = art.height * scale;
+  ctx.drawImage(art, x + w / 2 - band[2] * dw, y + CC_BAND_TOP * (h / CC.BANNER_H) - band[0] * dh, dw, dh);
+}
+
+/* Баннер карточки рисуется в ДВА слоя, и это не украшательство.
+   Анимированная модель должна лежать МЕЖДУ подложкой и подписями: под ней —
+   фон, над ней — затемнения, имя и уровень. Если рисовать модель поверх
+   готового баннера, она закроет текст; если под ним — её закроет статичный арт.
+   Поэтому: ccBannerBelow() — всё, что под фигурой, ccBannerAbove() — всё, что
+   над ней. При выключенном Live2D оба слоя рисуются подряд в один холст, как
+   и раньше, и лишних затрат нет. */
+function ccBannerBelow(ctx, C, m, IM, withArt) {
   const x = CC.PAD, y = CC.PAD, w = CC.LEFT_W, h = CC.BANNER_H;
   ctx.save();
   ccRR(ctx, x, y, w, h, CC.R); ctx.clip();
   ctx.fillStyle = C.bg2; ctx.fillRect(x, y, w, h);
+  if (withArt) ccBannerArt(ctx, IM(m.agentKey ? agentPortraitUrl(m.agentKey) : null), m.agentKey, x, y, w, h);
+  ctx.restore();
+}
 
-  const art = IM(m.agentKey ? agentPortraitUrl(m.agentKey) : null);
-  if (art && art.width) {
-    const band = (m.agentKey && CC_PORTRAIT_BAND[assetSlug(m.agentKey)]) || [0, 0.5, 0.5];
-    const bandH = Math.max(0.05, band[1] - band[0]) * art.height;
-    // Подгонка по высоте полосы, но не шире предела — иначе широкий файл
-    // растянет фигуру на весь баннер.
-    const scale = Math.min((h - CC_BAND_TOP) / bandH, CC_FIG_MAX_W / art.width);
-    const dw = art.width * scale, dh = art.height * scale;
-    ctx.drawImage(art, x + w / 2 - band[2] * dw, y + CC_BAND_TOP - band[0] * dh, dw, dh);
-  }
+function ccBannerAbove(ctx, C, m, IM) {
+  const x = CC.PAD, y = CC.PAD, w = CC.LEFT_W, h = CC.BANNER_H;
+  ctx.save();
+  ccRR(ctx, x, y, w, h, CC.R); ctx.clip();
 
   // Подписи по углам поверх лёгкого затемнения: фигура центрована, но у широких
   // артов её край подходит к углам близко, и текст без подложки терялся бы.
@@ -11620,6 +11657,12 @@ function ccDrawBanner(ctx, C, m, IM) {
 
   ccRR(ctx, x, y, w, h, CC.R);
   ctx.strokeStyle = C.border; ctx.lineWidth = 1; ctx.stroke();
+}
+
+// Статичный баннер целиком — оба слоя подряд, поведение до появления Live2D.
+function ccDrawBanner(ctx, C, m, IM) {
+  ccBannerBelow(ctx, C, m, IM, true);
+  ccBannerAbove(ctx, C, m, IM);
 }
 
 /* ── СРЕДНЯЯ КОЛОНКА: СТАТЫ ──
@@ -12051,6 +12094,17 @@ function ccComposite() {
   if (!S) return;
   S.ctx.clearRect(0, 0, CC.W, CC.H);
   S.ctx.drawImage(S.base, 0, 0);
+  /* Кадр модели ложится между слоями баннера: под ним подложка из base, над ним
+     затемнения и подписи из overlay. Обрезка по скруглённому прямоугольнику —
+     иначе крылья и плащи вылезут за баннер на статы и диски. */
+  if (S.live) {
+    S.ctx.save();
+    ccRR(S.ctx, CC.PAD, CC.PAD, CC.LEFT_W, CC.BANNER_H, CC.R);
+    S.ctx.clip();
+    l2dPaint(S.ctx, S.m.agentKey, CC.PAD, CC.PAD, CC.LEFT_W, CC.BANNER_H);
+    S.ctx.restore();
+    if (S.overlay) S.ctx.drawImage(S.overlay, 0, 0);
+  }
   for (let i = 0; i < 6; i++) {
     const d = (S.m.discs || [])[i];
     if (d) ccDrawDiscArt(S.ctx, S.C, S.IM, d, d.slot || i + 1, i, S.angle[i]);
@@ -12162,6 +12216,420 @@ function ccAttachSpin(canvas) {
   window.addEventListener('blur', ccSpinRelease);
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   LIVE2D — АНИМИРОВАННЫЕ БАННЕРЫ АГЕНТОВ (Spine)
+
+   Модели вытащены из игры и лежат в нашей же папке ассетов:
+     assets/live2d/<enka-id>.skel  .atlas  .webp   (+ <id>_2.webp у Velina)
+     assets/live2d/spine-webgl.min.js               официальный рантайм 4.1.29
+     assets/live2d/index.json                       список id, у кого есть модель
+   Обновляются скриптом mirror-live2d.sh, код при этом править не надо.
+
+   ПОЧЕМУ ОДИН СКРЫТЫЙ ХОЛСТ НА ВЕСЬ САЙТ. Панель профиля целиком пересобирается
+   через innerHTML при каждом переключении тумблера. Живой WebGL-контекст такого
+   не переживает: браузер держит их полтора десятка на вкладку, а пересоздание
+   означает заново залитую текстуру 2048×2048. Поэтому контекст ровно один, он
+   не лежит в разметке и никогда не пересоздаётся, а кадр из него копируется
+   через drawImage в обычные двумерные холсты — и в баннер развёрнутого вида, и
+   в компактную карточку. Двумерный холст — расходник: снесло пересборкой,
+   нарисуем в новый на следующем кадре.
+
+   ВЫКЛЮЧЕННЫЙ ТУМБЛЕР НЕ СТОИТ НИЧЕГО: рантайм грузится лениво, при первом
+   включении, контекст создаётся тогда же, модели не качаются вовсе.
+   ══════════════════════════════════════════════════════════════════════════ */
+const L2D_BASE    = `${BASE}/live2d`;
+const L2D_W = 1170, L2D_H = 488;   // пропорция баннера, та же в обоих режимах
+const L2D_FILL = 0.95;             // общий отступ кадра, см. подбор ниже
+
+/* Кадр каждого агента подобран вручную в стенде spine-test.html и проверен
+   отрисовкой всех 39. zoom — крупность, dx/dy — сдвиг В ДОЛЯХ КАДРА (не в
+   единицах скелета), поэтому значения одинаково работают при любом размере
+   холста той же пропорции: и в баннере 1170×488 внутри карточки, и в
+   растянутом на всю панель баннере развёрнутого вида. */
+const L2D_FRAME = {
+  1051: { zoom: 1.98, dx: -0.05, dy: -0.55 },   // Yidhari
+  1071: { zoom: 1.24, dx: -0.01, dy: -0.07 },   // Caesar
+  1091: { zoom: 1.6,  dx: 0,     dy: -0.3  },   // Miyabi
+  1161: { zoom: 1.02, dx: 0,     dy: -0.03 },   // Lighter
+  1171: { zoom: 1.22, dx: -0.01, dy: -0.01 },   // Burnice
+  1191: { zoom: 1.26, dx: -0.01, dy: -0.15 },   // Ellen
+  1201: { zoom: 1.26, dx: 0,     dy: 0     },   // Harumasa
+  1221: { zoom: 1.26, dx: -0.01, dy: -0.06 },   // Yanagi
+  1241: { zoom: 1.24, dx: 0,     dy: -0.11 },   // Zhu Yuan
+  1251: { zoom: 1.3,  dx: 0.01,  dy: -0.14 },   // Qingyi
+  1261: { zoom: 1.12, dx: -0.01, dy: -0.11 },   // Jane
+  1291: { zoom: 1.18, dx: -0.01, dy: -0.11 },   // Hugo
+  1301: { zoom: 1.46, dx: -0.05, dy: -0.12 },   // Orphie & Magus
+  1311: { zoom: 1.08, dx: 0,     dy: 0     },   // Astra Yao
+  1321: { zoom: 1.04, dx: 0,     dy: -0.07 },   // Evelyn
+  1331: { zoom: 1.54, dx: -0.01, dy: 0     },   // Vivian
+  1341: { zoom: 1.48, dx: -0.01, dy: -0.25 },   // Zhao
+  1361: { zoom: 1.22, dx: 0,     dy: -0.16 },   // Trigger
+  1371: { zoom: 1.5,  dx: 0,     dy: -0.27 },   // Yixuan
+  1381: { zoom: 1.14, dx: -0.02, dy: -0.13 },   // Soldier 0 · Anby
+  1391: { zoom: 1.52, dx: 0,     dy: -0.09 },   // Ju Fufu
+  1401: { zoom: 1.18, dx: -0.02, dy: -0.13 },   // Alice
+  1411: { zoom: 1.72, dx: 0,     dy: -0.05 },   // Yuzuha
+  1431: { zoom: 1.24, dx: 0,     dy: -0.09 },   // Ye Shunguang
+  1451: { zoom: 1.38, dx: -0.04, dy: -0.1  },   // Lucia
+  1461: { zoom: 1.08, dx: 0,     dy: -0.06 },   // Seed
+  1471: { zoom: 2.02, dx: -0.01, dy: -0.45 },   // Banyue
+  1481: { zoom: 1.48, dx: 0,     dy: -0.25 },   // Dialyn
+  1491: { zoom: 1.16, dx: 0,     dy: -0.09 },   // Sunna
+  1501: { zoom: 1.84, dx: -0.03, dy: -0.45 },   // Aria
+  1511: { zoom: 1.2,  dx: 0,     dy: -0.13 },   // Nangong Yu
+  1521: { zoom: 1.34, dx: -0.01, dy: -0.15 },   // Cissia
+  1531: { zoom: 1.32, dx: 0.03,  dy: -0.07 },   // Starlight · Billy
+  1541: { zoom: 1.26, dx: -0.01, dy: -0.18 },   // Promeia
+  1551: { zoom: 1.38, dx: -0.01, dy: -0.1  },   // Pyrois
+  1561: { zoom: 1.32, dx: -0.01, dy: -0.18 },   // Velina
+  1571: { zoom: 1.3,  dx: -0.05, dy: -0.13 },   // Norma
+  1581: { zoom: 1.48, dx: 0,     dy: -0.3  },   // Remielle
+  1591: { zoom: 1.22, dx: -0.01, dy: 0     },   // Sigrid
+};
+/* Агент из будущего патча, которому кадр ещё не подобрали: медиана по таблице.
+   Выглядит прилично, дальше уточняется в стенде. Молча ронять его в статику
+   нельзя — модель есть, значит должна показываться. */
+const L2D_FRAME_DEFAULT = { zoom: 1.25, dx: 0, dy: -0.12 };
+
+/* У кого модель есть. Держим отдельным списком, а не «есть ключ в L2D_FRAME»:
+   это разные вещи — у нового агента модель уже есть, а кадра ещё нет. */
+const L2D_IDS = new Set(Object.keys(L2D_FRAME).map(Number));
+
+/* Сколько моделей держим разобранными. Каждая — это текстура 2048×2048, то есть
+   порядка 16 МБ видеопамяти; держать все 39 нельзя. Трёх хватает, чтобы
+   переключение между соседними агентами в списке было мгновенным. */
+const L2D_CACHE_MAX = 3;
+
+let l2dRuntimePromise = null;   // ленивая загрузка spine-webgl
+let l2dGL = null;               // { canvas, context, renderer }
+let l2dBroken = false;          // WebGL недоступен — молча живём на статике
+const l2dCache = new Map();     // id → модель (Map держит порядок вставки: LRU)
+const l2dLoading = new Map();   // id → промис загрузки
+let l2dRaf = 0, l2dLastTs = 0;
+
+function l2dEnabled() { return !!profileDisplayOptions.live2d; }
+function l2dIdFor(agentKey) {
+  /* Ключи ENKA_AGENT_MAP не причёсаны под assetSlug: там встречаются пробелы
+     («zhu yuan», «soldier 11»). Поэтому сначала пробуем ключ как есть — так
+     ищет и остальной код, — и только потом slug'ифицированный вариант. */
+  if (!agentKey) return 0;
+  const id = SLUG_TO_ENKA_AGENT_ID[agentKey] || SLUG_TO_ENKA_AGENT_ID[assetSlug(agentKey)] || 0;
+  return id && L2D_IDS.has(id) ? id : 0;
+}
+// Есть ли у агента анимация. Одно место правды для кнопки и для баннеров.
+function l2dHasModel(agentKey) { return !!l2dIdFor(agentKey); }
+// Показываем ли сейчас анимацию для этого агента.
+function l2dActive(agentKey) { return l2dEnabled() && !l2dBroken && l2dHasModel(agentKey); }
+
+function l2dLoadRuntime() {
+  if (l2dRuntimePromise) return l2dRuntimePromise;
+  l2dRuntimePromise = new Promise((res, rej) => {
+    if (window.spine) return res(window.spine);
+    const s = document.createElement('script');
+    s.src = `${L2D_BASE}/spine-webgl.min.js`;
+    s.onload = () => (window.spine ? res(window.spine) : rej(new Error('spine runtime empty')));
+    s.onerror = () => rej(new Error('spine runtime failed to load'));
+    document.head.appendChild(s);
+  });
+  return l2dRuntimePromise;
+}
+
+function l2dEnsureGL(S) {
+  if (l2dGL) return l2dGL;
+  const canvas = document.createElement('canvas');
+  canvas.width = L2D_W; canvas.height = L2D_H;
+  /* preserveDrawingBuffer нужен, потому что кадр не показывается напрямую, а
+     копируется через drawImage — без него буфер к моменту копирования уже
+     очищен, и в карточку попадает пустота. */
+  const context = new S.ManagedWebGLRenderingContext(canvas, {
+    alpha: true, premultipliedAlpha: false, antialias: true, preserveDrawingBuffer: true,
+  });
+  l2dGL = { canvas, context, renderer: new S.SceneRenderer(canvas, context) };
+  return l2dGL;
+}
+
+/* Габариты фигуры. Снимаются С АНИМАЦИИ, а не с позы покоя из файла: у части
+   моделей поза покоя не имеет отношения к тому, что рисуется (у Pyrois она
+   втрое крупнее анимации), и кадр по ней съезжает. Берём объединение по
+   нескольким моментам времени, чтобы учесть разлетающиеся плащи и крылья. */
+function l2dSampleBounds(S, data, animName, samples = 8) {
+  const sk = new S.Skeleton(data);
+  const st = new S.AnimationState(new S.AnimationStateData(data));
+  const anim = data.findAnimation(animName);
+  st.setAnimation(0, animName, true);
+  const o = new S.Vector2(), s = new S.Vector2();
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  const dur = (anim && anim.duration) || 0;
+  for (let i = 0; i < samples; i++) {
+    st.update(i === 0 ? 0 : dur / samples);
+    st.apply(sk); sk.updateWorldTransform(); sk.getBounds(o, s);
+    if (!isFinite(s.x) || !isFinite(s.y)) continue;
+    x0 = Math.min(x0, o.x); y0 = Math.min(y0, o.y);
+    x1 = Math.max(x1, o.x + s.x); y1 = Math.max(y1, o.y + s.y);
+  }
+  if (!isFinite(x0)) return { off: { x: 0, y: 0 }, size: { x: 1, y: 1 } };
+  return { off: { x: x0, y: y0 }, size: { x: x1 - x0, y: y1 - y0 } };
+}
+
+/* Какую анимацию играть. Имена в файлах не унифицированы: idle, loop, Loop,
+   Loop6, 222, animation, loop2, niao, zhayan. Таблицу имён держать нельзя —
+   сломается на первом новом агенте, поэтому правило.
+   Фильтр по габаритам в начале обязателен: у Pyrois есть и idle, и Loop,
+   причём idle — уменьшенная втрое версия модели, и выбор «по имени» рисует
+   карлика. Правило проверено на всех 39: у остальных разброс высот в пределах
+   пары процентов, так что фильтр им не мешает. */
+function l2dChooseAnimation(S, data) {
+  const list = data.animations;
+  if (list.length === 1) return list[0].name;
+  const measured = list.map(a => ({
+    name: a.name, dur: a.duration, h: l2dSampleBounds(S, data, a.name, 4).size.y,
+  }));
+  const maxH = Math.max(...measured.map(x => x.h));
+  let cand = measured.filter(x => x.h >= maxH * 0.9);
+  const longEnough = cand.filter(x => x.dur >= 1);
+  if (longEnough.length) cand = longEnough;
+  const pick = cand.find(x => /^(idle|loop)$/i.test(x.name))
+            || cand.find(x => /^(idle|loop)/i.test(x.name))
+            || cand.slice().sort((a, b) => b.dur - a.dur)[0];
+  return pick.name;
+}
+
+function l2dEvict() {
+  while (l2dCache.size > L2D_CACHE_MAX) {
+    const oldestId = l2dCache.keys().next().value;
+    const m = l2dCache.get(oldestId);
+    l2dCache.delete(oldestId);
+    (m.textures || []).forEach(t => { try { t.dispose(); } catch (e) {} });
+  }
+}
+
+async function l2dEnsure(id) {
+  if (!id || l2dBroken) return null;
+  if (l2dCache.has(id)) {
+    const m = l2dCache.get(id);            // подъём в конец: это и есть LRU
+    l2dCache.delete(id); l2dCache.set(id, m);
+    return m;
+  }
+  if (l2dLoading.has(id)) return l2dLoading.get(id);
+
+  const p = (async () => {
+    const S = await l2dLoadRuntime();
+    const gl = l2dEnsureGL(S);
+    const [skelBuf, atlasTxt] = await Promise.all([
+      fetch(`${L2D_BASE}/${id}.skel`).then(r => { if (!r.ok) throw new Error(`${r.status} ${id}.skel`); return r.arrayBuffer(); }),
+      fetch(`${L2D_BASE}/${id}.atlas`).then(r => { if (!r.ok) throw new Error(`${r.status} ${id}.atlas`); return r.text(); }),
+    ]);
+
+    /* Атлас может состоять из НЕСКОЛЬКИХ страниц: если картинки не влезли в
+       лист 2048×2048, экспортёр раскладывает их по нескольким файлам. Среди 39
+       моделей такая одна — Velina. Подставить первую текстуру во все страницы
+       нельзя: куски модели возьмут координаты из чужой картинки и рассыплются
+       в кашу из белых прямоугольников. */
+    const pageNames = atlasTxt.split(/\r?\n/).map(s => s.trim()).filter(l => /\.(webp|png)$/i.test(l));
+    const imgs = await Promise.all(pageNames.map(n => new Promise((res, rej) => {
+      const im = new Image();
+      im.crossOrigin = 'anonymous';   // иначе toBlob() на карточке бросит SecurityError
+      im.onload = () => res(im);
+      im.onerror = () => rej(new Error('texture failed: ' + n));
+      im.src = `${L2D_BASE}/${n}`;
+    })));
+
+    const atlas = new S.TextureAtlas(atlasTxt);
+    const textures = [];
+    atlas.pages.forEach((page, i) => {
+      const t = new S.GLTexture(gl.context, imgs[i] || imgs[0]);
+      textures.push(t);
+      page.setTexture(t);
+    });
+
+    const data = new S.SkeletonBinary(new S.AtlasAttachmentLoader(atlas)).readSkeletonData(new Uint8Array(skelBuf));
+    const animName = l2dChooseAnimation(S, data);
+    const bounds = l2dSampleBounds(S, data, animName);
+
+    const skeleton = new S.Skeleton(data);
+    const state = new S.AnimationState(new S.AnimationStateData(data));
+    state.setAnimation(0, animName, true);
+    state.update(0); state.apply(skeleton); skeleton.updateWorldTransform();
+
+    /* Премультиплицированная альфа. У всех 39 моделей ZZZ её НЕТ, но флаг
+       читаем из атласа, а не прошиваем: если рисовать обычную альфу как
+       премультиплицированную, блендинг становится почти аддитивным — белое
+       светится, полутона выгорают, по краям лезут светлые ореолы. */
+    const pma = /^pma:\s*true/mi.test(atlasTxt);
+
+    const model = { id, skeleton, state, textures, pma, off: bounds.off, size: bounds.size };
+    l2dCache.set(id, model);
+    l2dEvict();
+    l2dLoading.delete(id);
+    return model;
+  })().catch(err => {
+    console.error('live2d load failed', id, err);
+    l2dLoading.delete(id);
+    return null;
+  });
+
+  l2dLoading.set(id, p);
+  return p;
+}
+
+/* Отрисовка модели в скрытый холст. Кадрирование: базовый зум вписывает фигуру
+   по ВЫСОТЕ (кадр широкий, по ширине большинство моделей его не заполняет),
+   дальше умножается на zoom из таблицы. Сдвиги заданы в долях кадра, знак
+   минус — двигаем камеру, а не фигуру. */
+function l2dRenderToGL(m) {
+  const S = window.spine;
+  const gl = l2dGL.context.gl;
+  gl.viewport(0, 0, L2D_W, L2D_H);
+  gl.clearColor(0, 0, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  const f = L2D_FRAME[m.id] || L2D_FRAME_DEFAULT;
+  const cam = l2dGL.renderer.camera;
+  cam.setViewport(L2D_W, L2D_H);
+  cam.zoom = (m.size.y / L2D_H) / (L2D_FILL * f.zoom);
+  const worldW = L2D_W * cam.zoom, worldH = L2D_H * cam.zoom;
+  cam.position.x = 0 - f.dx * worldW;
+  cam.position.y = (m.off.y + m.size.y / 2) - f.dy * worldH;
+  cam.update();
+
+  l2dGL.renderer.begin();
+  l2dGL.renderer.drawSkeleton(m.skeleton, m.pma);
+  l2dGL.renderer.end();
+}
+
+/* Нарисовать текущий кадр агента в произвольный двумерный контекст.
+   Возвращает false, если модель ещё не готова — вызывающий код в этом случае
+   оставляет статичный арт, поэтому пустоты в блоке не бывает. */
+function l2dPaint(ctx, agentKey, x, y, w, h) {
+  const id = l2dIdFor(agentKey);
+  if (!id || l2dBroken) return false;
+  const m = l2dCache.get(id);
+  if (!m) { l2dEnsure(id).then(mm => { if (mm) l2dKick(); }); return false; }
+  try {
+    l2dRenderToGL(m);
+    ctx.drawImage(l2dGL.canvas, x, y, w, h);
+    return true;
+  } catch (e) {
+    console.error('live2d paint failed', e);
+    l2dBroken = true;                       // один раз споткнулись — дальше статика
+    return false;
+  }
+}
+
+/* ── ЦИКЛ ──
+   Один rAF на весь сайт. Живёт, только пока: тумблер включён, вкладка активна и
+   на экране есть хоть один блок, которому нужна анимация. Всё остальное время
+   не тикает вовсе — ни батареи, ни видеокарты не жрёт. */
+function l2dLiveCanvases() {
+  return document.querySelectorAll('canvas.pd-banner-cv[data-agent]');
+}
+function l2dNeedsFrame() {
+  if (!l2dEnabled() || l2dBroken || document.hidden) return false;
+  if (profileViewMode === 'compact') {
+    return !!(ccSpin && ccSpin.m && l2dActive(ccSpin.m.agentKey));
+  }
+  for (const cv of l2dLiveCanvases()) if (l2dActive(cv.dataset.agent)) return true;
+  return false;
+}
+function l2dKick() {
+  if (!l2dRaf && l2dNeedsFrame()) { l2dLastTs = 0; l2dRaf = requestAnimationFrame(l2dTick); }
+}
+function l2dTick(ts) {
+  l2dRaf = 0;
+  if (!l2dNeedsFrame()) return;
+  const dt = l2dLastTs ? Math.min(0.05, (ts - l2dLastTs) / 1000) : 0;
+  l2dLastTs = ts;
+
+  l2dCache.forEach(m => {
+    m.state.update(dt);
+    m.state.apply(m.skeleton);
+    m.skeleton.updateWorldTransform();
+  });
+
+  if (profileViewMode === 'compact') {
+    /* Карточку пересобирает ccComposite. Если сейчас крутятся диски, у них свой
+       тик, который уже вызывает ccComposite — второй раз за кадр не нужно. */
+    if (!(ccSpin && ccSpin.raf)) ccComposite();
+  } else {
+    l2dLiveCanvases().forEach(cv => l2dPaintBanner(cv));
+  }
+  l2dRaf = requestAnimationFrame(l2dTick);
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { if (l2dRaf) cancelAnimationFrame(l2dRaf); l2dRaf = 0; }
+  else l2dKick();
+});
+
+/* ── БАННЕР РАЗВЁРНУТОГО ВИДА ──
+   Статичный и живой баннеры рисуются ОДНИМ И ТЕМ ЖЕ кодом в один и тот же
+   холст: так они гарантированно одного размера и в одном кадре, и переключение
+   тумблера не «прыгает». Статика кадрируется тем же ccBannerArt(), что и в
+   компактной карточке. */
+/* Разметка баннера. Холст один и тот же и для статики, и для анимации —
+   см. l2dPaintBanner(). data-agent нужен и как ключ агента, и как признак
+   «этот холст обслуживает Live2D». */
+function pdBannerHtml(agentKey) {
+  if (!agentKey) return '';
+  return `<div class="pd-banner"><canvas class="pd-banner-cv" width="${L2D_W}" height="${L2D_H}" data-agent="${escapeHtml(agentKey)}"></canvas></div>`;
+}
+
+function l2dPaintBanner(cv) {
+  const agentKey = cv.dataset.agent;
+  const ctx = cv.getContext('2d');
+  const C = ccColors();
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.fillStyle = C.bg2;
+  ctx.fillRect(0, 0, cv.width, cv.height);
+  if (l2dActive(agentKey) && l2dPaint(ctx, agentKey, 0, 0, cv.width, cv.height)) return true;
+  const art = ccImgReady(agentPortraitUrl(agentKey));
+  if (art) ccBannerArt(ctx, art, agentKey, 0, 0, cv.width, cv.height);
+  return false;
+}
+/* Разметка панели собирается строкой и вставляется через innerHTML, причём
+   сразу в нескольких местах. Вместо того чтобы дописывать вызов в каждое,
+   слушаем сам контейнер: любая пересборка — повод перерисовать баннеры. */
+function l2dScanBanners() {
+  l2dLiveCanvases().forEach(cv => {
+    if (cv.dataset.painted === '1') return;
+    cv.dataset.painted = '1';
+    const agentKey = cv.dataset.agent;
+    // статика рисуется сразу, как только картинка доедет
+    ccImage(agentPortraitUrl(agentKey)).then(() => l2dPaintBanner(cv));
+    l2dPaintBanner(cv);
+    l2dSyncButton(agentKey);
+    if (l2dActive(agentKey)) l2dEnsure(l2dIdFor(agentKey)).then(m => { if (m) l2dKick(); });
+  });
+  l2dKick();
+}
+let l2dScanScheduled = false;
+function l2dWatchPanel() {
+  const panel = document.getElementById('profileDetail');
+  if (!panel) return;
+  new MutationObserver(() => {
+    if (l2dScanScheduled) return;
+    l2dScanScheduled = true;
+    requestAnimationFrame(() => { l2dScanScheduled = false; l2dScanBanners(); });
+  }).observe(panel, { childList: true, subtree: true });
+}
+
+/* Кнопка в тулбаре. Состояние тумблера и его доступность — РАЗНЫЕ вещи:
+   у агента без модели кнопка гаснет, но сохранённый выбор не трогается, и на
+   следующем агенте с моделью анимация включится сама. */
+function l2dSyncButton(agentKey) {
+  const btn = document.querySelector('#tbGroupProfile .tb-toggle[data-key="live2d"]');
+  if (!btn) return;
+  const ok = !l2dBroken && l2dHasModel(agentKey);
+  btn.disabled = !ok;
+  btn.classList.toggle('active', ok && l2dEnabled());
+  btn.title = ok
+    ? 'Animated agent banner instead of static art'
+    : 'This agent has no animated banner in the game';
+}
+
+/* ══════════════════════════════════════════════════════════════════════════ */
+
 /* ── ТОЧКА ВХОДА ── */
 let ccLastModel = null;   // для имени файла при скачивании
 let ccDrawPromise = null; // скачивание должно дождаться незавершённой отрисовки
@@ -12173,6 +12641,15 @@ async function drawCompactCard(canvas, m) {
   await ccEnsureFonts();
   const IM = await ccPreload(m);
 
+  /* Модель ждём ЗДЕСЬ, до сборки слоёв, а не подставляем на лету. Причина в
+     скачивании: downloadCompactCard() ждёт именно этот промис, и если модель
+     доедет позже, человек получит PNG со статикой вместо анимации. Заодно не
+     бывает кадра с пустым баннером: карточка появляется уже с фигурой.
+     Не загрузилась — молча остаёмся на статике. */
+  l2dSyncButton(m.agentKey);
+  let live = l2dActive(m.agentKey);
+  if (live) live = !!(await l2dEnsure(l2dIdFor(m.agentKey)));
+
   /* Всё, кроме иконок сетов и цифр слотов, рисуется в закадровый холст один
      раз. Дальше каждый кадр вращения — это копия готового слоя плюс шесть
      иконок, а не полная перерисовка карточки. */
@@ -12180,18 +12657,29 @@ async function drawCompactCard(canvas, m) {
   base.width = CC.W; base.height = CC.H;
   const bctx = base.getContext('2d');
   bctx.fillStyle = C.bg; bctx.fillRect(0, 0, CC.W, CC.H);
-  ccDrawBanner(bctx, C, m, IM);
+  if (live) ccBannerBelow(bctx, C, m, IM, false);   // без арта — его место займёт модель
+  else ccDrawBanner(bctx, C, m, IM);
   ccDrawMiddle(bctx, C, m, IM);
   ccDrawDiscs(bctx, C, m, IM);
+
+  /* Верхний слой баннера — затемнения и подписи. Существует только при
+     включённой анимации: в статике он уже нарисован внутри base. */
+  let overlay = null;
+  if (live) {
+    overlay = document.createElement('canvas');
+    overlay.width = CC.W; overlay.height = CC.H;
+    ccBannerAbove(overlay.getContext('2d'), C, m, IM);
+  }
 
   // Углы обнуляются вместе с моделью: сменил агента — диски снова ровно.
   if (ccSpin && ccSpin.raf) cancelAnimationFrame(ccSpin.raf);
   ccSpin = {
-    base, ctx, C, m, IM, canvas,
+    base, ctx, C, m, IM, canvas, overlay, live,
     angle: [0, 0, 0, 0, 0, 0], vel: [0, 0, 0, 0, 0, 0],
     drag: null, raf: 0, lastTs: 0, lastAngle: 0, lastMoveTs: 0, cx: 0, cy: 0,
   };
   ccComposite();
+  l2dKick();
   if (!canvas.dataset.ccSpinBound) {
     ccAttachSpin(canvas);
     canvas.dataset.ccSpinBound = '1';
@@ -12388,8 +12876,8 @@ async function renderProfileDetail(i) {
     : '';
 
   panel.innerHTML = `
+    ${pdBannerHtml(slug)}
     <div class="pd-head">
-      <div class="pd-portrait"><img src="${slug ? agentUrl(slug) : ''}" onerror="this.style.opacity=.15"></div>
       <div>
         <div class="pd-name">${slug ? escapeHtml(cardName(slug)) : `Unknown (Id ${a.Id})`}</div>
         <div class="pd-sub">${profile ? `${escapeHtml(profile.fullName || '')} · ${escapeHtml(profile.gender || '')} · ${escapeHtml(profile.stature || '')}` : ''}</div>
@@ -15736,6 +16224,7 @@ initAuth();
 initAccentColor();
 initToolbarToggles();
 initProfileToolbarToggles();
+l2dWatchPanel();
 populateShiyuFilterSelect();
 populateDaFilterSelect();
 populateFeedFilterOptions();
