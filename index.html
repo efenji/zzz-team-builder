@@ -11265,20 +11265,26 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
    ══════════════════════════════════════════════════════════════════════════ */
 const CC = {
   W: 1920, H: 1080, PAD: 34, GAP: 20,
-  LEFT_W: 520,   // портрет
-  MID_W: 630,    // статы, W-Engine, навыки, крупные цифры проков
+  STATS_W: 630,  // лист статов — ровно тот же блок, что был в средней колонке
+  SIDE_W: 520,   // W-Engine, навыки, проки — справа от статов
   R: 14, R_SM: 10,
   F: 'Barlow', FC: '"Barlow Condensed"', FM: '"Share Tech Mono"',
 };
-/* Три колонки во всю высоту. Производные координаты считаются один раз здесь, а
-   не по месту в каждой функции рисования: подложек у блоков больше нет, границы
-   держит только выравнивание, и расхождение на пиксель сразу читается как
-   кривизна. */
-CC.MID_X   = CC.PAD + CC.LEFT_W + CC.GAP;              // 574
-CC.DISCS_X = CC.MID_X + CC.MID_W + CC.GAP;             // 1224
+/* Раскладка: сверху горизонтальный баннер агента во всю ширину левее дисков,
+   под ним лист статов слева и колонка с движком и проками справа. Диски
+   занимают правую колонку целиком, как раньше.
+   Производные координаты считаются один раз здесь, а не по месту: подложек у
+   блоков почти нет, границы держит выравнивание, и расхождение на пиксель
+   сразу читается как кривизна. */
+CC.DISCS_X = 1224;
 CC.DISCS_W = CC.W - CC.PAD - CC.DISCS_X;               // 662
 CC.COL_TOP = CC.PAD;                                   // 34
-CC.COL_H = CC.H - CC.PAD * 2;                          // 1012
+CC.COL_H   = CC.H - CC.PAD * 2;                        // 1012
+CC.LEFT_W  = CC.DISCS_X - CC.GAP - CC.PAD;             // 1170 — вся область левее дисков
+CC.STATS_H = 42 * 14;                                  // 588, четырнадцать строк
+CC.BANNER_H = CC.COL_H - CC.STATS_H - CC.GAP;          // 404
+CC.LOWER_Y = CC.PAD + CC.BANNER_H + CC.GAP;            // 458
+CC.SIDE_X  = CC.PAD + CC.STATS_W + CC.GAP;             // 684
 
 /* Полноростовой арт — тот же файл, что у Энки слева на карточке. Лежит рядом с
    card.webp/square.webp в папке агента. Размер у всех разный (у Lucia
@@ -11286,30 +11292,41 @@ CC.COL_H = CC.H - CC.PAD * 2;                          // 1012
    сверху»: лица в этих файлах всегда в верхней трети. */
 const agentPortraitUrl = k => `${BASE}/agents/${assetSlug(k)}/portrait.webp`;
 
-/* Горизонтальный якорь портрета: доля ширины файла, которую надо совместить
-   с центром рамки. Посчитано по alpha-каналу — центр средних 90% массы
-   непрозрачных пикселей: по 5% с каждого края отбрасывается, чтобы копья,
-   хвосты и крылья не тянули кадр на себя. Границы непрозрачной области для
-   этого не годятся: у всех портретов что-нибудь да упирается в оба края
-   файла, и такой замер на любом агенте отвечает «уже по центру».
-   В таблице только те, у кого отклонение больше 0.5%; остальные и так стоят
-   ровно и берут 0.5 по умолчанию. Значения можно править руками — арт есть
-   арт, и глазу иногда виднее, чем счётчику пикселей. */
-const CC_PORTRAIT_ANCHOR = {
-  'alice': 0.438, 'anby-demara': 0.619, 'anton': 0.487, 'aria': 0.494, 'astra-yao': 0.458,
-  'banyue': 0.485, 'ben': 0.479, 'burnice': 0.571, 'caesar': 0.565, 'cissia': 0.481,
-  'corin': 0.465, 'ellen': 0.531, 'evelyn': 0.485, 'harumasa': 0.487, 'hugo': 0.583,
-  'jane-doe': 0.465, 'ju-fufu': 0.512, 'koleda': 0.512, 'lighter': 0.473, 'lucia': 0.479,
-  'lucy': 0.51, 'manato': 0.517, 'miyabi': 0.56, 'nekomata': 0.523, 'nicole-demara': 0.479,
-  'orphie-and-magus': 0.481, 'pan-yinhu': 0.481, 'piper': 0.492, 'promeia': 0.492,
-  'pulchra': 0.49, 'pyrois': 0.604, 'rina': 0.49, 'seed': 0.508, 'seth': 0.506, 'sigrid': 0.46,
-  'soldier-0': 0.467, 'soldier-11': 0.575, 'soukaku': 0.51, 'starlight-billy': 0.525,
-  'sunna': 0.517, 'trigger': 0.529, 'velina': 0.477, 'vivian': 0.588, 'yanagi': 0.373,
-  'ye-shunguang': 0.515, 'yidhari': 0.481, 'yixuan': 0.51, 'yuzuha': 0.494,
+/* Кадр портрета в баннере: [верх фигуры, линия пояса, горизонтальный якорь].
+   Первые два — доли ВЫСОТЫ файла, третий — доля ширины. Показывается полоса
+   от макушки до пояса, по центру которой ставится якорь.
+   Пояс искался автоматически как самое узкое место силуэта между плечами и
+   бёдрами; там, где результат вышел за правдоподобные 0.42..0.62, поставлено
+   0.52 от высоты фигуры. Автомат справился с 34 агентами из 58 — у остальных
+   его сбивают ремни, кобуры и плащи, дающие ложный перехват на уровне груди.
+   Якорь считается по массе непрозрачных пикселей ВНУТРИ полосы, а не по всей
+   фигуре: ноги в кадр не попадают и на центровку влиять не должны.
+   Значения правятся руками — глазу виднее, чем счётчику пикселей. */
+const CC_PORTRAIT_BAND = {
+  'alice': [0.0, 0.538, 0.417], 'anby-demara': [0.0, 0.54, 0.604], 'anton': [0.0, 0.519, 0.487],
+  'aria': [0.0, 0.596, 0.492], 'astra-yao': [0.0, 0.594, 0.46], 'banyue': [0.0, 0.515, 0.483],
+  'ben': [0.0, 0.518, 0.523], 'billy-kid': [0.0, 0.519, 0.523], 'burnice': [0.0, 0.564, 0.569],
+  'caesar': [0.0, 0.594, 0.588], 'cissia': [0.0, 0.594, 0.521], 'corin': [0.0, 0.518, 0.581],
+  'dialyn': [0.0, 0.49, 0.463], 'ellen': [0.0, 0.518, 0.621], 'evelyn': [0.0, 0.592, 0.477],
+  'grace-howard': [0.0, 0.519, 0.473], 'harumasa': [0.0, 0.519, 0.4],
+  'hugo': [0.0, 0.477, 0.546], 'jane-doe': [0.0, 0.579, 0.471], 'ju-fufu': [0.0, 0.427, 0.406],
+  'koleda': [0.0, 0.518, 0.51], 'lighter': [0.0, 0.429, 0.49], 'lucia': [0.0, 0.594, 0.49],
+  'lucy': [0.0, 0.435, 0.6], 'lycaon': [0.0, 0.518, 0.392], 'manato': [0.0, 0.519, 0.435],
+  'miyabi': [0.0, 0.518, 0.554], 'nangong-yu': [0.0, 0.442, 0.479],
+  'nekomata': [0.0, 0.588, 0.467], 'nicole-demara': [0.0, 0.519, 0.498],
+  'norma': [0.0, 0.519, 0.512], 'orphie-and-magus': [0.0, 0.595, 0.479],
+  'pan-yinhu': [0.0, 0.521, 0.523], 'piper': [0.0, 0.519, 0.421], 'promeia': [0.0, 0.519, 0.515],
+  'pulchra': [0.0, 0.42, 0.506], 'pyrois': [0.0, 0.518, 0.671], 'qingyi': [0.0, 0.585, 0.5],
+  'remielle': [0.0, 0.557, 0.496], 'rina': [0.0, 0.518, 0.49], 'seed': [0.0, 0.519, 0.506],
+  'seth': [0.0, 0.519, 0.592], 'sigrid': [0.0, 0.535, 0.36], 'soldier-0': [0.0, 0.503, 0.463],
+  'soldier-11': [0.0, 0.56, 0.558], 'soukaku': [0.0, 0.518, 0.425],
+  'starlight-billy': [0.0, 0.581, 0.548], 'sunna': [0.0, 0.59, 0.508],
+  'trigger': [0.0, 0.59, 0.529], 'velina': [0.0, 0.592, 0.471], 'vivian': [0.0, 0.519, 0.646],
+  'yanagi': [0.0, 0.518, 0.327], 'ye-shunguang': [0.0, 0.518, 0.494],
+  'yidhari': [0.0, 0.596, 0.492], 'yixuan': [0.0, 0.592, 0.508], 'yuzuha': [0.0, 0.488, 0.494],
+  'zhao': [0.0, 0.518, 0.569], 'zhu-yuan': [0.0, 0.519, 0.45],
 };
 
-// Семейство стата → ключ иконки в assets/stats/. Ключи в том же виде, что в
-// MAIN_STAT_ICON_MAP, чтобы имена файлов собирались одним и тем же assetSlug().
 const CC_STAT_ICON = {
   '111':'HP','121':'ATK','131':'DEF','122':'Impact','201':'CRIT_Rate','211':'CRIT_DMG',
   '231':'PEN_Ratio','232':'PEN','305':'Energy_Regen','312':'Anomaly_Proficiency',
@@ -11501,81 +11518,97 @@ function ccContain(ctx, img, x, y, w, h) {
   ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
 }
 
-/* ── ЛЕВАЯ КОЛОНКА: ПОРТРЕТ ── */
-function ccDrawPortrait(ctx, C, m, IM) {
-  const x = CC.PAD, y = CC.PAD, w = CC.LEFT_W, h = CC.H - CC.PAD * 2;
+/* ── ВЕРХНИЙ БАННЕР: АГЕНТ ──
+   Портрет кадрируется полосой от макушки до пояса (см. CC_PORTRAIT_BAND) и
+   ставится по центру баннера. Подписи разведены по углам, чтобы не лезть на
+   фигуру: ник с UID сверху слева, значки атрибута и специальности сверху
+   справа, имя снизу слева, уровень с эйдосами и пресетом снизу справа.
+
+   Ширина фигуры ограничена: не все портреты вертикальные — у Remielle файл
+   2128×1324, то есть шире, чем выше, и при подгонке только по высоте полосы
+   она растянулась бы на 1090 пикселей и села бы прямо на подписи. Предел
+   заодно ловит Pyrois, Lucy, Zhao и ещё несколько широких файлов. */
+const CC_BAND_TOP = 26;      // воздух над макушкой
+const CC_FIG_MAX_W = 660;    // предел ширины фигуры в баннере
+function ccDrawBanner(ctx, C, m, IM) {
+  const x = CC.PAD, y = CC.PAD, w = CC.LEFT_W, h = CC.BANNER_H;
   ctx.save();
   ccRR(ctx, x, y, w, h, CC.R); ctx.clip();
   ctx.fillStyle = C.bg2; ctx.fillRect(x, y, w, h);
 
   const art = IM(m.agentKey ? agentPortraitUrl(m.agentKey) : null);
-  if (art) {
-    // По вертикали по-прежнему прижимаем к верху: лица в этих файлах всегда
-    // в верхней трети, и любое смещение вниз срезало бы головы.
-    const anchor = (m.agentKey && CC_PORTRAIT_ANCHOR[assetSlug(m.agentKey)]) || .5;
-    ccCoverAnchorX(ctx, art, x, y, w, h, anchor);
+  if (art && art.width) {
+    const band = (m.agentKey && CC_PORTRAIT_BAND[assetSlug(m.agentKey)]) || [0, 0.5, 0.5];
+    const bandH = Math.max(0.05, band[1] - band[0]) * art.height;
+    // Подгонка по высоте полосы, но не шире предела — иначе широкий файл
+    // растянет фигуру на весь баннер.
+    const scale = Math.min((h - CC_BAND_TOP) / bandH, CC_FIG_MAX_W / art.width);
+    const dw = art.width * scale, dh = art.height * scale;
+    ctx.drawImage(art, x + w / 2 - band[2] * dw, y + CC_BAND_TOP - band[0] * dh, dw, dh);
   }
 
-  // Затемнение снизу — под ним лежат имя и уровень. Без него светлый арт
-  // (белые волосы, яркий фон) съедает текст.
-  const g = ctx.createLinearGradient(0, y + h * .42, 0, y + h);
-  g.addColorStop(0, 'rgba(0,0,0,0)');
-  g.addColorStop(.55, 'rgba(0,0,0,.72)');
-  g.addColorStop(1, 'rgba(0,0,0,.94)');
-  ctx.fillStyle = g; ctx.fillRect(x, y + h * .42, w, h * .58);
+  // Подписи по углам поверх лёгкого затемнения: фигура центрована, но у широких
+  // артов её край подходит к углам близко, и текст без подложки терялся бы.
+  const gTop = ctx.createLinearGradient(0, y, 0, y + 90);
+  gTop.addColorStop(0, 'rgba(0,0,0,.55)'); gTop.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = gTop; ctx.fillRect(x, y, w, 90);
+  const gBot = ctx.createLinearGradient(0, y + h - 140, 0, y + h);
+  gBot.addColorStop(0, 'rgba(0,0,0,0)'); gBot.addColorStop(1, 'rgba(0,0,0,.8)');
+  ctx.fillStyle = gBot; ctx.fillRect(x, y + h - 140, w, 140);
 
-  // Атрибут и специальность — кружки в левом верхнем углу.
-  let cx = x + 22;
-  [[m.attributeIcon, attributeUrl], [m.specialtyIcon, specialtyUrl]].forEach(([key, fn]) => {
-    if (!key) return;
-    ccPanel(ctx, cx, y + 22, 52, 52, { r: 26, fill: 'rgba(0,0,0,.55)', stroke: C.border2 });
-    ccContain(ctx, IM(fn(key)), cx + 11, y + 33, 30, 30);
-    cx += 62;
-  });
-
-  // Ник и UID — вертикально вдоль правого края, как на карточках Энки.
+  // Верх слева — ник и UID.
   if (m.showOwner && m.owner && (m.owner.nickname || m.owner.uid)) {
-    ctx.save();
-    ctx.translate(x + w - 26, y + h - 40);
-    ctx.rotate(-Math.PI / 2);
-    ccFont(ctx, 400, 17, CC.FM);
-    ccTrackText(ctx, [m.owner.nickname, m.owner.uid].filter(Boolean).join(' · '), 0, 0, 1.5, { color: 'rgba(255,255,255,.55)' });
-    ctx.restore();
+    ccFont(ctx, 400, 18, CC.FM);
+    ccTrackText(ctx, [m.owner.nickname, m.owner.uid].filter(Boolean).join(' · '),
+      x + 26, y + 40, 1.5, { color: 'rgba(255,255,255,.62)' });
   }
+
+  // Верх справа — атрибут и специальность.
+  let ix = x + w - 26 - 52;
+  [m.specialtyIcon && specialtyUrl(m.specialtyIcon), m.attributeIcon && attributeUrl(m.attributeIcon)]
+    .forEach(url => {
+      if (!url) return;
+      ccPanel(ctx, ix, y + 20, 52, 52, { r: 26, fill: 'rgba(0,0,0,.55)', stroke: C.border2 });
+      ccContain(ctx, IM(url), ix + 11, y + 31, 30, 30);
+      ix -= 62;
+    });
 
   const bottom = y + h;
-  // Подпись под именем: полное имя, пол, рост — то же, что в развёрнутом виде.
-  if (m.subLine) {
-    ccFont(ctx, 400, 19);
-    ccText(ctx, m.subLine, x + 24, bottom - 34, { color: 'rgba(255,255,255,.55)', max: w - 48 });
-  }
-  // Имя. Кегль подбирается под ширину колонки: «Ye Shunguang» и «Alice» не
-  // могут быть одного размера без обрезки.
+  // Низ слева — имя и подпись под ним.
   let size = 74;
   ccFont(ctx, 900, size, CC.FC);
   const nameUp = String(m.displayName || '').toUpperCase();
-  while (size > 34 && ctx.measureText(nameUp).width > w - 48) { size -= 2; ccFont(ctx, 900, size, CC.FC); }
-  ccText(ctx, nameUp, x + 24, bottom - (m.subLine ? 68 : 44), { color: '#ffffff' });
-
-  // Строка «Lv.60/60» + шесть делений mindscape.
-  const rowY = bottom - (m.subLine ? 68 : 44) - size * .82 - 22;
-  ccFont(ctx, 700, 22);
-  const lvW = ccText(ctx, `Lv.${m.level}${m.levelMax ? '/' + m.levelMax : ''}`, x + 24, rowY, { color: C.accent });
-  let px = x + 24 + lvW + 20;
-  for (let i = 1; i <= 6; i++) {
-    const on = i <= (m.mindscape || 0);
-    ccPanel(ctx, px, rowY - 15, 26, 18, { r: 4, fill: on ? C.accent : 'rgba(255,255,255,.10)' });
-    ccFont(ctx, 700, 12, CC.FM);
-    ccText(ctx, 'M' + i, px + 13, rowY - 2, { color: on ? '#000000' : 'rgba(255,255,255,.45)', align: 'center' });
-    px += 32;
+  while (size > 34 && ctx.measureText(nameUp).width > w * 0.34) { size -= 2; ccFont(ctx, 900, size, CC.FC); }
+  ccText(ctx, nameUp, x + 26, bottom - 52, { color: '#ffffff' });
+  if (m.subLine) {
+    ccFont(ctx, 400, 20);
+    ccText(ctx, m.subLine, x + 28, bottom - 22, { color: 'rgba(255,255,255,.58)', max: w * 0.34 });
   }
 
-  // Имя пресета — отдельной плашкой, чтобы не путалось с именем агента.
+  // Низ справа — пресет сверху, уровень с эйдосами снизу. Обе строки прижаты
+  // вправо, поэтому ширина считается заранее.
   if (m.presetName) {
-    ccFont(ctx, 600, 18);
-    const tw = Math.min(ctx.measureText(m.presetName).width, w - 90);
-    ccPanel(ctx, x + 22, rowY - 62, tw + 26, 32, { r: 16, fill: 'rgba(0,0,0,.55)', stroke: C.border2 });
-    ccText(ctx, m.presetName, x + 35, rowY - 40, { color: C.text, max: w - 90 });
+    ccFont(ctx, 600, 19);
+    const tw = Math.min(ctx.measureText(m.presetName).width, w * 0.3);
+    ccPanel(ctx, x + w - 26 - tw - 26, bottom - 88, tw + 26, 32,
+      { r: 16, fill: 'rgba(0,0,0,.55)', stroke: C.border2 });
+    ccText(ctx, m.presetName, x + w - 26 - tw - 13, bottom - 66, { color: C.text, max: tw });
+  }
+  const chipW = 26, chipGap = 6;
+  ccFont(ctx, 700, 22);
+  const lvTxt = `Lv.${m.level}${m.levelMax ? '/' + m.levelMax : ''}`;
+  const lvW = ctx.measureText(lvTxt).width;
+  const rowW = lvW + 18 + chipW * 6 + chipGap * 5;
+  let cx = x + w - 26 - rowW;
+  ccText(ctx, lvTxt, cx, bottom - 24, { color: C.accent });
+  cx += lvW + 18;
+  for (let i = 1; i <= 6; i++) {
+    const on = i <= (m.mindscape || 0);
+    ccPanel(ctx, cx, bottom - 41, chipW, 20, { r: 4, fill: on ? C.accent : 'rgba(255,255,255,.10)' });
+    ccFont(ctx, 700, 12, CC.FM);
+    ccText(ctx, 'M' + i, cx + chipW / 2, bottom - 27, { color: on ? '#000000' : 'rgba(255,255,255,.45)', align: 'center' });
+    ccFont(ctx, 700, 22);
+    cx += chipW + chipGap;
   }
   ctx.restore();
 
@@ -11594,7 +11627,13 @@ function ccDrawPortrait(ctx, C, m, IM) {
    правому краю и выстраиваются ровным столбиком, а скобка — плавающей левее.
    Обратный порядок читался бы естественнее, но тогда столбик итогов гулял бы
    на десятки пикселей, потому что длина скобки у всех разная. */
-const CC_STAT_ROW = 42, CC_STAT_MAX = 14;
+/* Место под лист статов отведено на ДВЕНАДЦАТЬ строк. Тринадцатая и
+   четырнадцатая (Sheer Force у Rupture-агента вместе с PEN Ratio и бонусом
+   атрибута) в норме появляться не должны, но если появятся — строки ужмутся,
+   чтобы влезть, а высота блока останется прежней. Именно ужмутся, а не
+   потеряются: молча выброшенная строка статов — это исчезнувшие цифры, и
+   заметить такое можно только случайно. */
+const CC_STAT_ROW = 42, CC_STAT_MAX = 12;
 const CC_STATS_H = CC_STAT_ROW * CC_STAT_MAX;
 // Карточка диска: шапка 56 + отступ 8 + четыре строки того же шага, что и у
 // статов агента. Строки в средней и правой колонках идут в один ритм.
@@ -11611,8 +11650,9 @@ function ccDrawStats(ctx, C, m, IM, x, y, w) {
     ccText(ctx, 'No reference data for this agent.', x, y + 30, { color: C.textMid, max: w });
     return;
   }
-  rows.slice(0, CC_STAT_MAX).forEach((r, i) => {
-    const cy = y + i * CC_STAT_ROW, mid = cy + CC_STAT_ROW / 2;
+  const rowH = Math.min(CC_STAT_ROW, CC_STATS_H / rows.length);
+  rows.forEach((r, i) => {
+    const cy = y + i * rowH, mid = cy + rowH / 2;
     const bucket = statSheetBucket(r, m.useful);
     const col = ccBucketColor(C, bucket) || C.text;
     const icoKey = CC_STAT_ICON[r.fam];
@@ -11628,7 +11668,7 @@ function ccDrawStats(ctx, C, m, IM, x, y, w) {
     ccText(ctx, `(${formatEnkaStatValue(r.base, r.isPercent, r.fam)} + ${formatEnkaStatValue(r.bonus, r.isPercent, r.fam)})`,
       x + w - valW - 14, mid + 8, { color: C.textMid, align: 'right' });
     ctx.strokeStyle = C.border; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(x, cy + CC_STAT_ROW - 1); ctx.lineTo(x + w, cy + CC_STAT_ROW - 1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, cy + rowH - 1); ctx.lineTo(x + w, cy + rowH - 1); ctx.stroke();
   });
 }
 
@@ -11805,9 +11845,13 @@ function ccDrawProcRow(ctx, C, m, IM, x, y, w) {
    Заголовков секций и подложек нет: блоки разделяет только воздух, поэтому
    свободный остаток раздаётся в промежутки. */
 function ccDrawMiddle(ctx, C, m, IM) {
-  const x = CC.MID_X, w = CC.MID_W;
+  // Лист статов — слева внизу, ровно тот же блок, что был в средней колонке.
+  ccDrawStats(ctx, C, m, IM, CC.PAD, CC.LOWER_Y, CC.STATS_W);
+
+  // Справа от него — движок, навыки и проки. Предел промежутка поднят до 72:
+  // блоков здесь всего четыре, а высоты столько же, сколько у листа статов.
+  const x = CC.SIDE_X, w = CC.SIDE_W;
   const blocks = [
-    { h: CC_STATS_H,   draw: (y) => ccDrawStats(ctx, C, m, IM, x, y, w) },
     { h: CC_WENGINE_H, draw: (y) => ccDrawWengine(ctx, C, m, IM, x, y, w) },
     { h: CC_SKILLS_H,  draw: (y) => ccDrawSkills(ctx, C, m, IM, x, y, w) },
   ];
@@ -11817,8 +11861,8 @@ function ccDrawMiddle(ctx, C, m, IM) {
   }
   const used = blocks.reduce((a, b) => a + b.h, 0);
   const gaps = blocks.length - 1;
-  const gap = gaps > 0 ? Math.max(10, Math.min(56, (CC.COL_H - used) / gaps)) : 0;
-  let y = CC.COL_TOP;
+  const gap = gaps > 0 ? Math.max(10, Math.min(72, (CC.STATS_H - used) / gaps)) : 0;
+  let y = CC.LOWER_Y;
   blocks.forEach((b, i) => { b.draw(y); y += b.h + (i < gaps ? gap : 0); });
 }
 
@@ -12132,7 +12176,7 @@ async function drawCompactCard(canvas, m) {
   base.width = CC.W; base.height = CC.H;
   const bctx = base.getContext('2d');
   bctx.fillStyle = C.bg; bctx.fillRect(0, 0, CC.W, CC.H);
-  ccDrawPortrait(bctx, C, m, IM);
+  ccDrawBanner(bctx, C, m, IM);
   ccDrawMiddle(bctx, C, m, IM);
   ccDrawDiscs(bctx, C, m, IM);
 
