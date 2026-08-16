@@ -12238,8 +12238,22 @@ function ccAttachSpin(canvas) {
    включении, контекст создаётся тогда же, модели не качаются вовсе.
    ══════════════════════════════════════════════════════════════════════════ */
 const L2D_BASE    = `${BASE}/live2d`;
-const L2D_W = 1170, L2D_H = 488;   // пропорция баннера, та же в обоих режимах
-const L2D_FILL = 0.95;             // общий отступ кадра, см. подбор ниже
+const L2D_W = 1170, L2D_H = 488;   // логический кадр, та же пропорция в обоих режимах
+
+/* Во сколько раз модель рисуется подробнее логического кадра.
+   Зачем это нужно. Фигура в текстуре крупная — скажем, у Remielle около 1700
+   пикселей в высоту, — а кадр баннера всего 488. То есть картинка не
+   растягивается, а СЖИМАЕТСЯ втрое, и вот тут вылезает беда: обычная линейная
+   фильтрация при сжатии берёт один пиксель из трёх и выбрасывает остальные,
+   отчего тонкие линии рвутся и картинка выглядит «крупнозернистой».
+   Лечится двумя вещами сразу: мипмапами у текстуры (см. l2dEnsure) и рендером
+   с запасом — рисуем вдвое крупнее и отдаём сжатие браузеру, у него честный
+   многоступенчатый фильтр. Заодно на retina-экранах баннер перестаёт мылить:
+   там одна CSS-точка это два реальных пикселя.
+   Именно так и выглядел стенд spine-test.html, где картинка тебе понравилась:
+   он рисовал в холст с плотностью 2×. */
+const L2D_SS = 2;
+const L2D_GL_W = L2D_W * L2D_SS, L2D_GL_H = L2D_H * L2D_SS;
 
 /* Кадр каждого агента подобран вручную в стенде spine-test.html и проверен
    отрисовкой всех 39. zoom — крупность, dx/dy — сдвиг В ДОЛЯХ КАДРА (не в
@@ -12281,7 +12295,7 @@ const L2D_FRAME = {
   1521: { zoom: 1.34, dx: -0.01, dy: -0.15 },   // Cissia
   1531: { zoom: 1.32, dx: 0.03,  dy: -0.07 },   // Starlight · Billy
   1541: { zoom: 1.26, dx: -0.01, dy: -0.18 },   // Promeia
-  1551: { zoom: 1.38, dx: -0.01, dy: -0.1  },   // Pyrois
+  1551: { zoom: 1.44, dx: -0.01, dy: -0.12 },   // Pyrois
   1561: { zoom: 1.32, dx: -0.01, dy: -0.18 },   // Velina
   1571: { zoom: 1.3,  dx: -0.05, dy: -0.13 },   // Norma
   1581: { zoom: 1.48, dx: 0,     dy: -0.3  },   // Remielle
@@ -12338,7 +12352,7 @@ function l2dLoadRuntime() {
 function l2dEnsureGL(S) {
   if (l2dGL) return l2dGL;
   const canvas = document.createElement('canvas');
-  canvas.width = L2D_W; canvas.height = L2D_H;
+  canvas.width = L2D_GL_W; canvas.height = L2D_GL_H;
   /* preserveDrawingBuffer нужен, потому что кадр не показывается напрямую, а
      копируется через drawImage — без него буфер к моменту копирования уже
      очищен, и в карточку попадает пустота. */
@@ -12435,12 +12449,29 @@ async function l2dEnsure(id) {
       im.src = `${L2D_BASE}/${n}`;
     })));
 
+    /* Мипмапы — это заранее посчитанные уменьшенные копии текстуры. Без них
+       фигура высотой 1700 пикселей, ужатая в кадр высотой 488, теряет каждый
+       третий пиксель, и картинка выглядит зернистой: рвутся контуры, дрожат
+       тонкие детали при движении. С мипмапами видеокарта берёт готовую копию
+       подходящего размера, и сжатие получается честным.
+       WebGL умеет строить их только для текстур со сторонами-степенями двойки.
+       У всех моделей ZZZ листы 2048×2048, но проверяем — не хочется получить
+       чёрный прямоугольник вместо агента, если в патче попадётся другой размер.
+       Фильтры выставляем ПОСЛЕ setTexture(): он подставляет режим из заголовка
+       атласа (там Linear) и затёр бы мипмапы. */
+    const pot = n => n > 0 && (n & (n - 1)) === 0;
     const atlas = new S.TextureAtlas(atlasTxt);
     const textures = [];
     atlas.pages.forEach((page, i) => {
-      const t = new S.GLTexture(gl.context, imgs[i] || imgs[0]);
+      const img = imgs[i] || imgs[0];
+      const useMip = pot(img.width) && pot(img.height);
+      const t = new S.GLTexture(gl.context, img, useMip);
       textures.push(t);
       page.setTexture(t);
+      if (useMip) {
+        try { t.setFilters(S.TextureFilter.MipMapLinearLinear, S.TextureFilter.Linear); }
+        catch (e) { /* фильтр не принят — останемся на линейном, это не фатально */ }
+      }
     });
 
     const data = new S.SkeletonBinary(new S.AtlasAttachmentLoader(atlas)).readSkeletonData(new Uint8Array(skelBuf));
@@ -12480,15 +12511,18 @@ async function l2dEnsure(id) {
 function l2dRenderToGL(m) {
   const S = window.spine;
   const gl = l2dGL.context.gl;
-  gl.viewport(0, 0, L2D_W, L2D_H);
+  gl.viewport(0, 0, L2D_GL_W, L2D_GL_H);
   gl.clearColor(0, 0, 0, 0);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
+  /* Кадрирование не зависит от разрешения: видимая высота мира равна
+     size.y / zoom независимо от размера холста, поэтому подобранные в стенде
+     значения одинаково работают и при L2D_SS = 1, и при 2. */
   const f = L2D_FRAME[m.id] || L2D_FRAME_DEFAULT;
   const cam = l2dGL.renderer.camera;
-  cam.setViewport(L2D_W, L2D_H);
-  cam.zoom = (m.size.y / L2D_H) / (L2D_FILL * f.zoom);
-  const worldW = L2D_W * cam.zoom, worldH = L2D_H * cam.zoom;
+  cam.setViewport(L2D_GL_W, L2D_GL_H);
+  cam.zoom = (m.size.y / L2D_GL_H) / f.zoom;
+  const worldW = L2D_GL_W * cam.zoom, worldH = L2D_GL_H * cam.zoom;
   cam.position.x = 0 - f.dx * worldW;
   cam.position.y = (m.off.y + m.size.y / 2) - f.dy * worldH;
   cam.update();
@@ -12508,7 +12542,13 @@ function l2dPaint(ctx, agentKey, x, y, w, h) {
   if (!m) { l2dEnsure(id).then(mm => { if (mm) l2dKick(); }); return false; }
   try {
     l2dRenderToGL(m);
+    /* Кадр приходит вдвое крупнее места, куда его кладут, поэтому просим
+       браузер сжимать его качественно — по умолчанию он экономит и мылит. */
+    const prev = ctx.imageSmoothingQuality;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(l2dGL.canvas, x, y, w, h);
+    ctx.imageSmoothingQuality = prev || 'low';
     return true;
   } catch (e) {
     console.error('live2d paint failed', e);
@@ -12572,7 +12612,10 @@ document.addEventListener('visibilitychange', () => {
    «этот холст обслуживает Live2D». */
 function pdBannerHtml(agentKey) {
   if (!agentKey) return '';
-  return `<div class="pd-banner"><canvas class="pd-banner-cv" width="${L2D_W}" height="${L2D_H}" data-agent="${escapeHtml(agentKey)}"></canvas></div>`;
+  /* Холст держим в удвоенном разрешении: CSS растягивает его на всю ширину
+     панели, а на retina одна CSS-точка — два реальных пикселя. Без запаса
+     баннер мылил бы именно здесь, а не в компактной карточке. */
+  return `<div class="pd-banner"><canvas class="pd-banner-cv" width="${L2D_GL_W}" height="${L2D_GL_H}" data-agent="${escapeHtml(agentKey)}"></canvas></div>`;
 }
 
 function l2dPaintBanner(cv) {
