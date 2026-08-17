@@ -1390,9 +1390,50 @@ select {
 .dlg-btn.primary:hover { background: var(--accent); opacity: .9; }
 .dlg-btn.danger { color: var(--red); }
 .dlg-btn.danger:hover { border-color: var(--red); background: rgba(239,68,68,.12); color: var(--red); }
-.profile-layout { display: flex; gap: 16px; margin-top: 16px; align-items: flex-start; }
-.profile-agent-list-col { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; }
+/* ── ВЫСОТА ЛЕВОЙ КОЛОНКИ ──
+   Агентов в списке бывает три десятка, а справа лежит панель конечной высоты
+   (в Compact — холст 1920×1080). Раньше здесь стоял align-items:flex-start, и
+   каждая колонка брала высоту по своему контенту: список оказывался выше
+   панели и растягивал страницу — под карточкой оставалось несколько экранов
+   пустоты справа, и до них приходилось листать.
+   Теперь колонки тянутся на одну высоту (align-items по умолчанию — stretch),
+   и задаёт её правая. Механика: содержимое колонки вынуто из потока
+   (position:absolute у обёртки-скроллера), поэтому собственная высота колонки
+   — ноль, и в расчёте высоты строки она не участвует. Замкнутого круга «список
+   задаёт высоту, от которой сам же зависит» не возникает. Списки при этом
+   скроллятся внутри колонки, а её нижний край совпадает с нижним краем панели.
+   min-height — страховка на случай, если справа окажется что-то низкое
+   (заглушка «Search for a UID» — 230px): список не схлопнется в щель. Сейчас
+   в этом состоянии список всё равно пуст, правило впрок.
+   Скроллбар отдельно не описан намеренно: глобальное правило ниже
+   (::-webkit-scrollbar, 4px, thumb --border2) уже даёт тонкую полосу в
+   палитре сайта. Ширину у карточек она не отнимает — рисуется поверх, они
+   остаются 260px и при появлении скролла не дёргаются. */
+.profile-layout { display: flex; gap: 16px; margin-top: 16px; }
+.profile-agent-list-col { width: 260px; flex-shrink: 0; position: relative; min-height: 420px; }
 .profile-agent-list { display: flex; flex-direction: column; gap: 6px; }
+/* Один общий скроллер на оба списка, и обёртка тут обязательна. Списков в
+   колонке два, и висят они ОДНОВРЕМЕННО, друг под другом: сверху агенты со
+   стенда (#profileAgentList), под ними — агенты, по которым есть пресеты
+   (#profilePresetBrowseList, заполняет renderProfileLeftExtra). Если вместо
+   обёртки развесить position:absolute на сами списки, оба встанут в одну точку
+   и наложатся, а при прокрутке разъедутся независимо друг от друга — именно
+   так и было в первой версии этой правки.
+   gap:6px здесь тот же, что раньше стоял на самой колонке. Когда нижний список
+   пуст, он получает .hidden (display:none), и flex лишнего отступа между ними
+   не оставляет.
+   Отдельный класс, а не .profile-agent-list-col > *, потому что в модалке
+   публичных пресетов лежит такой же .profile-agent-list со своей шириной и
+   своим скроллом — его задевать нельзя. */
+.profile-agent-list-scroll {
+  position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 6px;
+}
+/* flex-shrink:0 здесь обязателен, без него скролла не будет вообще. У скроллера
+   теперь конечная высота, а flex-элементы по умолчанию ужимаются под
+   контейнер: списки молча сплющились бы ровно по высоте панели вместо того,
+   чтобы вылезти за край и дать прокрутку. */
+.profile-agent-list-scroll > * { flex-shrink: 0; }
 .profile-agent-card {
   background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-sm);
   padding: 8px 0 8px 10px; cursor: pointer; font-size: 13px;
@@ -2195,8 +2236,13 @@ select {
   <div class="uid-verify-panel hidden" id="uidVerifyPanel"></div>
   <div class="profile-layout">
     <div class="profile-agent-list-col">
-      <div class="profile-agent-list" id="profileAgentList"></div>
-      <div class="profile-agent-list hidden" id="profilePresetBrowseList"></div>
+      <!-- Обёртка-скроллер: колонка держит высоту по панели справа, а оба
+           списка прокручиваются внутри неё вместе, одной лентой. См. комментарий
+           у .profile-agent-list-scroll в стилях. -->
+      <div class="profile-agent-list-scroll">
+        <div class="profile-agent-list" id="profileAgentList"></div>
+        <div class="profile-agent-list hidden" id="profilePresetBrowseList"></div>
+      </div>
     </div>
     <div class="profile-detail-col">
       <!-- Preset tab-chip row — populated by renderPresetTabs(), used to
