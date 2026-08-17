@@ -278,13 +278,21 @@ header {
 
 /* ── LAYOUT ── */
 .page { max-width: 1600px; margin: 0 auto; padding: 20px 16px 80px; }
+/* На Profile нижний отступ урезан. 80px общего правила — запас на прокрутку для
+   длинных лент (Shiyu, Feed), там он к месту и остаётся. А здесь, после того как
+   колонка агентов перестала растягивать страницу (см. .profile-agent-list-col),
+   эти 80px оказались единственной пустотой под карточкой и читаются как дыра:
+   долистал до конца панели, а страница всё ещё едет вниз в никуда. 20px —
+   ровно столько же, сколько отступ сверху. */
+#pageProfile { padding-bottom: 20px; }
 .page.hidden { display: none; }
 .hidden { display: none; }
-.section-title {
-  font-family: 'Share Tech Mono', monospace; font-size: 10px;
-  color: var(--text-dim); letter-spacing: .2em; text-transform: uppercase;
-  margin-bottom: 12px;
-}
+/* .section-title (мелкий моноширинный заголовок над каждой страницей — «SHIYU
+   DEFENSE», «PROFILE · CHARACTER SHOWCASE (BY UID)» и т.п.) удалён целиком
+   вместе с четырьмя своими div'ами: какая вкладка открыта, и так видно по
+   подсвеченному пункту навигации, дублировать это подписью незачем.
+   .pd-section-title ниже — другой класс, заголовки блоков внутри карточки
+   агента (Stats, Drive Discs, W-Engine), он живой и нужен. */
 
 /* ── TEAMS GRID ── */
 .teams-grid {
@@ -2197,18 +2205,15 @@ select {
 </div><!-- /.topbar-stack -->
 
 <div class="page" id="pageTeams">
-  <div class="section-title">Shiyu Defense</div>
   <div id="teamsGrid" class="teams-grid"></div>
 </div>
 
 
 <div class="page hidden" id="pageDeadly">
-  <div class="section-title">Deadly Assault</div>
   <div id="deadlyGrid" class="teams-grid"></div>
 </div>
 
 <div class="page hidden" id="pageProfile">
-  <div class="section-title">Profile · Character Showcase (by UID)</div>
 
   <!-- Bookmarked accounts, full width, wrapping onto as many rows as needed.
        My own (verified) account is always the first chip. Hidden entirely when
@@ -2254,7 +2259,6 @@ select {
 </div>
 
 <div class="page hidden" id="pageFeed">
-  <div class="section-title">Community Feed</div>
   <div id="feedAllWrap">
     <div id="feedList" class="feed-list"></div>
     <div class="feed-load-more-wrap hidden" id="feedLoadMoreWrap">
