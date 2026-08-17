@@ -4,6 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ZZZ · Team Builder</title>
+<!-- ── ФАВИКОН (картинка на вкладке браузера) ──
+     Лежит прямо здесь в виде data-URL, а не отдельным файлом рядом: весь сайт —
+     один index.html, и отдельная картинка означала бы, что её надо не забыть
+     залить на хостинг вместе с ним, иначе на вкладке снова глобус.
+     Буква Z нарисована путём <path>, а не текстом: шрифты сайта в фавиконе не
+     подгружаются, текст отрисовался бы системным шрифтом и поехал бы.
+     Строк три, потому что браузеры умеют разное. Chrome, Firefox и Safari 16+
+     возьмут первую, SVG — он не мылится ни на retina, ни в закладках. Кто SVG
+     в иконке не понимает, свалится на PNG 32×32 во второй. Третья — иконка для
+     «добавить на экран Домой» на iOS, там SVG не принимают вовсе.
+     Цвета зашиты (#111 плашка, #ffcc00 буква): фавикон рисуется браузером до
+     всякого CSS, до --accent ему не дотянуться, так что смена акцентного цвета
+     в настройках его не тронет. -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2032%2032%22%3E%3Crect%20width%3D%2232%22%20height%3D%2232%22%20rx%3D%227%22%20fill%3D%22%23111111%22%2F%3E%3Cpath%20d%3D%22M6.5%206.5H25.5V12L13.5%2020H25.5V25.5H6.5V20L18.5%2012H6.5Z%22%20fill%3D%22%23ffcc00%22%2F%3E%3C%2Fsvg%3E">
+<link rel="alternate icon" type="image/png" sizes="32x32" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAByElEQVR4nOyXu0oDQRSGz14MUckNRTGNvoC3LuAFrIIWWlolilgLgpBnCAiCtVgoPoAiqK0aEBujKFhYWAmKQpJCczGu/1lcCe4qJju72+Rr5swOO/9/ZpLZOSrVEAZoliVJimmaNoS2iwSAuZ4wVxbtGbprOWCMSUYQDAYnFUXZQBglZ3moVquLhULh4NsAxOMQPyQXgYkpNiGFQqGILMs3eNZD7sIr0a9ib+Y8EGeiSDzJBmLkEayt4pcZQ2AaHBmo0OjgO4ng9FKlzFWL6Tlr8wr0Wr3E4qlkkYSw5bc0wNoqeUzTgOcGpEgkopFNpsfKtLr0Sp1h81S7xy20st5GL3nZ8l1bK9AR+tCFZ8YrprHnnKQL7534/pyjYQN2srZlQETWDRsQlXXdBkRnXZcBJ7L+lwEns67l13MglXgT9jFK42OU3m61HGsexU0DfCV7xM2k++cAX6P4JiMCfS4LdG38C7geiJM3HPEJkiXvyEooB/sQXGAbwuQiWH6uD4dl1In3CBbIfeZZW+GoWCze+ny+c1QqE+gGyFm4JJvN5/P73FGMp6VS6c7v928iLGM7SliiANp2EsBXeZ5Bu4NuAuLXxtgnAAAA//9jYo8ZAAAABklEQVQDABKQyurAq3goAAAAAElFTkSuQmCC">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
 <!-- A Tailwind Play CDN experiment (<script src="cdn.tailwindcss.com"> +
      @apply in a <style type="text/tailwindcss"> block) was tried here and
      reverted: that domain isn't reachable from this environment (confirmed
@@ -74,19 +90,14 @@ button { appearance: none; -webkit-appearance: none; font: inherit; color: inher
   background: var(--bg2);
 }
 
-/* ── HEADER ── */
-header {
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  padding: 11px 20px;
-  display: flex; align-items: center; gap: 12px;
-  position: relative; z-index: 100;
-}
-.header-brand { display: flex; flex-direction: column; }
-.header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
-.logo { font-family: 'Barlow Condensed', 'Oswald', sans-serif; font-size: 18px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
-.logo em { color: var(--accent); font-style: normal; }
-.logo-sub { font-size: 10px; color: var(--text-dim); font-family: 'Share Tech Mono', monospace; letter-spacing: .15em; margin-top: 1px; }
+/* ── HEADER ── удалён.
+   Верхняя строка («ZZZ · TEAM BUILDER» + подпись «Shiyu Defense · Tracker»
+   слева, шестерёнка и аккаунт справа) занимала целый этаж липкой шапки ради
+   названия, которое и так написано на вкладке браузера. Строка убрана целиком,
+   шестерёнка и аккаунт переехали в .page-nav — там справа было пусто. Липкая
+   шапка стала на ~54px ниже, столько же вернулось контенту.
+   Заодно уехали .header-brand / .header-right / .logo / .logo-sub — ими больше
+   ничего не пользуется, ни разметка, ни JS (проверено поиском). */
 
 /* ── HEADER DROPDOWNS (settings / account) ── */
 .hd-dropdown { position: relative; }
@@ -135,6 +146,15 @@ header {
 .page-nav-btn:hover { color: var(--text); }
 .page-nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
 .page-nav-btn:focus-visible { outline: 2px solid var(--accent-60); outline-offset: 2px; }
+/* Правая группа строки навигации: шестерёнка и аккаунт, переехавшие из удалённой
+   шапки. margin-left:auto прижимает их к правому краю — ровно то же, что делал
+   .header-right раньше. Высоту строки они не меняют: кнопка аккаунта со своим
+   аватаром ~34px, а вкладки с padding 13px дают ~42px, так что задаёт высоту
+   по-прежнему навигация, а группа просто центрируется. Выпадашки внутри
+   (.hd-menu, .account-dropdown) позиционируются от своих .hd-dropdown /
+   .account-menu, поэтому переезд им безразличен; строка выше содержимого
+   страницы за счёт z-index у .page-nav и липкого .topbar-stack. */
+.page-nav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 
 .auth-widget { display: flex; align-items: center; }
 .auth-user { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px 10px 5px 6px; border-radius: var(--r-sm); background: var(--bg3); border: 1px solid var(--border); transition: border-color .15s; }
@@ -1977,12 +1997,14 @@ select {
      .topbar-stack CSS for the full explanation. -->
 <div class="topbar-stack">
 
-<header>
-  <div class="header-brand">
-    <div class="logo"><em>ZZZ</em> · Team Builder</div>
-    <div class="logo-sub">Shiyu Defense · Tracker</div>
-  </div>
-  <div class="header-right">
+<div class="page-nav">
+  <button class="page-nav-btn active" id="navTeamsBtn" onclick="showPage('teams')">Shiyu Defense</button>
+  <button class="page-nav-btn" id="navDeadlyBtn" onclick="showPage('deadly')">Deadly Assault</button>
+  <button class="page-nav-btn" id="navProfileBtn" onclick="showPage('profile')">Profile</button>
+  <button class="page-nav-btn" id="navFeedBtn" onclick="showPage('feed')">Feed</button>
+  <!-- Шестерёнка и аккаунт приехали сюда из удалённой верхней строки, см.
+       комментарий на месте бывшего header в стилях. -->
+  <div class="page-nav-right">
     <div class="hd-dropdown" id="settingsDropdown">
       <button class="tb-btn" onclick="toggleSettingsMenu(event)" title="Libraries &amp; appearance"><svg class="tb-ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
       <div class="hd-menu hidden" id="settingsMenu">
@@ -2004,13 +2026,6 @@ select {
     </div>
     <div class="auth-widget" id="authWidget"></div>
   </div>
-</header>
-
-<div class="page-nav">
-  <button class="page-nav-btn active" id="navTeamsBtn" onclick="showPage('teams')">Shiyu Defense</button>
-  <button class="page-nav-btn" id="navDeadlyBtn" onclick="showPage('deadly')">Deadly Assault</button>
-  <button class="page-nav-btn" id="navProfileBtn" onclick="showPage('profile')">Profile</button>
-  <button class="page-nav-btn" id="navFeedBtn" onclick="showPage('feed')">Feed</button>
 </div>
 
 <div class="toolbar" id="mainToolbar">
