@@ -162,6 +162,9 @@ header {
   flex-shrink: 0;
 }
 .tb-btn:hover:not(:disabled) { border-color: var(--border2); color: var(--text); background: var(--bg4); }
+/* Вспышка после удачного копирования: без неё непонятно, сработала кнопка или
+   нет — буфер обмена ничем себя не проявляет. */
+.tb-btn.ok { border-color: #4ade80; color: #4ade80; }
 .tb-btn:focus-visible { outline: 2px solid var(--accent-60); outline-offset: 2px; }
 .tb-btn:disabled { opacity: .3; cursor: not-allowed; }
 .tb-btn .tb-ico, .we-ph-ico .tb-ico { display: block; }
@@ -2099,6 +2102,7 @@ select {
   <div class="tb-group">
     <button class="tb-toggle" id="tbViewFull" onclick="setProfileViewMode('full')" title="Full view — every section, expandable">Full</button>
     <button class="tb-toggle" id="tbViewCompact" onclick="setProfileViewMode('compact')" title="Compact view — one 1920×1080 card you can download">Compact</button>
+    <button class="tb-btn" id="tbCardCopy" onclick="copyCompactCard(this)" title="Copy the card to the clipboard — paste it straight into a chat" disabled><svg class="tb-ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg></button>
     <button class="tb-btn" id="tbCardDownload" onclick="downloadCompactCard()" title="Download this card as a 1920×1080 PNG" disabled><svg class="tb-ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><path d="M4 20h16"/></svg></button>
   </div>
   <div class="tb-sep"></div>
@@ -2106,7 +2110,9 @@ select {
     <button class="tb-toggle" data-modes="full compact" data-key="procs" onclick="toggleProfileVisOption('procs', this)" title="Highlight useful sub-stat procs, on disc cards and in the Sub-Stat Totals row">Procs</button>
     <button class="tb-toggle" data-modes="full compact" data-key="totals" onclick="toggleProfileVisOption('totals', this)" title="Show the Sub-Stat Totals section">Totals</button>
     <button class="tb-toggle" data-modes="full compact" data-key="live2d" onclick="toggleProfileVisOption('live2d', this)" title="Animated agent banner instead of static art">Live2D</button>
+    <button class="tb-toggle" data-modes="compact" data-key="slots" onclick="toggleProfileVisOption('slots', this)" title="Show the slot number badge on each disc icon">Slots</button>
     <button class="tb-toggle" data-modes="compact" data-key="owner" onclick="toggleProfileVisOption('owner', this)" title="Print the nickname and UID on the card">Owner</button>
+    <button class="tb-toggle" data-modes="compact" data-key="date" onclick="toggleProfileVisOption('date', this)" title="Print the date the card was made — shows how fresh the stats are">Date</button>
     <button class="tb-toggle" data-modes="full" data-key="skills" onclick="toggleProfileVisOption('skills', this)" title="Show skill levels — live stand agents, and Verified/Imported presets saved after this feature shipped">Skills</button>
     <button class="tb-toggle" data-modes="full" data-key="wengine" onclick="toggleProfileVisOption('wengine', this)" title="Show the W-Engine block">W-Engine</button>
     <button class="tb-toggle" data-modes="full" data-key="sets" onclick="toggleProfileVisOption('sets', this)" title="Show the Drive Disc Sets summary">Sets</button>
@@ -7535,7 +7541,7 @@ let displayOptions = Object.assign({attr:true, class:true, ability:true, wengine
 let profileViewMode = localStorage.getItem('zzz_profile_view_mode') === 'compact' ? 'compact' : 'full';
 /* live2d по умолчанию ВЫКЛЮЧЕН: анимация тянет по мегабайту на агента и жжёт
    видеокарту, включать её человеку без спроса неправильно. */
-let profileDisplayOptions = Object.assign({procs:true, totals:true, skills:true, wengine:true, sets:true, discs:true, notes:true, owner:true, live2d:false},
+let profileDisplayOptions = Object.assign({procs:true, totals:true, skills:true, wengine:true, sets:true, discs:true, notes:true, owner:true, live2d:false, slots:true, date:true},
   JSON.parse(localStorage.getItem('zzz_profile_display_options') || '{}'));
 
 /* ── DRIVE DISC PICKER MODE ──
@@ -11301,8 +11307,8 @@ const CC_STAT_ROW = 42, CC_STAT_MAX = 12;
 CC.STATS_H  = CC_STAT_ROW * CC_STAT_MAX;               // 504
 CC.BANNER_H = CC.COL_H - CC.STATS_H - CC.GAP;          // 488
 CC.LOWER_Y = CC.PAD + CC.BANNER_H + CC.GAP;            // 458
-CC.SIDE_X  = CC.PAD;                                   // 34  — движок и проки слева
-CC.STATS_X = CC.PAD + CC.SIDE_W + CC.GAP;              // 574 — лист статов справа
+CC.STATS_X = CC.PAD;                                   // 34  — лист статов слева
+CC.SIDE_X  = CC.PAD + CC.STATS_W + CC.GAP;             // 684 — движок и проки справа
 
 /* Полноростовой арт — тот же файл, что у Энки слева на карточке. Лежит рядом с
    card.webp/square.webp в папке агента. Размер у всех разный (у Lucia
@@ -11383,6 +11389,14 @@ function ccStatIconKey(statName) {
   return mainStatToIconKey(statName) || (discStatLabel(statName) === 'PEN' ? 'PEN' : null);
 }
 
+/* Свои оттенки серого для карточки, а не переменные сайта.
+   У них разные задачи. На сайте серый живёт на экране и может быть тёмным.
+   Карточку пересылают в мессенджерах, а те ужимают её и переводят в jpeg —
+   тёмно-серое мелкое на почти чёрном фоне после этого превращается в грязь.
+   Поэтому здесь запас по светлоте, и правка палитры сайта карточку не задевает. */
+const CC_MUTED = 'rgba(255,255,255,.66)';   // подписи и пояснения
+const CC_FAINT = 'rgba(255,255,255,.50)';   // совсем второстепенное
+
 function ccColors() {
   const cs = getComputedStyle(document.documentElement);
   const v = (n, f) => (cs.getPropertyValue(n) || '').trim() || f;
@@ -11455,6 +11469,7 @@ async function ccPreload(m) {
   }
   (m.sheet || []).forEach(r => { const k = CC_STAT_ICON[r.fam]; if (k) add(iconUrl(k)); });
   CC_SKILL_ORDER.forEach(s => add(iconUrl(s.icon)));
+  CC_CORE_LETTERS.forEach(ch => add(iconUrl('core-skill-' + ch)));
   (m.discs || []).forEach(d => {
     if (!d) return;
     add(discUrl(d.setName));
@@ -11550,6 +11565,7 @@ function ccContain(ctx, img, x, y, w, h) {
    2128×1324, то есть шире, чем выше, и при подгонке только по высоте полосы
    она растянулась бы на 1090 пикселей и села бы прямо на подписи. Предел
    заодно ловит Pyrois, Lucy, Zhao и ещё несколько широких файлов. */
+const CC_BANNER_ICO = 42;    // значки атрибута и специальности в углу баннера
 const CC_BAND_TOP = 26;      // воздух над макушкой
 const CC_FIG_MAX_W = 660;    // предел ширины фигуры в баннере
 /* Кадрирование статичного арта вынесено отдельно, потому что его рисуют ДВА
@@ -11599,21 +11615,38 @@ function ccBannerAbove(ctx, C, m, IM) {
   gBot.addColorStop(0, 'rgba(0,0,0,0)'); gBot.addColorStop(1, 'rgba(0,0,0,.8)');
   ctx.fillStyle = gBot; ctx.fillRect(x, y + h - 140, w, 140);
 
-  // Верх слева — ник и UID.
+  /* Верх слева — две строки. Первая: ник и UID, ими управляет тумблер Owner.
+     Вторая: дата снимка, у неё свой тумблер. Они намеренно развязаны: дата —
+     это подпись самой карточки (по ней видно, насколько свежая стата), а Owner
+     отвечает за твои данные. Связать их значило бы, что выключение ника молча
+     уносит и дату. */
+  let hy = y + 40;
   if (m.showOwner && m.owner && (m.owner.nickname || m.owner.uid)) {
-    ccFont(ctx, 400, 18, CC.FM);
+    ccFont(ctx, 400, 20, CC.FM);
     ccTrackText(ctx, [m.owner.nickname, m.owner.uid].filter(Boolean).join(' · '),
-      x + 26, y + 40, 1.5, { color: 'rgba(255,255,255,.62)' });
+      x + 26, hy, 1.5, { color: CC_MUTED });
+    hy += 28;
+  }
+  if (m.showDate && m.dateText) {
+    ccFont(ctx, 400, 20, CC.FM);
+    ccTrackText(ctx, m.dateText, x + 26, hy, 1.5, { color: CC_MUTED });
   }
 
-  // Верх справа — атрибут и специальность.
-  let ix = x + w - 26 - 52;
+  /* Верх справа — атрибут и специальность. Без подложек: тёмные кружки с
+     рамкой спорили с тёмным фоном карточки и выглядели инородно. Читаемость
+     на светлых артах держат верхний градиент баннера и мягкая тень под самим
+     значком — она же не даёт белой иконке специальности слиться с белым артом. */
+  let ix = x + w - 26 - CC_BANNER_ICO;
   [m.specialtyIcon && specialtyUrl(m.specialtyIcon), m.attributeIcon && attributeUrl(m.attributeIcon)]
     .forEach(url => {
       if (!url) return;
-      ccPanel(ctx, ix, y + 20, 52, 52, { r: 26, fill: 'rgba(0,0,0,.55)', stroke: C.border2 });
-      ccContain(ctx, IM(url), ix + 11, y + 31, 30, 30);
-      ix -= 62;
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,.85)';
+      ctx.shadowBlur = 14;
+      ctx.shadowOffsetY = 2;
+      ccContain(ctx, IM(url), ix, y + 24, CC_BANNER_ICO, CC_BANNER_ICO);
+      ctx.restore();
+      ix -= CC_BANNER_ICO + 14;
     });
 
   const bottom = y + h;
@@ -11624,14 +11657,14 @@ function ccBannerAbove(ctx, C, m, IM) {
   while (size > 34 && ctx.measureText(nameUp).width > w * 0.34) { size -= 2; ccFont(ctx, 900, size, CC.FC); }
   ccText(ctx, nameUp, x + 26, bottom - 52, { color: '#ffffff' });
   if (m.subLine) {
-    ccFont(ctx, 400, 20);
-    ccText(ctx, m.subLine, x + 28, bottom - 22, { color: 'rgba(255,255,255,.58)', max: w * 0.34 });
+    ccFont(ctx, 400, 21);
+    ccText(ctx, m.subLine, x + 28, bottom - 22, { color: CC_MUTED, max: w * 0.34 });
   }
 
   // Низ справа — пресет сверху, уровень с эйдосами снизу. Обе строки прижаты
   // вправо, поэтому ширина считается заранее.
   if (m.presetName) {
-    ccFont(ctx, 600, 19);
+    ccFont(ctx, 600, 20);
     const tw = Math.min(ctx.measureText(m.presetName).width, w * 0.3);
     ccPanel(ctx, x + w - 26 - tw - 26, bottom - 88, tw + 26, 32,
       { r: 16, fill: 'rgba(0,0,0,.55)', stroke: C.border2 });
@@ -11648,7 +11681,7 @@ function ccBannerAbove(ctx, C, m, IM) {
   for (let i = 1; i <= 6; i++) {
     const on = i <= (m.mindscape || 0);
     ccPanel(ctx, cx, bottom - 41, chipW, 20, { r: 4, fill: on ? C.accent : 'rgba(255,255,255,.10)' });
-    ccFont(ctx, 700, 12, CC.FM);
+    ccFont(ctx, 700, 13, CC.FM);
     ccText(ctx, 'M' + i, cx + chipW / 2, bottom - 27, { color: on ? '#000000' : 'rgba(255,255,255,.45)', align: 'center' });
     ccFont(ctx, 700, 22);
     cx += chipW + chipGap;
@@ -11694,7 +11727,7 @@ function ccDrawStats(ctx, C, m, IM, x, y, w) {
   const rows = m.sheet || [];
   if (!rows.length) {
     ccFont(ctx, 400, 20);
-    ccText(ctx, 'No reference data for this agent.', x, y + 30, { color: C.textMid, max: w });
+    ccText(ctx, 'No reference data for this agent.', x, y + 30, { color: CC_MUTED, max: w });
     return;
   }
   const rowH = Math.min(CC_STAT_ROW, CC.STATS_H / rows.length);
@@ -11706,14 +11739,12 @@ function ccDrawStats(ctx, C, m, IM, x, y, w) {
     if (icoKey) ccContain(ctx, IM(iconUrl(icoKey)), x, mid - 15, 30, 30);
     ccFont(ctx, 500, 22);
     ccText(ctx, r.label, x + 42, mid + 8, { color: bucket ? col : C.text, max: w * .5 });
-    // Итог рисуется первым, потому что его ширина задаёт правую границу скобки.
+    /* Только итог. Разбивка «база + бонус» в скобках отсюда убрана намеренно:
+       на карточке, которую кидают в чат, важна итоговая цифра, а серая скобка
+       рядом с ней читалась как шум. Сами значения r.base и r.bonus в модели
+       остались — они нужны развёрнутому виду, где место есть. */
     ccFont(ctx, 700, 27);
-    const valTxt = formatEnkaStatValue(r.total, r.isPercent, r.fam);
-    ccText(ctx, valTxt, x + w, mid + 9, { color: col, align: 'right' });
-    const valW = ctx.measureText(valTxt).width;
-    ccFont(ctx, 400, 17);
-    ccText(ctx, `(${formatEnkaStatValue(r.base, r.isPercent, r.fam)} + ${formatEnkaStatValue(r.bonus, r.isPercent, r.fam)})`,
-      x + w - valW - 14, mid + 8, { color: C.textMid, align: 'right' });
+    ccText(ctx, formatEnkaStatValue(r.total, r.isPercent, r.fam), x + w, mid + 9, { color: col, align: 'right' });
     ctx.strokeStyle = C.border; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(x, cy + rowH - 1); ctx.lineTo(x + w, cy + rowH - 1); ctx.stroke();
   });
@@ -11731,8 +11762,8 @@ const CC_WENGINE_H = 140, CC_WENGINE_ICO = 132;
 function ccDrawWengine(ctx, C, m, IM, x, y, w) {
   const we = m.wengine;
   if (!we) {
-    ccFont(ctx, 400, 19);
-    ccText(ctx, 'No W-Engine equipped', x, y + 74, { color: C.textMid, max: w });
+    ccFont(ctx, 400, 21);
+    ccText(ctx, 'No W-Engine equipped', x, y + 74, { color: CC_MUTED, max: w });
     return;
   }
   /* Ширина группы считается по самой длинной из трёх строк, а не по колонке:
@@ -11760,7 +11791,7 @@ function ccDrawWengine(ctx, C, m, IM, x, y, w) {
   // Уровень и ранг словами, дальше ранг предмета и специальность картинками.
   let cx = tx;
   ccFont(ctx, 400, 20);
-  cx += ccText(ctx, `Lv.${we.level} · ${we.rankLabel}`, tx, y + 76, { color: C.textMid }) + 14;
+  cx += ccText(ctx, `Lv.${we.level} · ${we.rankLabel}`, tx, y + 76, { color: CC_MUTED }) + 14;
   if (we.rarity) { ccContain(ctx, IM(iconUrl('item-rank-' + String(we.rarity).toLowerCase())), cx, y + 52, 32, 32); cx += 40; }
   if (we.specialty) ccContain(ctx, IM(specialtyUrl(we.specialty)), cx, y + 52, 32, 32);
 
@@ -11787,6 +11818,29 @@ function ccDrawWengine(ctx, C, m, IM, x, y, w) {
    подпись «Lv.12» уже значка, так что 26px между значками её не поджимают. */
 const CC_SKILL_ICO = 52, CC_SKILL_GAP = 26;
 const CC_SKILLS_H = 82;
+/* Ряд букв кор-скилла: A…F из папки stats. Геометрия ОДИН В ОДИН как у ряда
+   навыков — тот же размер значка, тот же промежуток, то же центрирование:
+   два ряда стоят друг под другом, и любое расхождение читалось бы как брак.
+   Ранг заполняется по нарастающей, как чипы M1–M6 на баннере: достигнутые
+   буквы яркие, остальные приглушены. Ряд рисуется всегда, даже при ранге 0
+   (тогда все шесть приглушены) — иначе высота блока плавала бы от агента к
+   агенту и соседние ряды прыгали. */
+const CC_CORE_LETTERS = ['a', 'b', 'c', 'd', 'e', 'f'];
+const CC_CORE_H = CC_SKILL_ICO;
+const CC_CORE_DIM = 0.22;
+function ccDrawCoreRow(ctx, C, m, IM, x, y, w) {
+  const slot = CC_SKILL_ICO + CC_SKILL_GAP;
+  const rowW = CC_SKILL_ICO * 6 + CC_SKILL_GAP * 5;
+  const x0 = x + (w - rowW) / 2;
+  const rank = m.coreRank || 0;
+  CC_CORE_LETTERS.forEach((ch, i) => {
+    ctx.save();
+    ctx.globalAlpha = i < rank ? 1 : CC_CORE_DIM;
+    ccContain(ctx, IM(iconUrl('core-skill-' + ch)), x0 + slot * i, y, CC_SKILL_ICO, CC_SKILL_ICO);
+    ctx.restore();
+  });
+}
+
 function ccDrawSkills(ctx, C, m, IM, x, y, w) {
   const slot = CC_SKILL_ICO + CC_SKILL_GAP;
   const rowW = CC_SKILL_ICO * 6 + CC_SKILL_GAP * 5;
@@ -11797,8 +11851,10 @@ function ccDrawSkills(ctx, C, m, IM, x, y, w) {
     const lv = m.skills ? m.skills[sk.index] : null;
     // Пресеты без снимка навыков рисуются теми же иконками без уровней.
     if (lv != null) {
-      ccFont(ctx, 700, 18);
-      ccText(ctx, 'Lv.' + lv, centre, y + 76, { color: C.accent, align: 'center' });
+      /* Уровни навыков — белым, а не акцентом: это справка, а не оценка.
+         Жёлтый на карточке оставлен за одним смыслом — «полезно этому агенту». */
+      ccFont(ctx, 700, 20);
+      ccText(ctx, 'Lv.' + lv, centre, y + 76, { color: C.text, align: 'center' });
     }
   });
 }
@@ -11813,8 +11869,8 @@ function ccDrawProcNumbers(ctx, C, m, IM, x, y, w) {
   const t = (m.procCounts && m.procCounts.total) || null;
   const base = y + 52;
   if (!t || !m.useful || !m.useful.rule) {
-    ccFont(ctx, 400, 19);
-    ccText(ctx, 'No proc rule for this agent', x, base - 12, { color: C.textMid, max: w });
+    ccFont(ctx, 400, 21);
+    ccText(ctx, 'No proc rule for this agent', x, base - 12, { color: CC_MUTED, max: w });
     return;
   }
   /* Строка собирается сегментами и замеряется целиком до отрисовки: состав
@@ -11831,7 +11887,7 @@ function ccDrawProcNumbers(ctx, C, m, IM, x, y, w) {
     if (label) { ccFont(ctx, 600, 20); total += ctx.measureText(label).width + 24; }
     else total += 16;
   });
-  ccFont(ctx, 400, 19);
+  ccFont(ctx, 400, 21);
   total += ctx.measureText(tail).width;
 
   let cx = x + Math.max(0, (w - total) / 2);
@@ -11841,8 +11897,8 @@ function ccDrawProcNumbers(ctx, C, m, IM, x, y, w) {
     if (label) { ccFont(ctx, 600, 20); cx += ccText(ctx, label, cx, base, { color }) + 24; }
     else cx += 16;
   });
-  ccFont(ctx, 400, 19);
-  ccText(ctx, tail, cx, base, { color: C.textMid, max: Math.max(0, x + w - cx) });
+  ccFont(ctx, 400, 21);
+  ccText(ctx, tail, cx, base, { color: CC_MUTED, max: Math.max(0, x + w - cx) });
 }
 
 /* ── СРЕДНЯЯ КОЛОНКА: ПОЛЕЗНЫЕ ПРОКИ ──
@@ -11901,6 +11957,7 @@ function ccDrawMiddle(ctx, C, m, IM) {
   const blocks = [
     { h: CC_WENGINE_H, draw: (y) => ccDrawWengine(ctx, C, m, IM, x, y, w) },
     { h: CC_SKILLS_H,  draw: (y) => ccDrawSkills(ctx, C, m, IM, x, y, w) },
+    { h: CC_CORE_H,    draw: (y) => ccDrawCoreRow(ctx, C, m, IM, x, y, w) },
   ];
   if (profileDisplayOptions.totals) {
     blocks.push({ h: CC_PROCROW_H, draw: (y) => ccDrawProcRow(ctx, C, m, IM, x, y, w) });
@@ -11930,8 +11987,8 @@ function ccDrawMiddle(ctx, C, m, IM) {
    а значение остаётся нейтральным. Расхождение намеренное. */
 function ccDrawDiscCard(ctx, C, m, IM, d, slot, procRow, x, y, w) {
   if (!d) {
-    ccFont(ctx, 400, 18);
-    ccText(ctx, `Slot ${slot} — empty`, x, y + 38, { color: C.textDim, max: w });
+    ccFont(ctx, 400, 20);
+    ccText(ctx, `Slot ${slot} — empty`, x, y + 38, { color: CC_FAINT, max: w });
     return;
   }
   const headH = CC_DISC_HEAD;
@@ -11976,7 +12033,7 @@ function ccDrawDiscCard(ctx, C, m, IM, d, slot, procRow, x, y, w) {
     let fx = x;
     const seg = (num, label, color) => {
       ccFont(ctx, 700, 21); fx += ccText(ctx, num, fx, fMid + 7, { color }) + 5;
-      ccFont(ctx, 400, 17); fx += ccText(ctx, label, fx, fMid + 7, { color }) + 14;
+      ccFont(ctx, 400, 19); fx += ccText(ctx, label, fx, fMid + 7, { color }) + 14;
     };
     if (procRow.main > 0) seg(String(procRow.main), ccProcWord(procRow.main), C.accent);
     if (procRow.flat > 0) seg('+' + procRow.flat, 'flat', C.accent60);
@@ -12029,6 +12086,9 @@ function ccDrawDiscArt(ctx, C, IM, d, slot, i, angle) {
     ccContain(ctx, img, -s / 2, -s / 2, s, s);
     ctx.restore();
   }
+  /* Номер слота с тёмной подложкой — единое целое, тумблер Slots прячет их
+     вместе. Иконка сета при этом остаётся: скрывается подпись, а не диск. */
+  if (!profileDisplayOptions.slots) return;
   const bd = Math.round(s * 0.46);
   ccPanel(ctx, cx - bd / 2, cy - bd / 2, bd, bd, { r: bd / 2, fill: 'rgba(0,0,0,.72)', stroke: C.accent30 });
   ccFont(ctx, 700, Math.round(bd * 0.62));
@@ -12053,9 +12113,23 @@ function ccDrawDiscArt(ctx, C, IM, d, slot, i, angle) {
 let ccSpin = null;
 
 const CC_SPIN = {
-  FRICTION: 1.9,      // затухание в секунду, экспоненциальное
+  /* Насколько бросок сильнее самого движения курсора. Применяется ТОЛЬКО в
+     момент отпускания: пока диск тянут, он по-прежнему следует за курсором
+     один в один, иначе он бы «убегал» из-под руки. */
+  THROW_GAIN: 6,
+  /* Затухание в секунду, экспоненциальное. Было 1.9; снижено ровно в 1.75 раза,
+     чтобы диск прокручивал заметно больше оборотов. Суммарный угол до
+     остановки равен начальной скорости, делённой на трение, поэтому усиление
+     броска и снижение трения перемножаются: оборотов выходит в 6 × 1.75 ≈ 10.5
+     раза больше, чем было изначально. Время до остановки растёт куда скромнее,
+     оно логарифмическое — примерно вдвое с небольшим.
+     Хочешь угомонить диск быстрее, не теряя резкости броска, — поднимай именно
+     это число, а не THROW_GAIN. */
+  FRICTION: 1.09,
   STOP: 0.05,         // ниже этой угловой скорости считаем, что диск встал
-  MAX_VEL: 40,        // предел броска, рад/с — защита от рывка на один кадр
+  /* Потолок СЫРОЙ скорости курсора, рад/с — защита от рывка на один кадр.
+     Реальный предел броска умножается на THROW_GAIN, то есть 240 рад/с. */
+  MAX_VEL: 40,
   MIN_RADIUS: 12,     // ближе к центру угол скачет, там перетаскивание игнорируем
   IDLE_MS: 90,        // пауза перед отпусканием, после которой бросок не считается
 };
@@ -12155,6 +12229,7 @@ function ccSpinRelease() {
   // Если перед отпусканием курсор стоял, бросок не засчитывается: иначе диск
   // улетал бы от скорости, набранной секунду назад.
   if (performance.now() - S.lastMoveTs > CC_SPIN.IDLE_MS) S.vel[S.drag] = 0;
+  else S.vel[S.drag] *= CC_SPIN.THROW_GAIN;   // усиление броска, см. CC_SPIN
   S.drag = null;
   if (S.canvas) S.canvas.style.cursor = '';
   ccSpinWake();
@@ -12739,11 +12814,43 @@ function compactCardShellHtml(m) {
     const cv = document.getElementById('compactCardCanvas');
     if (!cv) return;
     ccDrawPromise = drawCompactCard(cv, m).catch(err => console.error('compact card draw failed', err));
-    const btn = document.getElementById('tbCardDownload');
-    if (btn) btn.disabled = false;
+    const dl = document.getElementById('tbCardDownload');
+    if (dl) dl.disabled = false;
+    const cp = document.getElementById('tbCardCopy');
+    if (cp) { cp.classList.toggle('hidden', !ccClipboardSupported()); cp.disabled = false; }
   });
   return `<canvas id="compactCardCanvas" class="cc-canvas" width="${CC.W}" height="${CC.H}"></canvas>
     <div class="cc-note">1920×1080 · drag a disc icon to spin it · the ⤓ button saves this exact image.</div>`;
+}
+
+/* Копирование карточки в буфер обмена. Смысл — убрать три лишних шага: сейчас
+   путь «скачать → найти в Загрузках → перетащить в чат», а так это один клик
+   и вставка.
+   Ждём тот же промис, что и скачивание: пока карточка дорисовывается (а при
+   включённом Live2D ещё и грузится модель), в буфер улетел бы недоделанный
+   кадр.
+   Firefox не поддерживает запись картинок в буфер — там кнопки просто нет,
+   см. ccClipboardSupported(). */
+function ccClipboardSupported() {
+  return !!(navigator.clipboard && window.ClipboardItem);
+}
+async function copyCompactCard(btn) {
+  const cv = document.getElementById('compactCardCanvas');
+  if (!cv || !ccClipboardSupported()) return;
+  if (ccDrawPromise) { try { await ccDrawPromise; } catch (e) {} }
+  const label = btn && btn.getAttribute('title');
+  try {
+    const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
+    if (!blob) throw new Error('canvas produced no blob');
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    if (btn) { btn.classList.add('ok'); setTimeout(() => btn.classList.remove('ok'), 1200); }
+  } catch (e) {
+    console.error('copy to clipboard failed', e);
+    /* Тихо падать нельзя: человек нажал кнопку и ждёт результата, а его нет.
+       Подсказываем словами и оставляем рабочий путь — скачивание. */
+    if (btn) btn.setAttribute('title', 'Copy failed — use the download button instead');
+    setTimeout(() => { if (btn && label) btn.setAttribute('title', label); }, 4000);
+  }
 }
 
 async function downloadCompactCard() {
@@ -12787,9 +12894,18 @@ function ccMakeModel(src) {
      порядке модель, случайно прогнанная через ccMakeModel() дважды, унесла бы
      старый fileBase из первого прогона — молча, потому что имя файла видно
      только в момент скачивания. */
+  /* Дата снимка. Считается здесь, а не при отрисовке: карточка перерисовывается
+     на каждом тумблере и на каждом кадре вращения дисков, и дата, взятая в
+     момент рисования, менялась бы прямо на глазах в полночь. Формат ДД.ММ.ГГГГ
+     собирается вручную, а не через локаль браузера: иначе у части посетителей
+     получилось бы 8/17/2026, и одна и та же карточка читалась бы по-разному. */
+  const d = new Date();
+  const p2 = n => String(n).padStart(2, '0');
   return Object.assign({}, src, {
     attributeIcon: attr ? (attr.special || attr.base) : null,
     specialtyIcon: cls || null,
+    dateText: `${p2(d.getDate())}.${p2(d.getMonth() + 1)}.${d.getFullYear()}`,
+    showDate: profileDisplayOptions.date,
     fileBase: tail ? `${slug}-${tail}` : slug,
   });
 }
@@ -14173,6 +14289,11 @@ function toggleProfileVisOption(key, btn) {
   localStorage.setItem('zzz_profile_display_options', JSON.stringify(profileDisplayOptions));
   document.querySelectorAll(`#tbGroupProfile .tb-toggle[data-key="${key}"]`)
     .forEach(el => el.classList.toggle('active', profileDisplayOptions[key]));
+  /* Номера слотов живут в верхнем слое карточки и рисуются заново каждый кадр,
+     поэтому пересобирать её целиком не нужно — хватит перерисовки слоя. Полная
+     пересборка заодно обнуляет углы поворота дисков, и покрученный диск прыгал
+     бы в исходное положение от нажатия кнопки, к нему не относящейся. */
+  if (key === 'slots' && profileViewMode === 'compact' && ccSpin) { ccComposite(); return; }
   refreshProfileDetailView();
 }
 function initProfileToolbarToggles() {
@@ -14195,10 +14316,18 @@ function syncProfileViewModeUI() {
   document.querySelectorAll('#tbGroupProfile .tb-toggle[data-modes]').forEach(btn => {
     btn.classList.toggle('hidden', !btn.dataset.modes.split(' ').includes(profileViewMode));
   });
-  // Кнопка скачивания оживает только когда на экране действительно есть холст:
-  // в развёрнутом виде и на пустой панели скачивать нечего.
-  const btn = document.getElementById('tbCardDownload');
-  if (btn) btn.disabled = !(compact && document.getElementById('compactCardCanvas'));
+  /* Кнопки экспорта оживают только когда на экране действительно есть холст:
+     в развёрнутом виде и на пустой панели копировать и скачивать нечего.
+     Копирование вдобавок прячется целиком там, где браузер не умеет класть
+     картинку в буфер (Firefox) — мёртвая кнопка хуже её отсутствия. */
+  const ready = compact && !!document.getElementById('compactCardCanvas');
+  const dl = document.getElementById('tbCardDownload');
+  if (dl) dl.disabled = !ready;
+  const cp = document.getElementById('tbCardCopy');
+  if (cp) {
+    cp.classList.toggle('hidden', !ccClipboardSupported());
+    cp.disabled = !ready;
+  }
 }
 
 function setProfileViewMode(mode) {
@@ -14218,6 +14347,8 @@ function refreshProfileDetailView() {
   // тех пор, пока новый не появится в DOM (её включит compactCardShellHtml).
   const dlBtn = document.getElementById('tbCardDownload');
   if (dlBtn) dlBtn.disabled = true;
+  const cpBtn = document.getElementById('tbCardCopy');
+  if (cpBtn) cpBtn.disabled = true;
   if (ownerPresetViewAgentKey) { renderOwnerPresetView(); return; }
   if (profilePresetViewAgentKey) { renderAgentPresetView(); return; }
   if (profileSelectedIndex != null) { renderProfileDetail(profileSelectedIndex); return; }
