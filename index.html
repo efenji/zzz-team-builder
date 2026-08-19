@@ -2174,6 +2174,7 @@ select {
     <button class="tb-toggle" data-modes="full compact" data-key="procs" onclick="toggleProfileVisOption('procs', this)" title="Highlight useful sub-stat procs, on disc cards and in the Sub-Stat Totals row">Procs</button>
     <button class="tb-toggle" data-modes="full compact" data-key="totals" onclick="toggleProfileVisOption('totals', this)" title="Show the Sub-Stat Totals section">Totals</button>
     <button class="tb-toggle" data-modes="full compact" data-key="live2d" onclick="toggleProfileVisOption('live2d', this)" title="Animated agent banner instead of static art">Live2D</button>
+    <button class="tb-toggle" data-modes="full compact" data-key="tint" onclick="toggleProfileVisOption('tint', this)" title="Colour the card after the agent — official Enka accent, or the skin's own colour when a skin is equipped. Off: your accent from settings">Tint</button>
     <button class="tb-toggle" data-modes="compact" data-key="slots" onclick="toggleProfileVisOption('slots', this)" title="Show the slot number badge on each disc icon">Slots</button>
     <button class="tb-toggle" data-modes="compact" data-key="owner" onclick="toggleProfileVisOption('owner', this)" title="Print the nickname and UID on the card">Owner</button>
     <button class="tb-toggle" data-modes="compact" data-key="date" onclick="toggleProfileVisOption('date', this)" title="Print the date the card was made — shows how fresh the stats are">Date</button>
@@ -7606,7 +7607,11 @@ let displayOptions = Object.assign({attr:true, class:true, ability:true, wengine
 let profileViewMode = localStorage.getItem('zzz_profile_view_mode') === 'compact' ? 'compact' : 'full';
 /* live2d по умолчанию ВЫКЛЮЧЕН: анимация тянет по мегабайту на агента и жжёт
    видеокарту, включать её человеку без спроса неправильно. */
-let profileDisplayOptions = Object.assign({procs:true, totals:true, skills:true, wengine:true, sets:true, discs:true, notes:true, owner:true, live2d:false, slots:true, date:true},
+/* tint по умолчанию ВКЛЮЧЁН, в отличие от live2d: он ничего не грузит и не
+   жжёт видеокарту, а цвета взяты официальные — из данных Enka, — так что
+   включённым он даёт ровно тот вид, за которым сюда и приходят. Кому мешает,
+   выключит и вернётся к своему акценту из настроек. */
+let profileDisplayOptions = Object.assign({procs:true, totals:true, skills:true, wengine:true, sets:true, discs:true, notes:true, owner:true, live2d:false, slots:true, date:true, tint:true},
   JSON.parse(localStorage.getItem('zzz_profile_display_options') || '{}'));
 
 /* ── DRIVE DISC PICKER MODE ──
@@ -11257,6 +11262,10 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
       displayName: cardName(agentKey),
       subLine: profile ? [profile.fullName, profile.gender, profile.stature].filter(Boolean).join(' · ') : '',
       level: libEntry.level, levelMax: null,
+      /* skin здесь всегда пуст: пресет собирается из библиотеки, а наряд —
+         это состояние витрины Enka, в пресете его попросту неоткуда взять.
+         Такая карточка рисуется базовым артом и базовым цветом агента. */
+      skin: null,
       mindscape: libEntry.mindscape || 0,
       coreRank: preset.coreSkillEnhancement || libEntry.coreSkillEnhancement || 0,
       skills: (preset.skills && preset.skills.length) ? skillMap : null,
@@ -11379,7 +11388,11 @@ CC.SIDE_X  = CC.PAD + CC.STATS_W + CC.GAP;             // 684 — движок �
    card.webp/square.webp в папке агента. Размер у всех разный (у Lucia
    1176×2164, у Hugo 1592×2704), поэтому кадрируется по правилу «cover, якорь
    сверху»: лица в этих файлах всегда в верхней трети. */
-const agentPortraitUrl = k => `${BASE}/agents/${assetSlug(k)}/portrait.webp`;
+/* Портрет агента. Второй аргумент — суффикс скина ('01', '02', …), полученный
+   из SkinId показа через ccSkinSuffix(); без него берётся базовый вид.
+   Скины есть только у портрета: card/square/circle/select всегда базовые,
+   потому что скин показывается лишь в enka-виде агента. */
+const agentPortraitUrl = (k, skin) => `${BASE}/agents/${assetSlug(k)}/portrait${skin ? '-' + skin : ''}.webp`;
 
 /* Кадр портрета в баннере: [верх фигуры, линия пояса, горизонтальный якорь].
    Первые два — доли ВЫСОТЫ файла, третий — доля ширины. Показывается полоса
@@ -11391,29 +11404,256 @@ const agentPortraitUrl = k => `${BASE}/agents/${assetSlug(k)}/portrait.webp`;
    Якорь считается по массе непрозрачных пикселей ВНУТРИ полосы, а не по всей
    фигуре: ноги в кадр не попадают и на центровку влиять не должны.
    Значения правятся руками — глазу виднее, чем счётчику пикселей. */
+/* SkinId из показа Enka -> суффикс файла портрета. Составлено из
+   store/zzz/avatars.json: суффикс берётся из поля Image, а НЕ из порядка
+   SkinId — у Remielle меньший id соответствует -02, и сортировка по id
+   показала бы её не в том скине. */
+const ENKA_SKIN_SUFFIX = {
+  3110311: '01',          // Nicole Demara
+  3110911: '01',          // Miyabi
+  3111511: '01',          // Lucy
+  3111911: '01',          // Ellen
+  3112611: '01',          // Jane Doe
+  3113111: '01',          // Astra Yao
+  3113311: '01',          // Vivian
+  3113711: '01',          // Yixuan
+  3114011: '01',          // Alice
+  3114111: '01',          // Yuzuha
+  3114211: '01',          // Pan Yinhu
+  3114311: '01',          // Ye Shunguang
+  3114411: '01',          // Manato
+  3114911: '01',          // Sunna
+  3115011: '01',          // Aria
+  3115111: '01',          // Nangong Yu
+  3115611: '01',          // Velina
+  3115811: '02',          // Remielle
+  3115812: '01',          // Remielle
+  3115813: '03',          // Remielle
+  3115911: '01',          // Sigrid
+};
+const ccSkinSuffix = skinId => (skinId && ENKA_SKIN_SUFFIX[skinId]) || null;
+/* Ключ «агент + скин» для таблиц кадрирования и цвета. Собирается ТОЛЬКО этой
+   функцией и никогда не разбирается обратно: слаг сам по себе может кончаться
+   цифрами (soldier-11), и попытка отрезать хвост регуляркой утащила бы папку
+   не туда. Слаг и суффикс всегда носятся раздельно, склеиваются лишь для
+   поиска в таблице. */
+const ccArtKey = (agentKey, skin) => skin ? `${assetSlug(agentKey)}-${skin}` : assetSlug(agentKey);
+
+/* Акцент карточки под агента и его скин — подобрано вручную в spine-test.html
+   на вкладке «Цвет». Ключ — слаг агента или «слаг-суффикс» для скина.
+   Цепочку отката смотри в ccTintFor(): скин -> базовый вид -> акцент игрока.
+   Цвет PEN здесь не хранится, он считается как противоположный оттенок
+   (ccPenColor), поэтому на кадр приходится ровно одна строка. */
+const CC_AGENT_TINT = {
+  'anby-demara': '#b8d465',       // Anby Demara
+  'nekomata': '#b44435',          // Nekomata
+  'nicole-demara': '#e0a3a1',     // Nicole Demara
+  'nicole-demara-01': '#de9ebd',  // Nicole Demara · скин 01
+  'soldier-11': '#f7c735',        // Soldier 11
+  'yidhari': '#ab70b2',           // Yidhari
+  'corin': '#c4ce8c',             // Corin
+  'caesar': '#657661',            // Caesar
+  'billy-kid': '#ff263b',         // Billy Kid
+  'miyabi': '#428894',            // Miyabi
+  'miyabi-01': '#c59768',         // Miyabi · скин 01
+  'koleda': '#ef6d43',            // Koleda
+  'anton': '#b59a61',             // Anton
+  'ben': '#ddc2b4',               // Ben
+  'soukaku': '#81c1db',           // Soukaku
+  'lycaon': '#eef0f4',            // Lycaon
+  'lucy': '#eac487',              // Lucy
+  'lucy-01': '#feb1b0',           // Lucy · скин 01
+  'lighter': '#5b766d',           // Lighter
+  'burnice': '#d35c50',           // Burnice
+  'grace-howard': '#dc7c52',      // Grace Howard
+  'ellen': '#a7475f',             // Ellen
+  'ellen-01': '#677cbb',          // Ellen · скин 01
+  'harumasa': '#2a8e9d',          // Harumasa
+  'rina': '#df3439',              // Rina
+  'yanagi': '#edbab6',            // Yanagi
+  'zhu-yuan': '#538bc6',          // Zhu Yuan
+  'qingyi': '#4caa5d',            // Qingyi
+  'jane-doe': '#89c3ca',          // Jane
+  'jane-doe-01': '#9a69bc',       // Jane · скин 01
+  'seth': '#4c89c6',              // Seth
+  'piper': '#d1532c',             // Piper
+  'hugo': '#7179bf',              // Hugo
+  'orphie-and-magus': '#ef6c2c',  // Orphie & Magus
+  'astra-yao': '#c5222e',         // Astra Yao
+  'astra-yao-01': '#4ba7a4',      // Astra Yao · скин 01
+  'evelyn': '#df4252',            // Evelyn
+  'vivian': '#7a73c0',            // Vivian
+  'vivian-01': '#bf83c9',         // Vivian · скин 01
+  'zhao': '#c97a78',              // Zhao
+  'pulchra': '#ba9562',           // Pulchra
+  'trigger': '#e5b640',           // Trigger
+  'yixuan': '#ff9a1f',            // Yixuan
+  'yixuan-01': '#9ab5bc',         // Yixuan · скин 01
+  'soldier-0': '#c5792e',         // Soldier 0 · Anby
+  'ju-fufu': '#ffb31a',           // Ju Fufu
+  'alice': '#caa888',             // Alice
+  'alice-01': '#e06e8c',          // Alice · скин 01
+  'yuzuha': '#f43638',            // Yuzuha
+  'yuzuha-01': '#dc4343',         // Yuzuha · скин 01
+  'pan-yinhu': '#e3a02d',         // Pan Yinhu
+  'pan-yinhu-01': '#398e4e',      // Pan Yinhu · скин 01
+  'ye-shunguang': '#b78860',      // Ye Shunguang
+  'ye-shunguang-01': '#f0958f',   // Ye Shunguang · скин 01
+  'manato': '#867d3c',            // Manato
+  'manato-01': '#687abb',         // Manato · скин 01
+  'lucia': '#92cffd',             // Lucia
+  'seed': '#a3cfdf',              // Seed
+  'banyue': '#f0bb54',            // Banyue
+  'dialyn': '#7975c1',            // Dialyn
+  'sunna': '#ca6c90',             // Sunna
+  'sunna-01': '#b7ce93',          // Sunna · скин 01
+  'aria': '#d7878b',              // Aria
+  'aria-01': '#c55977',           // Aria · скин 01
+  'nangong-yu': '#be5f67',        // Nangong Yu
+  'nangong-yu-01': '#8c6dc1',     // Nangong Yu · скин 01
+  'cissia': '#f22b6a',            // Cissia
+  'starlight-billy': '#ff263b',   // Starlight · Billy
+  'promeia': '#6f73d0',           // Promeia
+  'pyrois': '#6e75c8',            // Pyrois
+  'velina': '#c7c4e5',            // Velina
+  'velina-01': '#4da6d3',         // Velina · скин 01
+  'norma': '#5c7fb8',             // Norma
+  'remielle': '#b76086',          // Remielle
+  'remielle-02': '#7378c0',       // Remielle · скин 02
+  'remielle-01': '#9978c3',       // Remielle · скин 01
+  'remielle-03': '#7378c0',       // Remielle · скин 03
+  'sigrid': '#689ef1',            // Sigrid
+  'sigrid-01': '#63daec',         // Sigrid · скин 01
+};
+
+/* Цвет, которым красится карточка агента. Цепочка отката ровно такая:
+   цвет скина -> цвет базового вида -> null, а null дальше означает «взять
+   акцент, выбранный игроком в настройках».
+   При включённом Live2D скин игнорируется намеренно: модель показывает
+   базовый вид агента, и красить карточку под наряд, которого на экране нет,
+   значило бы врать глазу.
+   Тумблер Tint в тулбаре выключает всё это целиком — тогда работает акцент
+   игрока, как было до появления таблицы. */
+function ccTintFor(agentKey, skin) {
+  if (!agentKey || !profileDisplayOptions.tint) return null;
+  const slug = assetSlug(agentKey);
+  const useSkin = skin && !l2dActive(agentKey);
+  return (useSkin && CC_AGENT_TINT[`${slug}-${skin}`]) || CC_AGENT_TINT[slug] || null;
+}
+/* PEN рисуется противоположным оттенком акцента. Отдельной таблицы под него
+   нет намеренно: одна строка на агента вместо двух, а «противоположный» —
+   это поворот оттенка на 180°, его незачем хранить.
+   Светлота и насыщенность берутся у исходного цвета, поэтому у бледного
+   акцента и PEN будет бледным — пара остаётся в одном регистре. */
+function ccPenColor(hex) {
+  const n = parseInt(String(hex).slice(1), 16);
+  if (!isFinite(n)) return hex;
+  let r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0;
+  if (d) h = (mx === r ? ((g - b) / d + (g < b ? 6 : 0)) : mx === g ? ((b - r) / d + 2) : ((r - g) / d + 4)) / 6;
+  const l = (mx + mn) / 2, s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+  h = (h + 0.5) % 1;
+  const f = k2 => {
+    const k = (k2 + h * 12) % 12, a = s * Math.min(l, 1 - l);
+    return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))));
+  };
+  return '#' + [f(0), f(8), f(4)].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+// прозрачные производные акцента: те же роли, что у --accent-60/--accent-30
+function ccAlpha(hex, a) {
+  const n = parseInt(String(hex).slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
+/* Кадрирование статичного портрета: [верх, низ, якорь] в долях арта плюс
+   необязательное четвёртое число — свой предел ширины фигуры в пикселях
+   вместо общего CC_FIG_MAX_W. Строка из трёх чисел ведёт себя как раньше.
+   Ключ — слаг агента или «слаг-суффикс» для скина; у скина без своей строки
+   берётся базовая (см. ccBannerArt).
+   Подобрано вручную в spine-test.html на вкладке «Статика», в настоящем кадре
+   баннера и той же математикой, что рисует сайт. Автоподбор по силуэту, что
+   стоял тут раньше, промахивался на плащах и крыльях — глазу виднее. */
 const CC_PORTRAIT_BAND = {
-  'alice': [0.0, 0.538, 0.417], 'anby-demara': [0.0, 0.54, 0.604], 'anton': [0.0, 0.519, 0.487],
-  'aria': [0.0, 0.596, 0.492], 'astra-yao': [0.0, 0.594, 0.46], 'banyue': [0.0, 0.515, 0.483],
-  'ben': [0.0, 0.518, 0.523], 'billy-kid': [0.0, 0.519, 0.523], 'burnice': [0.0, 0.564, 0.569],
-  'caesar': [0.0, 0.594, 0.588], 'cissia': [0.0, 0.594, 0.521], 'corin': [0.0, 0.518, 0.581],
-  'dialyn': [0.0, 0.49, 0.463], 'ellen': [0.0, 0.518, 0.621], 'evelyn': [0.0, 0.592, 0.477],
-  'grace-howard': [0.0, 0.519, 0.473], 'harumasa': [0.0, 0.519, 0.4],
-  'hugo': [0.0, 0.477, 0.546], 'jane-doe': [0.0, 0.579, 0.471], 'ju-fufu': [0.0, 0.427, 0.406],
-  'koleda': [0.0, 0.518, 0.51], 'lighter': [0.0, 0.429, 0.49], 'lucia': [0.0, 0.594, 0.49],
-  'lucy': [0.0, 0.435, 0.6], 'lycaon': [0.0, 0.518, 0.392], 'manato': [0.0, 0.519, 0.435],
-  'miyabi': [0.0, 0.518, 0.554], 'nangong-yu': [0.0, 0.442, 0.479],
-  'nekomata': [0.0, 0.588, 0.467], 'nicole-demara': [0.0, 0.519, 0.498],
-  'norma': [0.0, 0.519, 0.512], 'orphie-and-magus': [0.0, 0.595, 0.479],
-  'pan-yinhu': [0.0, 0.521, 0.523], 'piper': [0.0, 0.519, 0.421], 'promeia': [0.0, 0.519, 0.515],
-  'pulchra': [0.0, 0.42, 0.506], 'pyrois': [0.0, 0.518, 0.671], 'qingyi': [0.0, 0.585, 0.5],
-  'remielle': [0.0, 0.557, 0.496], 'rina': [0.0, 0.518, 0.49], 'seed': [0.0, 0.519, 0.506],
-  'seth': [0.0, 0.519, 0.592], 'sigrid': [0.0, 0.535, 0.36], 'soldier-0': [0.0, 0.503, 0.463],
-  'soldier-11': [0.0, 0.56, 0.558], 'soukaku': [0.0, 0.518, 0.425],
-  'starlight-billy': [0.0, 0.581, 0.548], 'sunna': [0.0, 0.59, 0.508],
-  'trigger': [0.0, 0.59, 0.529], 'velina': [0.0, 0.592, 0.471], 'vivian': [0.0, 0.519, 0.646],
-  'yanagi': [0.0, 0.518, 0.327], 'ye-shunguang': [0.0, 0.518, 0.494],
-  'yidhari': [0.0, 0.596, 0.492], 'yixuan': [0.0, 0.592, 0.508], 'yuzuha': [0.0, 0.488, 0.494],
-  'zhao': [0.0, 0.518, 0.569], 'zhu-yuan': [0.0, 0.519, 0.45],
+  'anby-demara': [-0.004, 0.4737, 0.5783, 714],// Anby Demara
+  'nekomata': [0.0273, 0.5799, 0.4852, 526],  // Nekomata
+  'nicole-demara': [0.0093, 0.4818, 0.5, 553],// Nicole Demara
+  'nicole-demara-01': [0.0063, 0.4517, 0.5, 597],// Nicole Demara · скин 01
+  'soldier-11': [0.0344, 0.4859, 0.5221, 471],// Soldier 11
+  'yidhari': [-0.0037, 0.4334, 0.472, 585],   // Yidhari
+  'corin': [0.0085, 0.5136, 0.5928, 701],     // Corin
+  'caesar': [0.0458, 0.5112, 0.6021, 736],    // Caesar
+  'billy-kid': [0.0085, 0.5114, 0.5045, 574], // Billy Kid
+  'miyabi': [0.0289, 0.5013, 0.4927, 696],    // Miyabi
+  'miyabi-01': [0.0466, 0.5188, 0.5, 675],    // Miyabi · скин 01
+  'koleda': [0.0305, 0.5162, 0.5143, 817],    // Koleda
+  'anton': [0.0254, 0.4985, 0.5205, 572],     // Anton
+  'ben': [0.1092, 0.6383, 0.4127, 660],       // Ben
+  'soukaku': [0.0183, 0.4829, 0.4494, 745],   // Soukaku
+  'lycaon': [0.0179, 0.4493, 0.4161, 792],    // Lycaon
+  'lucy': [0.0162, 0.5379, 0.5846, 769],      // Lucy
+  'lucy-01': [0.0294, 0.4531, 0.6269, 702],   // Lucy · скин 01
+  'lighter': [0.0116, 0.467, 0.5244, 483],    // Lighter
+  'burnice': [0.0631, 0.4657, 0.5728, 744],   // Burnice
+  'grace-howard': [0.0041, 0.4771, 0.476, 379],// Grace Howard
+  'ellen': [0.007, 0.4877, 0.608, 817],       // Ellen
+  'ellen-01': [-0.0023, 0.4537, 0.4064, 768], // Ellen · скин 01
+  'harumasa': [0.0769, 0.522, 0.4989, 659],   // Harumasa
+  'rina': [0.0147, 0.5356, 0.4904, 680],      // Rina
+  'yanagi': [0.0393, 0.4572, 0.3219, 777],    // Yanagi
+  'zhu-yuan': [0.0306, 0.4758, 0.4842, 458],  // Zhu Yuan
+  'qingyi': [0.0297, 0.5164, 0.507, 545],     // Qingyi
+  'jane-doe': [0.0013, 0.4552, 0.5093, 543],  // Jane
+  'jane-doe-01': [-0.0026, 0.4648, 0.5, 367], // Jane · скин 01
+  'seth': [0.0054, 0.3873, 0.5451, 807],      // Seth
+  'piper': [0.0707, 0.5152, 0.4008, 501],     // Piper
+  'hugo': [0.0142, 0.4234, 0.6109, 664],      // Hugo
+  'orphie-and-magus': [0.0665, 0.517, 0.4331, 603],// Orphie & Magus
+  'astra-yao': [0.0473, 0.4721, 0.4485, 629], // Astra Yao
+  'astra-yao-01': [0.061, 0.484, 0.4622, 585],// Astra Yao · скин 01
+  'evelyn': [0.0008, 0.4363, 0.5444, 740],    // Evelyn
+  'vivian': [0.1802, 0.5734, 0.6457, 643],    // Vivian
+  'vivian-01': [0.1964, 0.5563, 0.5, 607],    // Vivian · скин 01
+  'zhao': [0.0326, 0.667, 0.4466, 693],       // Zhao
+  'pulchra': [0.1296, 0.5496, 0.5],           // Pulchra
+  'trigger': [0.002, 0.4361, 0.4392, 626],    // Trigger
+  'yixuan': [0.0189, 0.4166, 0.5391, 841],    // Yixuan
+  'yixuan-01': [0.0271, 0.463, 0.5, 546],     // Yixuan · скин 01
+  'soldier-0': [0.003, 0.434, 0.5003, 598],   // Soldier 0 · Anby
+  'ju-fufu': [0.1129, 0.5748, 0.5087, 621],   // Ju Fufu
+  'alice': [-0.0022, 0.4741, 0.4269, 539],    // Alice
+  'alice-01': [0.0159, 0.5066, 0.6144, 564],  // Alice · скин 01
+  'yuzuha': [0.1463, 0.5515, 0.5343, 590],    // Yuzuha
+  'yuzuha-01': [0.0056, 0.4936, 0.5],         // Yuzuha · скин 01
+  'pan-yinhu': [-0.0084, 0.5126, 0.5],        // Pan Yinhu
+  'pan-yinhu-01': [0, 0.521, 0.5],            // Pan Yinhu · скин 01
+  'ye-shunguang': [0.0244, 0.4821, 0.496, 707],// Ye Shunguang
+  'ye-shunguang-01': [0.0337, 0.5059, 0.5567, 673],// Ye Shunguang · скин 01
+  'manato': [0.0011, 0.4744, 0.4685, 606],    // Manato
+  'manato-01': [0.0009, 0.4733, 0.47, 607],   // Manato · скин 01
+  'lucia': [0.0548, 0.5051, 0.4047, 557],     // Lucia
+  'seed': [0.0148, 0.474, 0.5273, 448],       // Seed
+  'banyue': [0.0539, 0.5229, 0.4681, 498],    // Banyue
+  'dialyn': [0.0182, 0.4512, 0.4819, 595],    // Dialyn
+  'sunna': [0.0156, 0.5375, 0.5374, 397],     // Sunna
+  'sunna-01': [-0.0014, 0.49, 0.4778, 411],   // Sunna · скин 01
+  'aria': [0.0085, 0.5199, 0.5054, 470],      // Aria
+  'aria-01': [0.0431, 0.5553, 0.5, 448],      // Aria · скин 01
+  'nangong-yu': [-0.0029, 0.4835, 0.4804, 640],// Nangong Yu
+  'nangong-yu-01': [0.0269, 0.4817, 0.4741, 578],// Nangong Yu · скин 01
+  'cissia': [0.0311, 0.5103, 0.5511, 700],    // Cissia
+  'starlight-billy': [0.0732, 0.5424, 0.5472, 502],// Starlight · Billy
+  'promeia': [-0.005, 0.4831, 0.4839, 580],   // Promeia
+  'pyrois': [0.0564, 0.4474, 0.5718, 1251],   // Pyrois
+  'velina': [0.006, 0.4618, 0.5, 812],        // Velina
+  'velina-01': [0, 0.4484, 0.5, 643],         // Velina · скин 01
+  'norma': [0.04, 0.5645, 0.476, 607],        // Norma
+  'remielle': [-0.0073, 0.4785, 0.5254, 1527],// Remielle
+  'remielle-02': [-0.0034, 0.4869, 0.5, 1504],// Remielle · скин 02
+  'remielle-01': [0.0069, 0.4703, 0.468, 776],// Remielle · скин 01
+  'remielle-03': [-0.0034, 0.4872, 0.5, 1503],// Remielle · скин 03
+  'sigrid': [0.068, 0.5267, 0.3427, 724],     // Sigrid
+  'sigrid-01': [0.2202, 0.5902, 0.5469, 462], // Sigrid · скин 01
 };
 
 const CC_STAT_ICON = {
@@ -11462,14 +11702,24 @@ function ccStatIconKey(statName) {
 const CC_MUTED = 'rgba(255,255,255,.66)';   // подписи и пояснения
 const CC_FAINT = 'rgba(255,255,255,.50)';   // совсем второстепенное
 
-function ccColors() {
+/* tint — цвет агента из CC_AGENT_TINT, если адаптивная раскраска включена.
+   Подменяется ровно одно значение — accent, — и этого хватает, чтобы
+   перекрасилась вся карточка: плашки эйдосов, счётчики проков, подсвеченные
+   статы и рамки дисков берут цвет отсюда, а не из своих мест.
+   Красится ТОЛЬКО холст карточки. Переменные --accent в CSS не трогаются:
+   акцент сайта — осознанная настройка игрока, и молча перебивать её тем,
+   какого агента он открыл, неправильно; к тому же цвет прыгал бы на каждом
+   переключении в списке. */
+function ccColors(tint) {
   const cs = getComputedStyle(document.documentElement);
   const v = (n, f) => (cs.getPropertyValue(n) || '').trim() || f;
   return {
     bg: v('--bg','#111111'), bg2: v('--bg2','#181818'), bg3: v('--bg3','#1f1f1f'),
     bg4: v('--bg4','#282828'), border: v('--border','#2c2c2c'), border2: v('--border2','#3a3a3a'),
-    accent: v('--accent','#ffcc00'), accent60: v('--accent-60','rgba(255,204,0,.6)'),
-    accent30: v('--accent-30','rgba(255,204,0,.3)'), accent2: v('--accent2','#c084fc'),
+    accent: tint || v('--accent','#ffcc00'),
+    accent60: tint ? ccAlpha(tint, .6) : v('--accent-60','rgba(255,204,0,.6)'),
+    accent30: tint ? ccAlpha(tint, .3) : v('--accent-30','rgba(255,204,0,.3)'),
+    accent2: tint ? ccPenColor(tint) : v('--accent2','#c084fc'),
     text: v('--text','#efefef'), textMid: v('--text-mid','#777777'), textDim: v('--text-dim','#4a4a4a'),
   };
 }
@@ -11522,7 +11772,7 @@ async function ccEnsureFonts() {
 async function ccPreload(m) {
   const urls = new Set();
   const add = u => { if (u) urls.add(u); };
-  if (m.agentKey) { add(agentPortraitUrl(m.agentKey)); }
+  if (m.agentKey) { add(agentPortraitUrl(m.agentKey, m.skin)); }
   if (m.attributeIcon) add(attributeUrl(m.attributeIcon));
   if (m.specialtyIcon) add(specialtyUrl(m.specialtyIcon));
   if (m.wengine) {
@@ -11639,13 +11889,24 @@ const CC_FIG_MAX_W = 660;    // предел ширины фигуры в бан
    же агент будет закадрирован по-разному в двух режимах. Координаты задаются
    снаружи, поэтому функция одинаково работает и в холсте 1920×1080, и в
    отдельном холсте баннера. */
-function ccBannerArt(ctx, art, agentKey, x, y, w, h) {
+function ccBannerArt(ctx, art, agentKey, x, y, w, h, skin) {
   if (!art || !art.width) return;
-  const band = (agentKey && CC_PORTRAIT_BAND[assetSlug(agentKey)]) || [0, 0.5, 0.5];
+  /* Кадрирование ищется сначала под конкретный скин, потом под базовый вид: у
+     скина другая поза и другие пропорции, поэтому общая на агента полоса на
+     нём разъезжается. Пока строки для скина в таблице нет — берётся базовая,
+     это заведомо лучше, чем дефолтные 0/0.5/0.5. */
+  const band = (agentKey && (CC_PORTRAIT_BAND[ccArtKey(agentKey, skin)] || CC_PORTRAIT_BAND[assetSlug(agentKey)])) || [0, 0.5, 0.5];
   const bandH = Math.max(0.05, band[1] - band[0]) * art.height;
-  // Подгонка по высоте полосы, но не шире предела — иначе широкий файл
-  // растянет фигуру на весь баннер.
-  const scale = Math.min((h - CC_BAND_TOP * (h / CC.BANNER_H)) / bandH, (CC_FIG_MAX_W * (w / CC.LEFT_W)) / art.width);
+  /* Подгонка по высоте полосы, но не шире предела — иначе широкий файл
+     растянет фигуру на весь баннер.
+     Четвёртое число в строке, если оно есть, задаёт СВОЙ предел ширины для
+     этого кадра вместо общего CC_FIG_MAX_W. Понадобилось оно вот почему: у
+     большинства артов файл широкий, предел упирается первым, и высота полосы
+     на размер фигуры уже не влияет вовсе — подобрать масштаб руками было
+     нечем. Теперь предел подбирается вместе с кадром. Строки из трёх чисел
+     ведут себя ровно как раньше. */
+  const capW = ((band.length > 3 ? band[3] : CC_FIG_MAX_W) * (w / CC.LEFT_W));
+  const scale = Math.min((h - CC_BAND_TOP * (h / CC.BANNER_H)) / bandH, capW / art.width);
   const dw = art.width * scale, dh = art.height * scale;
   ctx.drawImage(art, x + w / 2 - band[2] * dw, y + CC_BAND_TOP * (h / CC.BANNER_H) - band[0] * dh, dw, dh);
 }
@@ -11662,7 +11923,7 @@ function ccBannerBelow(ctx, C, m, IM, withArt) {
   ctx.save();
   ccRR(ctx, x, y, w, h, CC.R); ctx.clip();
   ctx.fillStyle = C.bg2; ctx.fillRect(x, y, w, h);
-  if (withArt) ccBannerArt(ctx, IM(m.agentKey ? agentPortraitUrl(m.agentKey) : null), m.agentKey, x, y, w, h);
+  if (withArt) ccBannerArt(ctx, IM(m.agentKey ? agentPortraitUrl(m.agentKey, m.skin) : null), m.agentKey, x, y, w, h, m.skin);
   ctx.restore();
 }
 
@@ -11735,16 +11996,28 @@ function ccBannerAbove(ctx, C, m, IM) {
       { r: 16, fill: 'rgba(0,0,0,.55)', stroke: C.border2 });
     ccText(ctx, m.presetName, x + w - 26 - tw - 13, bottom - 66, { color: C.text, max: tw });
   }
-  const chipW = 26, chipGap = 6;
+  /* Ряд эйдосов начинается с M0, а не с M1. Без нулевой плашки состояние «нет
+     эйдосов» и «данные не подтянулись» выглядят одинаково — шесть одинаково
+     тусклых M1…M6, и не понять, что именно имеется в виду.
+     M0 горит ВСЕГДА, при любом числе эйдосов: это не «текущее значение», а
+     базовое состояние агента, оно у него есть по определению. Ряд читается как
+     шкала — сколько плашек подряд горит от начала, столько всего и открыто,
+     считая нулевую. У агента без эйдосов горит одна M0, у M2 — M0, M1, M2.
+     Показывается постоянно ещё и затем, чтобы M1…M6 стояли на одном месте у
+     всех агентов и ряд не прыгал по ширине.
+     Уровень белый, а не акцентный: жёлтым в этом ряду теперь говорит только
+     подсветка эйдосов, и второй жёлтый рядом спорил бы с ней за внимание. */
+  const chipW = 26, chipGap = 6, chipN = 7;
   ccFont(ctx, 700, 22);
   const lvTxt = `Lv.${m.level}${m.levelMax ? '/' + m.levelMax : ''}`;
   const lvW = ctx.measureText(lvTxt).width;
-  const rowW = lvW + 18 + chipW * 6 + chipGap * 5;
+  const rowW = lvW + 18 + chipW * chipN + chipGap * (chipN - 1);
   let cx = x + w - 26 - rowW;
-  ccText(ctx, lvTxt, cx, bottom - 24, { color: C.accent });
+  ccText(ctx, lvTxt, cx, bottom - 24, { color: '#ffffff' });
   cx += lvW + 18;
-  for (let i = 1; i <= 6; i++) {
-    const on = i <= (m.mindscape || 0);
+  const ms = m.mindscape || 0;
+  for (let i = 0; i <= 6; i++) {
+    const on = i === 0 || i <= ms;
     ccPanel(ctx, cx, bottom - 41, chipW, 20, { r: 4, fill: on ? C.accent : 'rgba(255,255,255,.10)' });
     ccFont(ctx, 700, 13, CC.FM);
     ccText(ctx, 'M' + i, cx + chipW / 2, bottom - 27, { color: on ? '#000000' : 'rgba(255,255,255,.45)', align: 'center' });
@@ -11834,10 +12107,16 @@ function ccDrawWengine(ctx, C, m, IM, x, y, w) {
   /* Ширина группы считается по самой длинной из трёх строк, а не по колонке:
      иначе «центрировать» означало бы центрировать пустоту справа от короткого
      названия, и блок съезжал бы влево тем сильнее, чем короче имя движка. */
+  /* Строка уровня набрана ровно тем же, чем уровень агента на баннере (Barlow
+     700/22, белый): это одна и та же величина, и разный кегль с разным цветом
+     читались как разные по важности вещи. Заодно у движка появился потолок
+     «/60» — у агента он есть, а тут раньше стоял голый «Lv.60», и было не
+     понять, это максимум или просто столько накачали. */
+  const weLv = `Lv.${we.level}${we.levelMax ? '/' + we.levelMax : ''} · ${we.rankLabel}`;
   ccFont(ctx, 700, 26);
   let bodyW = ctx.measureText(we.name).width;
-  ccFont(ctx, 400, 20);
-  bodyW = Math.max(bodyW, ctx.measureText(`Lv.${we.level} · ${we.rankLabel}`).width + 14
+  ccFont(ctx, 700, 22);
+  bodyW = Math.max(bodyW, ctx.measureText(weLv).width + 14
     + (we.rarity ? 40 : 0) + (we.specialty ? 32 : 0));
   ccFont(ctx, 700, 23);
   let statsW = 0;
@@ -11855,8 +12134,8 @@ function ccDrawWengine(ctx, C, m, IM, x, y, w) {
 
   // Уровень и ранг словами, дальше ранг предмета и специальность картинками.
   let cx = tx;
-  ccFont(ctx, 400, 20);
-  cx += ccText(ctx, `Lv.${we.level} · ${we.rankLabel}`, tx, y + 76, { color: CC_MUTED }) + 14;
+  ccFont(ctx, 700, 22);
+  cx += ccText(ctx, weLv, tx, y + 76, { color: '#ffffff' }) + 14;
   if (we.rarity) { ccContain(ctx, IM(iconUrl('item-rank-' + String(we.rarity).toLowerCase())), cx, y + 52, 32, 32); cx += 40; }
   if (we.specialty) ccContain(ctx, IM(specialtyUrl(we.specialty)), cx, y + 52, 32, 32);
 
@@ -12750,24 +13029,30 @@ document.addEventListener('visibilitychange', () => {
 /* Разметка баннера. Холст один и тот же и для статики, и для анимации —
    см. l2dPaintBanner(). data-agent нужен и как ключ агента, и как признак
    «этот холст обслуживает Live2D». */
-function pdBannerHtml(agentKey) {
+function pdBannerHtml(agentKey, skin) {
   if (!agentKey) return '';
   /* Холст держим в удвоенном разрешении: CSS растягивает его на всю ширину
      панели, а на retina одна CSS-точка — два реальных пикселя. Без запаса
      баннер мылил бы именно здесь, а не в компактной карточке. */
-  return `<div class="pd-banner"><canvas class="pd-banner-cv" width="${L2D_GL_W}" height="${L2D_GL_H}" data-agent="${escapeHtml(agentKey)}"></canvas></div>`;
+  /* data-skin несёт суффикс скина. Он нужен именно на холсте, а не в замыкании:
+     баннер перерисовывается из l2dScanBanners() по факту пересборки панели, и
+     единственное, что там известно про агента, — это его data-атрибуты. */
+  return `<div class="pd-banner"><canvas class="pd-banner-cv" width="${L2D_GL_W}" height="${L2D_GL_H}" data-agent="${escapeHtml(agentKey)}"${skin ? ` data-skin="${escapeHtml(skin)}"` : ''}></canvas></div>`;
 }
 
 function l2dPaintBanner(cv) {
   const agentKey = cv.dataset.agent;
+  const skin = cv.dataset.skin || null;
   const ctx = cv.getContext('2d');
-  const C = ccColors();
+  const C = ccColors(ccTintFor(agentKey, skin));
   ctx.clearRect(0, 0, cv.width, cv.height);
   ctx.fillStyle = C.bg2;
   ctx.fillRect(0, 0, cv.width, cv.height);
+  // Живая модель показывает базовый вид и скин не знает — поэтому при удачной
+  // отрисовке модели выходим до того, как подставится скиновый портрет.
   if (l2dActive(agentKey) && l2dPaint(ctx, agentKey, 0, 0, cv.width, cv.height)) return true;
-  const art = ccImgReady(agentPortraitUrl(agentKey));
-  if (art) ccBannerArt(ctx, art, agentKey, 0, 0, cv.width, cv.height);
+  const art = ccImgReady(agentPortraitUrl(agentKey, skin));
+  if (art) ccBannerArt(ctx, art, agentKey, 0, 0, cv.width, cv.height, skin);
   return false;
 }
 /* Разметка панели собирается строкой и вставляется через innerHTML, причём
@@ -12779,7 +13064,7 @@ function l2dScanBanners() {
     cv.dataset.painted = '1';
     const agentKey = cv.dataset.agent;
     // статика рисуется сразу, как только картинка доедет
-    ccImage(agentPortraitUrl(agentKey)).then(() => l2dPaintBanner(cv));
+    ccImage(agentPortraitUrl(agentKey, cv.dataset.skin || null)).then(() => l2dPaintBanner(cv));
     l2dPaintBanner(cv);
     l2dSyncButton(agentKey);
     if (l2dActive(agentKey)) l2dEnsure(l2dIdFor(agentKey)).then(m => { if (m) l2dKick(); });
@@ -12818,7 +13103,7 @@ let ccLastModel = null;   // для имени файла при скачива�
 let ccDrawPromise = null; // скачивание должно дождаться незавершённой отрисовки
 async function drawCompactCard(canvas, m) {
   const ctx = canvas.getContext('2d');
-  const C = ccColors();
+  const C = ccColors(ccTintFor(m.agentKey, m.skin));
   ctx.clearRect(0, 0, CC.W, CC.H);
   ctx.fillStyle = C.bg; ctx.fillRect(0, 0, CC.W, CC.H);
   await ccEnsureFonts();
@@ -13070,6 +13355,10 @@ async function renderProfileDetail(i) {
       displayName: slug ? cardName(slug) : `Unknown (Id ${a.Id})`,
       subLine: profile ? [profile.fullName, profile.gender, profile.stature].filter(Boolean).join(' · ') : '',
       level: a.Level, levelMax: (a.PromotionLevel || 1) * 10,
+      /* Скин, в котором агент стоит на витрине. SkinId — это внутренний id
+         наряда, суффикс файла из него не выводится арифметикой: см. таблицу
+         ENKA_SKIN_SUFFIX и объяснение над ней. */
+      skin: ccSkinSuffix(a.SkinId),
       mindscape: a.TalentLevel || 0,
       coreRank: a.CoreSkillEnhancement || 0,
       skills: skillLevels.length ? skillMap : null,
@@ -13079,6 +13368,13 @@ async function renderProfileDetail(i) {
         key: wengineSlug,
         name: wengineSlug ? prettyName(wengineSlug) : `Unknown (Id ${a.Weapon.Id})`,
         level: a.Weapon.Level,
+        /* Потолок уровня движка — то же самое, что у агента строкой выше, только
+           считается от BreakLevel. BreakLevel у оружия нумеруется с нуля (см.
+           levelToBreakLevel), у агента PromotionLevel — с единицы, отсюда +1.
+           Если Enka поле не прислала, восстанавливаем прокачку по самому
+           уровню — это догадка (на Lv.50 движок может быть и на 4-й, и на 5-й
+           прокачке), но лучше показать «/50», чем не показать ничего. */
+        levelMax: ((a.Weapon.BreakLevel ?? levelToBreakLevel(a.Weapon.Level)) + 1) * 10,
         rankLabel: `P${a.Weapon.UpgradeLevel || 1}`,
         rarity: wengineInfo?.rarity || null,
         specialty: wengineInfo?.specialty || null,
@@ -13100,7 +13396,7 @@ async function renderProfileDetail(i) {
     : '';
 
   panel.innerHTML = `
-    ${pdBannerHtml(slug)}
+    ${pdBannerHtml(slug, ccSkinSuffix(a.SkinId))}
     <div class="pd-head">
       <div>
         <div class="pd-name">${slug ? escapeHtml(cardName(slug)) : `Unknown (Id ${a.Id})`}</div>
