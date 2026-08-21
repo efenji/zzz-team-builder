@@ -11441,89 +11441,90 @@ const ccArtKey = (agentKey, skin) => skin ? `${assetSlug(agentKey)}-${skin}` : a
 
 /* Акцент карточки под агента и его скин — подобрано вручную в spine-test.html
    на вкладке «Цвет». Ключ — слаг агента или «слаг-суффикс» для скина.
-   Цепочку отката смотри в ccTintFor(): скин -> базовый вид -> акцент игрока.
-   Цвет PEN здесь не хранится, он считается как противоположный оттенок
-   (ccPenColor), поэтому на кадр приходится ровно одна строка. */
+   Цепочку отката смотри в ccTintEntry(): скин -> базовый вид -> акцент игрока.
+   Значение либо один цвет — тогда PEN проков считается как противоположный
+   оттенок (ccPenColor), — либо пара [акцент, PEN], если PEN подобран руками.
+   Сейчас пар 77 из 79; одиночные строки остались у Hugo и скина Manato. */
 const CC_AGENT_TINT = {
-  'anby-demara': '#b8d465',       // Anby Demara
-  'nekomata': '#b44435',          // Nekomata
-  'nicole-demara': '#e0a3a1',     // Nicole Demara
-  'nicole-demara-01': '#de9ebd',  // Nicole Demara · скин 01
-  'soldier-11': '#f7c735',        // Soldier 11
-  'yidhari': '#ab70b2',           // Yidhari
-  'corin': '#c4ce8c',             // Corin
-  'caesar': '#657661',            // Caesar
-  'billy-kid': '#ff263b',         // Billy Kid
-  'miyabi': '#428894',            // Miyabi
-  'miyabi-01': '#c59768',         // Miyabi · скин 01
-  'koleda': '#ef6d43',            // Koleda
-  'anton': '#b59a61',             // Anton
-  'ben': '#ddc2b4',               // Ben
-  'soukaku': '#81c1db',           // Soukaku
-  'lycaon': '#eef0f4',            // Lycaon
-  'lucy': '#eac487',              // Lucy
-  'lucy-01': '#feb1b0',           // Lucy · скин 01
-  'lighter': '#5b766d',           // Lighter
-  'burnice': '#d35c50',           // Burnice
-  'grace-howard': '#dc7c52',      // Grace Howard
-  'ellen': '#a7475f',             // Ellen
-  'ellen-01': '#677cbb',          // Ellen · скин 01
-  'harumasa': '#2a8e9d',          // Harumasa
-  'rina': '#df3439',              // Rina
-  'yanagi': '#edbab6',            // Yanagi
-  'zhu-yuan': '#538bc6',          // Zhu Yuan
-  'qingyi': '#4caa5d',            // Qingyi
-  'jane-doe': '#89c3ca',          // Jane
-  'jane-doe-01': '#9a69bc',       // Jane · скин 01
-  'seth': '#4c89c6',              // Seth
-  'piper': '#d1532c',             // Piper
-  'hugo': '#7179bf',              // Hugo
-  'orphie-and-magus': '#ef6c2c',  // Orphie & Magus
-  'astra-yao': '#c5222e',         // Astra Yao
-  'astra-yao-01': '#4ba7a4',      // Astra Yao · скин 01
-  'evelyn': '#df4252',            // Evelyn
-  'vivian': '#7a73c0',            // Vivian
-  'vivian-01': '#bf83c9',         // Vivian · скин 01
-  'zhao': '#c97a78',              // Zhao
-  'pulchra': '#ba9562',           // Pulchra
-  'trigger': '#e5b640',           // Trigger
-  'yixuan': '#ff9a1f',            // Yixuan
-  'yixuan-01': '#9ab5bc',         // Yixuan · скин 01
-  'soldier-0': '#c5792e',         // Soldier 0 · Anby
-  'ju-fufu': '#ffb31a',           // Ju Fufu
-  'alice': '#caa888',             // Alice
-  'alice-01': '#e06e8c',          // Alice · скин 01
-  'yuzuha': '#f43638',            // Yuzuha
-  'yuzuha-01': '#dc4343',         // Yuzuha · скин 01
-  'pan-yinhu': '#e3a02d',         // Pan Yinhu
-  'pan-yinhu-01': '#398e4e',      // Pan Yinhu · скин 01
-  'ye-shunguang': '#b78860',      // Ye Shunguang
-  'ye-shunguang-01': '#f0958f',   // Ye Shunguang · скин 01
-  'manato': '#867d3c',            // Manato
-  'manato-01': '#687abb',         // Manato · скин 01
-  'lucia': '#92cffd',             // Lucia
-  'seed': '#a3cfdf',              // Seed
-  'banyue': '#f0bb54',            // Banyue
-  'dialyn': '#7975c1',            // Dialyn
-  'sunna': '#ca6c90',             // Sunna
-  'sunna-01': '#b7ce93',          // Sunna · скин 01
-  'aria': '#d7878b',              // Aria
-  'aria-01': '#c55977',           // Aria · скин 01
-  'nangong-yu': '#be5f67',        // Nangong Yu
-  'nangong-yu-01': '#8c6dc1',     // Nangong Yu · скин 01
-  'cissia': '#f22b6a',            // Cissia
-  'starlight-billy': '#ff263b',   // Starlight · Billy
-  'promeia': '#6f73d0',           // Promeia
-  'pyrois': '#6e75c8',            // Pyrois
-  'velina': '#c7c4e5',            // Velina
-  'velina-01': '#4da6d3',         // Velina · скин 01
-  'norma': '#5c7fb8',             // Norma
-  'remielle': '#b76086',          // Remielle
-  'remielle-02': '#7378c0',       // Remielle · скин 02
-  'remielle-01': '#9978c3',       // Remielle · скин 01
-  'remielle-03': '#7378c0',       // Remielle · скин 03
-  'sigrid': '#689ef1',            // Sigrid
-  'sigrid-01': '#63daec',         // Sigrid · скин 01
+  'anby-demara': ['#b2d742', '#ea3838'],  // Anby Demara
+  'nekomata': ['#d74e3c', '#afaee5'],     // Nekomata
+  'nicole-demara': ['#e0a3a1', '#c3d100'],// Nicole Demara
+  'nicole-demara-01': ['#e59abe', '#c3d100'],// Nicole Demara · скин 01
+  'soldier-11': ['#ffbf00', '#ef3110'],   // Soldier 11
+  'yidhari': ['#f077fd', '#ffbf10'],      // Yidhari
+  'corin': ['#b3c355', '#f6929b'],        // Corin
+  'caesar': ['#ffbe57', '#93b356'],       // Caesar
+  'billy-kid': ['#ff263b', '#ffbd48'],    // Billy Kid
+  'miyabi': ['#35a4c0', '#d35636'],       // Miyabi
+  'miyabi-01': ['#e5ad76', '#9eceff'],    // Miyabi · скин 01
+  'koleda': ['#e0533c', '#febd65'],       // Koleda
+  'anton': ['#d7b05b', '#eb5200'],        // Anton
+  'ben': ['#e2c4a2', '#ff7c4d'],          // Ben
+  'soukaku': ['#6bd6ff', '#aad60b'],      // Soukaku
+  'lycaon': ['#adc9ff', '#ff575f'],       // Lycaon
+  'lucy': ['#ff5542', '#ffbd5c'],         // Lucy
+  'lucy-01': ['#feb1b0', '#ffa55c'],      // Lucy · скин 01
+  'lighter': ['#32c392', '#ff4f42'],      // Lighter
+  'burnice': ['#ffbd70', '#ff5c74'],      // Burnice
+  'grace-howard': ['#ff9c66', '#ff2f00'], // Grace Howard
+  'ellen': ['#9f78e8', '#ff291a'],        // Ellen
+  'ellen-01': ['#94afff', '#ff80ac'],     // Ellen · скин 01
+  'harumasa': ['#5ac3d3', '#e5c700'],     // Harumasa
+  'rina': ['#ff474e', '#ffa8ba'],         // Rina
+  'yanagi': ['#ffb8b3', '#9efffd'],       // Yanagi
+  'zhu-yuan': ['#70b5ff', '#ff824d'],     // Zhu Yuan
+  'qingyi': ['#33d16a', '#ffd48a'],       // Qingyi
+  'jane-doe': ['#6ebbc4', '#ff5274'],     // Jane
+  'jane-doe-01': ['#c87aff', '#ff5781'],  // Jane · скин 01
+  'seth': ['#6bb5ff', '#ff7547'],         // Seth
+  'piper': ['#ff6a3d', '#ffe27a'],        // Piper
+  'hugo': '#99a3ff',                      // Hugo
+  'orphie-and-magus': ['#ff7429', '#ff2949'],// Orphie & Magus
+  'astra-yao': ['#ff2e3c', '#ffb35c'],    // Astra Yao
+  'astra-yao-01': ['#00e1da', '#ffb35c'], // Astra Yao · скин 01
+  'evelyn': ['#ff4d5e', '#ffe08a'],       // Evelyn
+  'vivian': ['#c7a8ff', '#e894ff'],       // Vivian
+  'vivian-01': ['#bebdff', '#f899ff'],    // Vivian · скин 01
+  'zhao': ['#ffb399', '#8afffd'],         // Zhao
+  'pulchra': ['#ffd08f', '#ff7575'],      // Pulchra
+  'trigger': ['#ffca42', '#ff4c38'],      // Trigger
+  'yixuan': ['#ffaf24', '#ff2424'],       // Yixuan
+  'yixuan-01': ['#9eecff', '#ffe4a8'],    // Yixuan · скин 01
+  'soldier-0': ['#ff9e3d', '#85c2ff'],    // Soldier 0 · Anby
+  'ju-fufu': ['#ffbe5c', '#a8d2ff'],      // Ju Fufu
+  'alice': ['#ffd294', '#94ff8f'],        // Alice
+  'alice-01': ['#ff7a9e', '#ffb98a'],     // Alice · скин 01
+  'yuzuha': ['#ff383b', '#ff99b3'],       // Yuzuha
+  'yuzuha-01': ['#ff3838', '#99ffe6'],    // Yuzuha · скин 01
+  'pan-yinhu': ['#ffb638', '#ff4a3d'],    // Pan Yinhu
+  'pan-yinhu-01': ['#ffcd75', '#68df6a'], // Pan Yinhu · скин 01
+  'ye-shunguang': ['#ffa570', '#ff3d3d'], // Ye Shunguang
+  'ye-shunguang-01': ['#ff6e61', '#ffa34d'],// Ye Shunguang · скин 01
+  'manato': ['#fff07a', '#ff8375'],       // Manato
+  'manato-01': '#687abb',                 // Manato · скин 01
+  'lucia': ['#1ff0ff', '#ffdc7a'],        // Lucia
+  'seed': ['#a8e8ff', '#ffae3d'],         // Seed
+  'banyue': ['#ff7e38', '#fffa66'],       // Banyue
+  'dialyn': ['#ff4d70', '#ffbb5c'],       // Dialyn
+  'sunna': ['#ff75ac', '#b3fffa'],        // Sunna
+  'sunna-01': ['#9efff9', '#ff6188'],     // Sunna · скин 01
+  'aria': ['#ff859d', '#85fff9'],         // Aria
+  'aria-01': ['#ff8ab9', '#ff1f57'],      // Aria · скин 01
+  'nangong-yu': ['#ff858f', '#6bffe1'],   // Nangong Yu
+  'nangong-yu-01': ['#bb94ff', '#ff66c4'],// Nangong Yu · скин 01
+  'cissia': ['#ff3374', '#ffef8a'],       // Cissia
+  'starlight-billy': ['#ff243a', '#dd64bd'],// Starlight · Billy
+  'promeia': ['#7a7fff', '#ffe3b3'],      // Promeia
+  'pyrois': ['#7d7aff', '#42c6ff'],       // Pyrois
+  'velina': ['#7593ff', '#ffe485'],       // Velina
+  'velina-01': ['#99ddff', '#8f9cff'],    // Velina · скин 01
+  'norma': ['#8ab7ff', '#ffe3b3'],        // Norma
+  'remielle': ['#f98bba', '#c9b3ff'],     // Remielle
+  'remielle-02': ['#7e83d3', '#ffb3b6'],  // Remielle · скин 02
+  'remielle-01': ['#c599ff', '#ff94d2'],  // Remielle · скин 01
+  'remielle-03': ['#7e83d3', '#ffb3b6'],  // Remielle · скин 03
+  'sigrid': ['#94bfff', '#ffe3b3'],       // Sigrid
+  'sigrid-01': ['#7aedff', '#ffe5b8'],    // Sigrid · скин 01
 };
 
 /* Цвет, которым красится карточка агента. Цепочка отката ровно такая:
@@ -11534,15 +11535,32 @@ const CC_AGENT_TINT = {
    значило бы врать глазу.
    Тумблер Tint в тулбаре выключает всё это целиком — тогда работает акцент
    игрока, как было до появления таблицы. */
-function ccTintFor(agentKey, skin) {
+/* Строка таблицы бывает двух видов:
+     'remielle': '#b76086'                 — только акцент, PEN считается
+     'remielle': ['#b76086', '#5ec8a0']    — акцент и свой цвет PEN
+   Второй вид нужен там, где посчитанный противоположный оттенок не нравится
+   глазу: у некоторых пар он сливается с акцентом по светлоте или лезет в
+   цвет соседнего значения. Массив пишется только там, где PEN правили руками,
+   поэтому подавляющее большинство строк остаётся короткими. */
+function ccTintEntry(agentKey, skin) {
   if (!agentKey || !profileDisplayOptions.tint) return null;
   const slug = assetSlug(agentKey);
   const useSkin = skin && !l2dActive(agentKey);
   return (useSkin && CC_AGENT_TINT[`${slug}-${skin}`]) || CC_AGENT_TINT[slug] || null;
 }
-/* PEN рисуется противоположным оттенком акцента. Отдельной таблицы под него
-   нет намеренно: одна строка на агента вместо двух, а «противоположный» —
-   это поворот оттенка на 180°, его незачем хранить.
+function ccTintFor(agentKey, skin) {
+  const e = ccTintEntry(agentKey, skin);
+  return Array.isArray(e) ? e[0] : e;
+}
+/* null означает «своего цвета нет, считай противоположный» — решение
+   принимает ccColors(), а не эта функция, чтобы отличать «не задан» от
+   «задан и совпал с посчитанным». */
+function ccPenFor(agentKey, skin) {
+  const e = ccTintEntry(agentKey, skin);
+  return (Array.isArray(e) && e[1]) || null;
+}
+/* PEN по умолчанию — противоположный оттенок акцента. Хранить его отдельно
+   для каждого агента не нужно: «противоположный» это поворот на 180°.
    Светлота и насыщенность берутся у исходного цвета, поэтому у бледного
    акцента и PEN будет бледным — пара остаётся в одном регистре. */
 function ccPenColor(hex) {
@@ -11710,7 +11728,7 @@ const CC_FAINT = 'rgba(255,255,255,.50)';   // совсем второстепе
    акцент сайта — осознанная настройка игрока, и молча перебивать её тем,
    какого агента он открыл, неправильно; к тому же цвет прыгал бы на каждом
    переключении в списке. */
-function ccColors(tint) {
+function ccColors(tint, pen) {
   const cs = getComputedStyle(document.documentElement);
   const v = (n, f) => (cs.getPropertyValue(n) || '').trim() || f;
   return {
@@ -11719,7 +11737,7 @@ function ccColors(tint) {
     accent: tint || v('--accent','#ffcc00'),
     accent60: tint ? ccAlpha(tint, .6) : v('--accent-60','rgba(255,204,0,.6)'),
     accent30: tint ? ccAlpha(tint, .3) : v('--accent-30','rgba(255,204,0,.3)'),
-    accent2: tint ? ccPenColor(tint) : v('--accent2','#c084fc'),
+    accent2: tint ? (pen || ccPenColor(tint)) : v('--accent2','#c084fc'),
     text: v('--text','#efefef'), textMid: v('--text-mid','#777777'), textDim: v('--text-dim','#4a4a4a'),
   };
 }
@@ -13044,7 +13062,7 @@ function l2dPaintBanner(cv) {
   const agentKey = cv.dataset.agent;
   const skin = cv.dataset.skin || null;
   const ctx = cv.getContext('2d');
-  const C = ccColors(ccTintFor(agentKey, skin));
+  const C = ccColors(ccTintFor(agentKey, skin), ccPenFor(agentKey, skin));
   ctx.clearRect(0, 0, cv.width, cv.height);
   ctx.fillStyle = C.bg2;
   ctx.fillRect(0, 0, cv.width, cv.height);
@@ -13103,7 +13121,7 @@ let ccLastModel = null;   // для имени файла при скачива�
 let ccDrawPromise = null; // скачивание должно дождаться незавершённой отрисовки
 async function drawCompactCard(canvas, m) {
   const ctx = canvas.getContext('2d');
-  const C = ccColors(ccTintFor(m.agentKey, m.skin));
+  const C = ccColors(ccTintFor(m.agentKey, m.skin), ccPenFor(m.agentKey, m.skin));
   ctx.clearRect(0, 0, CC.W, CC.H);
   ctx.fillStyle = C.bg; ctx.fillRect(0, 0, CC.W, CC.H);
   await ccEnsureFonts();
