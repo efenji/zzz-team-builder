@@ -2172,7 +2172,6 @@ select {
   <div class="tb-sep"></div>
   <div class="tb-group">
     <button class="tb-toggle" data-modes="full compact" data-key="procs" onclick="toggleProfileVisOption('procs', this)" title="Highlight useful sub-stat procs, on disc cards and in the Sub-Stat Totals row">Procs</button>
-    <button class="tb-toggle" data-modes="full compact" data-key="totals" onclick="toggleProfileVisOption('totals', this)" title="Show the Sub-Stat Totals section">Totals</button>
     <button class="tb-toggle" data-modes="full compact" data-key="live2d" onclick="toggleProfileVisOption('live2d', this)" title="Animated agent banner instead of static art">Live2D</button>
     <button class="tb-toggle" data-modes="full compact" data-key="tint" onclick="toggleProfileVisOption('tint', this)" title="Colour the card after the agent — official Enka accent, or the skin's own colour when a skin is equipped. Off: your accent from settings">Tint</button>
     <button class="tb-toggle" data-modes="compact" data-key="slots" onclick="toggleProfileVisOption('slots', this)" title="Show the slot number badge on each disc icon">Slots</button>
@@ -7613,6 +7612,11 @@ let profileViewMode = localStorage.getItem('zzz_profile_view_mode') === 'compact
    выключит и вернётся к своему акценту из настроек. */
 let profileDisplayOptions = Object.assign({procs:true, totals:true, skills:true, wengine:true, sets:true, discs:true, notes:true, owner:true, live2d:false, slots:true, date:true, tint:true},
   JSON.parse(localStorage.getItem('zzz_profile_display_options') || '{}'));
+/* Totals больше не тумблер — секция показывается всегда. Поле оставлено, потому
+   что на него смотрят и развёрнутый вид, и компактная карточка; принудительно
+   поднимаем его здесь, иначе у тех, кто успел выключить тумблер, значение
+   осталось бы в localStorage навсегда. */
+profileDisplayOptions.totals = true;
 
 /* ── DRIVE DISC PICKER MODE ──
    All library management (Agent/W-Engine/Bangboo/Drive Disc) is available by
@@ -11355,10 +11359,36 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
      ├ центр        x  574 … 1234   (660): статы, навыки, W-Engine, сеты, итоги
      └ диски        x 1254 … 1886   (632): шесть плашек на всю высоту
    ══════════════════════════════════════════════════════════════════════════ */
+/* ── БОКСЫ ВОКРУГ БЛОКОВ ──
+   Каждый блок карточки обведён рамкой, и внешние края этих рамок держат поле
+   34 по кругу — то же самое, что у баннера. Раньше блоки разделял только
+   воздух, а промежутки вычислялись по остатку; теперь всё считается от ОДНОГО
+   зазора, и только так края остаются вровень при любом его значении.
+   Компенсаторов два: по вертикали баннер (забирает остаток колонки после листа
+   статов), по горизонтали средняя колонка (лист статов и диски заданы жёстко).
+   Числа подобраны в песочнице на живой карточке, менять их имеет смысл только
+   там же — здесь они выходят далеко за пределы своего блока. */
+const CC_BOX_GAP = 12;      // единственный зазор всей сетки
+const CC_BOX_PAD_X = 16;    // поле внутри бокса по бокам
+const CC_BOX_PAD_Y = 10;    // поле внутри бокса сверху и снизу
+const CC_BOX_LW = 1;        // толщина рамки
+const CC_BOX_R = 14;        // скругление рамки
+const CC_MID_INNER_GAP = 14;   // между двумя рядами внутри одного бокса
+/* Блок проков. Первые две величины — РЕЗЕРВЫ ВЫСОТЫ под ряд иконок и под
+   строку с цифрами, по ним считается высота бокса. Ровно чернилами они не
+   являются: строка с цифрами позиционируется отдельно, от низа своего бокса. */
+const CC_INK_PROCROW = 30, CC_INK_PROCNUM = 62;
+const CC_PROC_GAP = 10;     // между рядом иконок и строкой с цифрами
+/* Базовая линия строки «40 +3 flat of N procs», отсчитывается от низа
+   внутреннего поля её бокса. Смысл числа — посадить строку на ту же линию, что
+   и последняя строка листа статов слева: низ трёх колонок тогда читается одной
+   горизонталью. Работает без всякой связи с блоком статов в коде, потому что
+   оба упираются в одно нижнее поле карточки и имеют одинаковый отступ. */
+const CC_PROC_BASE = 11.2;
+
 const CC = {
-  W: 1920, H: 1080, PAD: 34, GAP: 20,
+  W: 1920, H: 1080, PAD: 34, GAP: CC_BOX_GAP,
   STATS_W: 630,  // лист статов — ровно тот же блок, что был в средней колонке
-  SIDE_W: 520,   // W-Engine, навыки, проки — справа от статов
   R: 14, R_SM: 10,
   F: 'Barlow', FC: '"Barlow Condensed"', FM: '"Share Tech Mono"',
 };
@@ -11372,17 +11402,32 @@ CC.DISCS_X = 1224;
 CC.DISCS_W = CC.W - CC.PAD - CC.DISCS_X;               // 662
 CC.COL_TOP = CC.PAD;                                   // 34
 CC.COL_H   = CC.H - CC.PAD * 2;                        // 1012
-CC.LEFT_W  = CC.DISCS_X - CC.GAP - CC.PAD;             // 1170 — вся область левее дисков
+CC.LEFT_W  = CC.DISCS_X - CC.GAP - CC.PAD;             // 1178 — вся область левее дисков
+/* Ширина средней колонки больше не константа: лист статов и диски заданы
+   жёстко, а она добирает остаток. Иначе при смене зазора её правый край
+   разошёлся бы с правым краем баннера. */
+CC.SIDE_W  = CC.LEFT_W - CC.STATS_W - CC.GAP;          // 536
 /* Шаг строки и число строк объявлены здесь, ДО раскладки, потому что от них
    зависит и высота блока статов, и высота баннера над ним. Держать эти числа
    в двух местах нельзя: они разъедутся при первой же правке и блок окажется
    меньше отведённого ему места. */
 const CC_STAT_ROW = 42, CC_STAT_MAX = 12;
 CC.STATS_H  = CC_STAT_ROW * CC_STAT_MAX;               // 504
-CC.BANNER_H = CC.COL_H - CC.STATS_H - CC.GAP;          // 488
-CC.LOWER_Y = CC.PAD + CC.BANNER_H + CC.GAP;            // 458
+CC.BANNER_H = CC.COL_H - CC.STATS_H - CC.GAP;          // 496
+CC.LOWER_Y = CC.PAD + CC.BANNER_H + CC.GAP;            // 542
 CC.STATS_X = CC.PAD;                                   // 34  — лист статов слева
-CC.SIDE_X  = CC.PAD + CC.STATS_W + CC.GAP;             // 684 — движок и проки справа
+CC.SIDE_X  = CC.PAD + CC.STATS_W + CC.GAP;             // 676 — движок и проки справа
+/* Строка листа статов больше не 42: двенадцать строк ровно занимали всю высоту
+   блока, и на внутреннее поле не оставалось ничего. Теперь шаг вычисляется из
+   того, что осталось после полей. */
+CC.STAT_ROW_FIT = (CC.STATS_H - CC_BOX_PAD_Y * 2) / CC_STAT_MAX;   // 40.33
+
+/* Внутренняя область бокса. Одна функция на всех, потому что этими
+   координатами пользуются и отрисовка, и попадание курсора по дискам. */
+function ccInset(r) {
+  return { x: r.x + CC_BOX_PAD_X, y: r.y + CC_BOX_PAD_Y,
+           w: r.w - CC_BOX_PAD_X * 2, h: r.h - CC_BOX_PAD_Y * 2 };
+}
 
 /* Полноростовой арт — тот же файл, что у Энки слева на карточке. Лежит рядом с
    card.webp/square.webp в папке агента. Размер у всех разный (у Lucia
@@ -11790,6 +11835,10 @@ async function ccEnsureFonts() {
 async function ccPreload(m) {
   const urls = new Set();
   const add = u => { if (u) urls.add(u); };
+  /* Фон баннера ждём наравне с остальным. Не косметика: downloadCompactCard()
+     ждёт ровно этот промис, и без строки ниже можно получить сохранённый PNG
+     без текстуры — картинка просто не успела бы доехать к моменту отрисовки. */
+  add(CC_BANNER_BG_URL);
   if (m.agentKey) { add(agentPortraitUrl(m.agentKey, m.skin)); }
   if (m.attributeIcon) add(attributeUrl(m.attributeIcon));
   if (m.specialtyIcon) add(specialtyUrl(m.specialtyIcon));
@@ -11901,6 +11950,152 @@ function ccContain(ctx, img, x, y, w, h) {
 const CC_BANNER_ICO = 42;    // значки атрибута и специальности в углу баннера
 const CC_BAND_TOP = 26;      // воздух над макушкой
 const CC_FIG_MAX_W = 660;    // предел ширины фигуры в баннере
+
+/* Фоновая текстура под баннером агента. Лежит в нашем же зеркале ассетов, на
+   том же домене, что и сайт: чужой домен без CORS «испортил» бы холст, и
+   toBlob() на компактной карточке упал бы с SecurityError уже при скачивании.
+   Файла нет — ccImage() отдаст null, подложка просто не нарисуется, и баннер
+   останется ровно таким, каким был до неё. */
+const CC_BANNER_BG_URL = `${BASE}/enka-ui/zzz-agent-bg.webp`;
+/* Тон картинки НЕ трогаем: 1 — пиксель из файла как есть, без наложения и без
+   фильтра. Здесь стояло сложение ('lighter') с непрозрачностью 0.65, и это было
+   ошибкой: сложение прибавляет к каждому пикселю цвет подложки, чёрное
+   поднималось с 0 до 24, разброс падал с 30 до 19.5 — контраст съедало почти
+   вдвое, фон выглядел выцветшим. Меньше 1 здесь — подмешивание к цвету панели,
+   больше 1 — множитель яркости; и то и другое картинку меняет, поэтому по
+   умолчанию ровно единица. */
+const CC_BANNER_BG_STRENGTH = 1;
+/* Ход под курсором и собственный дрейф — в пикселях холста ШИРИНОЙ
+   CC_BANNER_BG_REF_W. Числа подобраны на баннере развёрнутого вида (2340), а в
+   компактной карточке он вдвое уже: без пересчёта одно и то же число двигало бы
+   фон там вдвое размашистее. Поэтому смещение всегда умножается на w / REF_W. */
+const CC_BANNER_BG_PARALLAX = 25;
+const CC_BANNER_BG_DRIFT = 25;
+const CC_BANNER_BG_REF_W = 2340;
+/* Зерно и виньетка — отдельные слои ПОВЕРХ картинки. Они её действительно
+   меняют, но это осознанно: тон самого файла остаётся нетронутым, а фактура и
+   притемнённые углы держат подписи читаемыми. */
+const CC_BANNER_BG_GRAIN = 1;
+const CC_BANNER_BG_VIGNETTE = 0.34;
+
+/* Зерно генерируется один раз и кэшируется. Свой генератор с фиксированным
+   зерном, а не Math.random(): шум обязан быть одинаковым от загрузки к
+   загрузке, иначе скачанная карточка каждый раз чуть-чуть другая. */
+const ccGrainTile = (() => {
+  let tile = null;
+  return () => {
+    if (tile) return tile;
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const x = c.getContext('2d');
+    const img = x.createImageData(256, 256);
+    let seed = 1337;
+    const rnd = () => {
+      seed = seed + 0x6D2B79F5 | 0;
+      let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+    for (let i = 0; i < img.data.length; i += 4) {
+      const v = 108 + rnd() * 40;
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+      img.data[i + 3] = 255;
+    }
+    x.putImageData(img, 0, 0);
+    tile = c;
+    return tile;
+  };
+})();
+
+/* ── ДВИЖЕНИЕ ФОНА ──
+   Состояние живёт на элементе (у каждого баннера своё), кроме компактной
+   карточки — она на экране всегда одна, и ей хватает общего объекта, который
+   переживает переключение агентов.
+   tx/ty — куда целимся (курсор, -1…1), px/py — где сейчас. Между ними
+   сглаживание, иначе фон дёргался бы за курсором рывками. */
+const ccBgCard = { tx: 0, ty: 0, px: 0, py: 0, ts: -1 };
+const ccBgStill = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const ccBgMoves = () => !ccBgStill() && (CC_BANNER_BG_PARALLAX > 0 || CC_BANNER_BG_DRIFT > 0);
+function ccBgState(el) {
+  return el._ccBg || (el._ccBg = { tx: 0, ty: 0, px: 0, py: 0, ts: -1 });
+}
+/* Шаг сглаживания. Метка времени внутри — защита от двойного вызова: за один
+   кадр сюда могут прийти и цикл Live2D, и цикл вращения дисков. */
+function ccBgAdvance(st, ts) {
+  if (!st || typeof ts !== 'number' || st.ts === ts) return st;
+  st.ts = ts;
+  if (!ccBgMoves()) { st.px = 0; st.py = 0; return st; }
+  const dx = Math.sin(ts / 9000) * CC_BANNER_BG_DRIFT;
+  const dy = Math.cos(ts / 13000) * CC_BANNER_BG_DRIFT * 0.55;
+  const gx = -st.tx * CC_BANNER_BG_PARALLAX + dx;
+  const gy = -st.ty * CC_BANNER_BG_PARALLAX * 0.5 + dy;
+  st.px += (gx - st.px) * 0.09;
+  st.py += (gy - st.py) * 0.09;
+  return st;
+}
+/* Подложка баннера. Картинка одна и та же в компактной карточке и в
+   развёрнутом виде, поэтому кадрирование живёт здесь, а не в двух копиях —
+   разъехались бы при первой же правке, как и у ccBannerArt().
+   Никакого режима наложения: картинка ложится как есть, поверх заливки C.bg2,
+   и полностью её закрывает. Баннер от этого становится темнее панели карточки —
+   средняя яркость файла 17 против 24 у #181818, а в углах уходит в честный
+   ноль. Так и задумано: баннер читается как тёмное окно внутри панели, зато
+   тон картинки в точности такой же, как в файле.
+   Вызывающий обязан сам обрезать область баннера — здесь клипа нет, потому что
+   оба места, откуда сюда приходят, уже стоят внутри своего clip(). */
+function ccBannerBackdrop(ctx, bg, x, y, w, h, st) {
+  const k = w / CC_BANNER_BG_REF_W;
+  const ox = (st ? st.px : 0) * k, oy = (st ? st.py : 0) * k;
+
+  if (bg && bg.width) {
+    /* Запас по краям. Картинка ездит, и вписанная впритык показала бы свой край
+       на первом же сдвиге: при cover она даёт 2340×1011 на холст 2340×976 —
+       по горизонтали свободного места ноль. Запас считается из предельного
+       размаха, а не подбирается на глаз, поэтому меняешь ход — он подстроится
+       сам. Плата за это лишний кроп примерно в 4%. */
+    const mx = (CC_BANNER_BG_PARALLAX + CC_BANNER_BG_DRIFT) * k + 2;
+    const my = (CC_BANNER_BG_PARALLAX * 0.5 + CC_BANNER_BG_DRIFT * 0.55) * k + 2;
+    const scale = Math.max((w + mx * 2) / bg.width, (h + my * 2) / bg.height);
+    const dw = bg.width * scale, dh = bg.height * scale;
+    ctx.save();
+    if (CC_BANNER_BG_STRENGTH < 1) ctx.globalAlpha = CC_BANNER_BG_STRENGTH;
+    else if (CC_BANNER_BG_STRENGTH > 1) ctx.filter = `brightness(${CC_BANNER_BG_STRENGTH})`;
+    ctx.drawImage(bg, x + (w - dw) / 2 + ox, y + (h - dh) / 2 + oy, dw, dh);
+    ctx.restore();
+  }
+
+  /* Зерно неподвижно и не едет вместе с картинкой — оно читается как шум
+     экрана, а не как часть изображения. Режим 'overlay' поэтому же: серое 128
+     не меняет ничего, отклонения тянут пиксель в свою сторону, средняя яркость
+     кадра остаётся на месте. */
+  if (CC_BANNER_BG_GRAIN > 0) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.globalAlpha = CC_BANNER_BG_GRAIN * 0.5;
+    ctx.translate(x, y);
+    ctx.fillStyle = ctx.createPattern(ccGrainTile(), 'repeat');
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+  }
+
+  if (CC_BANNER_BG_VIGNETTE > 0) {
+    const g = ctx.createRadialGradient(x + w / 2, y + h / 2, h * 0.25, x + w / 2, y + h / 2, h * 1.05);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, `rgba(0,0,0,${CC_BANNER_BG_VIGNETTE})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(x, y, w, h);
+  }
+}
+
+/* Куда целится параллакс компактной карточки. Координаты приходят в пикселях
+   холста 1920×1080, а мерить надо по прямоугольнику баннера — курсор над
+   дисками справа даёт значение за единицей, его и подрезаем. */
+function ccBgAim(px, py) {
+  const cl = v => Math.max(-1, Math.min(1, v));
+  ccBgCard.tx = cl((px - CC.PAD) / CC.LEFT_W * 2 - 1);
+  ccBgCard.ty = cl((py - CC.PAD) / CC.BANNER_H * 2 - 1);
+  l2dKick();
+}
 /* Кадрирование статичного арта вынесено отдельно, потому что его рисуют ДВА
    места: баннер компактной карточки и баннер развёрнутого вида. Держать эту
    математику в двух копиях нельзя — разъедется при первой правке, и один и тот
@@ -11940,7 +12135,13 @@ function ccBannerBelow(ctx, C, m, IM, withArt) {
   const x = CC.PAD, y = CC.PAD, w = CC.LEFT_W, h = CC.BANNER_H;
   ctx.save();
   ccRR(ctx, x, y, w, h, CC.R); ctx.clip();
-  ctx.fillStyle = C.bg2; ctx.fillRect(x, y, w, h);
+  /* Дыра, а не заливка — и это ключевое место всей затеи с движением.
+     Слой base собирается ОДИН раз и дальше просто копируется в каждом кадре;
+     подложка же теперь ездит, а значит рисоваться должна покадрово и ПОД base.
+     Залей мы здесь C.bg2, как было раньше, — непрозрачный base закрыл бы её
+     намертво. clearRect подчиняется текущему clip(), поэтому дыра выходит ровно
+     по скруглению баннера, а не квадратом. Заливку и фон делает ccComposite(). */
+  ctx.clearRect(x, y, w, h);
   if (withArt) ccBannerArt(ctx, IM(m.agentKey ? agentPortraitUrl(m.agentKey, m.skin) : null), m.agentKey, x, y, w, h, m.skin);
   ctx.restore();
 }
@@ -12078,7 +12279,13 @@ function ccDrawBanner(ctx, C, m, IM) {
 const CC_MAIN_FONT = 32, CC_MAIN_ICO = Math.round(CC_MAIN_FONT * 1.2);
 const CC_DISC_HEAD = 100;
 // Пять строк одного шага: четыре сабстата и строка зачёта.
-const CC_DISC_H = CC_DISC_HEAD + 8 + CC_STAT_ROW * 5;
+/* Высота диска больше не задаётся содержимым: три ряда с зазорами делят
+   колонку без остатка, чтобы верх верхнего и низ нижнего легли на поля холста.
+   Поэтому теперь наоборот — содержимое подгоняется под отведённую высоту, и
+   строка сабстата становится чуть ниже прежних 42. */
+const CC_DISC_H = (CC.COL_H - CC_BOX_GAP * 2) / 3;                 // 329.33
+const CC_DISC_SUB_ROW =
+  (CC_DISC_H - CC_BOX_PAD_Y * 2 - CC_DISC_HEAD - 8) / 5;           // 40.27
 function ccDrawStats(ctx, C, m, IM, x, y, w) {
   const rows = m.sheet || [];
   if (!rows.length) {
@@ -12086,7 +12293,7 @@ function ccDrawStats(ctx, C, m, IM, x, y, w) {
     ccText(ctx, 'No reference data for this agent.', x, y + 30, { color: CC_MUTED, max: w });
     return;
   }
-  const rowH = Math.min(CC_STAT_ROW, CC.STATS_H / rows.length);
+  const rowH = Math.min(CC.STAT_ROW_FIT, (CC.STATS_H - CC_BOX_PAD_Y * 2) / rows.length);
   rows.forEach((r, i) => {
     const cy = y + i * rowH, mid = cy + rowH / 2;
     const bucket = statSheetBucket(r, m.useful);
@@ -12101,8 +12308,8 @@ function ccDrawStats(ctx, C, m, IM, x, y, w) {
        остались — они нужны развёрнутому виду, где место есть. */
     ccFont(ctx, 700, 27);
     ccText(ctx, formatEnkaStatValue(r.total, r.isPercent, r.fam), x + w, mid + 9, { color: col, align: 'right' });
-    ctx.strokeStyle = C.border; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(x, cy + rowH - 1); ctx.lineTo(x + w, cy + rowH - 1); ctx.stroke();
+    /* Линейки между строками убраны: их работу взяла на себя рамка бокса, а
+       двенадцать горизонталей внутри неё читались как решётка. */
   });
 }
 
@@ -12191,24 +12398,28 @@ const CC_CORE_LETTERS = ['a', 'b', 'c', 'd', 'e', 'f'];
 const CC_CORE_H = CC_SKILL_ICO;
 const CC_CORE_DIM = 0.22;
 function ccDrawCoreRow(ctx, C, m, IM, x, y, w) {
-  const slot = CC_SKILL_ICO + CC_SKILL_GAP;
-  const rowW = CC_SKILL_ICO * 6 + CC_SKILL_GAP * 5;
-  const x0 = x + (w - rowW) / 2;
+  const step = ccSkillStep(w);
   const rank = m.coreRank || 0;
   CC_CORE_LETTERS.forEach((ch, i) => {
     ctx.save();
     ctx.globalAlpha = i < rank ? 1 : CC_CORE_DIM;
-    ccContain(ctx, IM(iconUrl('core-skill-' + ch)), x0 + slot * i, y, CC_SKILL_ICO, CC_SKILL_ICO);
+    ccContain(ctx, IM(iconUrl('core-skill-' + ch)), x + step * i, y, CC_SKILL_ICO, CC_SKILL_ICO);
     ctx.restore();
   });
 }
 
+/* Шаг между значками считается по расстоянию между ЦЕНТРАМИ крайних, а не
+   делением ширины на шесть равных ячеек. При делении на ячейки значок
+   центровался внутри своей, и у первого слева оставалась пустота в половину
+   ячейки, у последнего столько же справа — сверху и снизу такого не было,
+   потому что там привязка идёт прямо к содержимому. Теперь крайние касаются
+   границ внутреннего поля, а весь воздух уходит в промежутки между значками. */
+function ccSkillStep(w) { return (w - CC_SKILL_ICO) / 5; }
+
 function ccDrawSkills(ctx, C, m, IM, x, y, w) {
-  const slot = CC_SKILL_ICO + CC_SKILL_GAP;
-  const rowW = CC_SKILL_ICO * 6 + CC_SKILL_GAP * 5;
-  const x0 = x + (w - rowW) / 2;
+  const step = ccSkillStep(w);
   CC_SKILL_ORDER.forEach((sk, i) => {
-    const centre = x0 + slot * i + CC_SKILL_ICO / 2;
+    const centre = x + step * i + CC_SKILL_ICO / 2;
     ccContain(ctx, IM(iconUrl(sk.icon)), centre - CC_SKILL_ICO / 2, y, CC_SKILL_ICO, CC_SKILL_ICO);
     const lv = m.skills ? m.skills[sk.index] : null;
     // Пресеты без снимка навыков рисуются теми же иконками без уровней.
@@ -12227,9 +12438,11 @@ function ccDrawSkills(ctx, C, m, IM, x, y, w) {
    печатаются вовсе, как и в развёрнутом виде: «+0 flat» занимает место, но не
    сообщает ничего. */
 const CC_PROCNUM_H = 72;
-function ccDrawProcNumbers(ctx, C, m, IM, x, y, w) {
+/* Третий параметр здесь — БАЗОВАЯ ЛИНИЯ, а не верх блока: строка сажается на
+   одну горизонталь с последней строкой листа статов, и удобнее задавать её
+   прямо, чем через выдуманную высоту блока. */
+function ccDrawProcNumbers(ctx, C, m, IM, x, base, w) {
   const t = (m.procCounts && m.procCounts.total) || null;
-  const base = y + 52;
   if (!t || !m.useful || !m.useful.rule) {
     ccFont(ctx, 400, 21);
     ccText(ctx, 'No proc rule for this agent', x, base - 12, { color: CC_MUTED, max: w });
@@ -12299,37 +12512,83 @@ function ccDrawProcRow(ctx, C, m, IM, x, y, w) {
     const cx = startX + i * pitch;
     const col = ccBucketColor(C, it.bucket) || C.text;
     const k = ccStatIconKey(it.name);
-    if (k) ccContain(ctx, IM(iconUrl(k)), cx, y + 6, CC_PROC_ICO, CC_PROC_ICO);
+    /* Раньше ряд отсчитывался внутри полосы высотой 44 при иконках 28, и
+       шестнадцать пикселей запаса пропадали внутри самой строки. Теперь y —
+       это верх иконок, а не верх выдуманной полосы. */
+    if (k) ccContain(ctx, IM(iconUrl(k)), cx, y, CC_PROC_ICO, CC_PROC_ICO);
     ccFont(ctx, 700, 22);
-    ccText(ctx, String(it.procs), cx + CC_PROC_ICO + 8, y + 29,
+    ccText(ctx, String(it.procs), cx + CC_PROC_ICO + 8, y + 23,
       { color: col, max: Math.max(20, pitch - CC_PROC_ICO - 12) });
   });
 }
 
-/* ── СБОРКА СРЕДНЕЙ КОЛОНКИ ──
-   Заголовков секций и подложек нет: блоки разделяет только воздух, поэтому
-   свободный остаток раздаётся в промежутки. */
-function ccDrawMiddle(ctx, C, m, IM) {
-  // Лист статов — слева внизу, ровно тот же блок, что был в средней колонке.
-  ccDrawStats(ctx, C, m, IM, CC.STATS_X, CC.LOWER_Y, CC.STATS_W);
-
-  // Справа от него — движок, навыки и проки. Предел промежутка поднят до 72:
-  // блоков здесь всего четыре, а высоты столько же, сколько у листа статов.
-  const x = CC.SIDE_X, w = CC.SIDE_W;
-  const blocks = [
-    { h: CC_WENGINE_H, draw: (y) => ccDrawWengine(ctx, C, m, IM, x, y, w) },
-    { h: CC_SKILLS_H,  draw: (y) => ccDrawSkills(ctx, C, m, IM, x, y, w) },
-    { h: CC_CORE_H,    draw: (y) => ccDrawCoreRow(ctx, C, m, IM, x, y, w) },
+/* ── СРЕДНЯЯ КОЛОНКА: ТРИ БОКСА ──
+   Было пять независимых блоков с вычисляемым воздухом между ними, стало три
+   бокса, которые делят высоту листа статов без остатка: движок, навыки вместе
+   с ядрами, и проки. Остаток колонки делится между ними поровну — иначе нижний
+   не дотянулся бы до низа карточки, а вся затея с «вровень по кругу»
+   держится именно на том, что три бокса и два зазора складываются в 504.
+   Прямоугольники вынесены в отдельную функцию, потому что ими пользуются
+   двое: отрисовка содержимого и отрисовка рамок. */
+function ccMidRects() {
+  const g = CC_BOX_GAP, x = CC.SIDE_X, w = CC.SIDE_W;
+  const need = [
+    CC_WENGINE_ICO,
+    CC_SKILLS_H + CC_MID_INNER_GAP + CC_CORE_H,
+    CC_INK_PROCROW + CC_PROC_GAP + CC_INK_PROCNUM,
   ];
-  if (profileDisplayOptions.totals) {
-    blocks.push({ h: CC_PROCROW_H, draw: (y) => ccDrawProcRow(ctx, C, m, IM, x, y, w) });
-    blocks.push({ h: CC_PROCNUM_H, draw: (y) => ccDrawProcNumbers(ctx, C, m, IM, x, y, w) });
-  }
-  const used = blocks.reduce((a, b) => a + b.h, 0);
-  const gaps = blocks.length - 1;
-  const gap = gaps > 0 ? Math.max(10, Math.min(72, (CC.STATS_H - used) / gaps)) : 0;
+  const spare = (CC.STATS_H - g * 2) - need.reduce((a, b) => a + b, 0) - CC_BOX_PAD_Y * 6;
+  const out = [];
   let y = CC.LOWER_Y;
-  blocks.forEach((b, i) => { b.draw(y); y += b.h + (i < gaps ? gap : 0); });
+  ['wengine', 'skills', 'procs'].forEach((key, i) => {
+    const h = need[i] + CC_BOX_PAD_Y * 2 + spare / 3;
+    out.push({ key, x, y, w, h, need: need[i] });
+    y += h + g;
+  });
+  return out;
+}
+
+function ccDrawMiddle(ctx, C, m, IM) {
+  const st = ccInset({ x: CC.STATS_X, y: CC.LOWER_Y, w: CC.STATS_W, h: CC.STATS_H });
+  ccDrawStats(ctx, C, m, IM, st.x, st.y, st.w);
+
+  ccMidRects().forEach(r => {
+    const b = ccInset(r);
+    if (r.key === 'wengine') {
+      /* Бокс меряется по иконке, а рисует движок полосу в CC_WENGINE_H — она
+         чуть выше и центруется внутри. Разница в восемь пикселей заложена в
+         поля и никуда не вылезает. */
+      ccDrawWengine(ctx, C, m, IM, b.x, b.y + (b.h - CC_WENGINE_H) / 2, b.w);
+    } else if (r.key === 'skills') {
+      const top = b.y + (b.h - r.need) / 2;
+      ccDrawSkills(ctx, C, m, IM, b.x, top, b.w);
+      ccDrawCoreRow(ctx, C, m, IM, b.x, top + CC_SKILLS_H + CC_MID_INNER_GAP, b.w);
+    } else {
+      /* Ряд иконок центруется вместе с содержимым бокса, а строка с цифрами —
+         нет: она привязана к низу бокса, чтобы лечь на линию листа статов.
+         Поэтому воздуха над ней остаётся больше, чем под ней, и это осознанно. */
+      ccDrawProcRow(ctx, C, m, IM, b.x, b.y + (b.h - r.need) / 2, b.w);
+      ccDrawProcNumbers(ctx, C, m, IM, b.x, b.y + b.h - CC_PROC_BASE, b.w);
+    }
+  });
+}
+
+/* ── РАМКИ БЛОКОВ ──
+   Рисуются ПОСЛЕ содержимого, чтобы линию не перекрывали ни иконки, ни текст,
+   и уводятся внутрь прямоугольника: обычный stroke кладёт линию по центру
+   контура, и половина толщины ушла бы за границу — при рамке толще единицы
+   внешние края разошлись бы с полем холста, ради которого всё затевалось. */
+function ccBoxOutline(ctx, C, r) {
+  const i = CC_BOX_LW / 2;
+  ccRR(ctx, r.x + i, r.y + i, r.w - i * 2, r.h - i * 2, CC_BOX_R);
+  ctx.strokeStyle = C.border;
+  ctx.lineWidth = CC_BOX_LW;
+  ctx.stroke();
+}
+function ccDrawBoxes(ctx, C) {
+  ccBoxOutline(ctx, C, { x: CC.STATS_X, y: CC.LOWER_Y, w: CC.STATS_W, h: CC.STATS_H });
+  ccMidRects().forEach(r => ccBoxOutline(ctx, C, r));
+  for (let i = 0; i < 6; i++) ccBoxOutline(ctx, C, ccDiscRect(i));
 }
 
 /* ── ПРАВАЯ КОЛОНКА: ШЕСТЬ ДИСКОВ 2×3 ──
@@ -12368,7 +12627,7 @@ function ccDrawDiscCard(ctx, C, m, IM, d, slot, procRow, x, y, w) {
   ccText(ctx, d.mainStatValue, x + w, mid + 11,
     { color: C.text, align: 'right', max: w - headH - mIco - 40 });
 
-  const subTop = y + headH + 8, subH = CC_STAT_ROW;
+  const subTop = y + headH + 8, subH = CC_DISC_SUB_ROW;
   (d.subStats || []).slice(0, 4).forEach((sub, si) => {
     const sy = subTop + si * subH, sMid = sy + subH / 2;
     const bucket = m.useful && m.useful.rule ? usefulProcBucket(sub.name, m.useful) : '';
@@ -12384,8 +12643,7 @@ function ccDrawDiscCard(ctx, C, m, IM, d, slot, procRow, x, y, w) {
       ccFont(ctx, 700, 22);
       ccText(ctx, '+' + extra, x + nW + 10, sMid + 8, { color: col });
     }
-    ctx.strokeStyle = C.border; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(x, sy + subH - 1); ctx.lineTo(x + w, sy + subH - 1); ctx.stroke();
+    // Линеек между сабстатами больше нет: границу держит рамка бокса.
   });
 
   // Зачёт полезных проков этого диска — такая же строка, как сабстаты выше:
@@ -12401,8 +12659,6 @@ function ccDrawDiscCard(ctx, C, m, IM, d, slot, procRow, x, y, w) {
     if (procRow.flat > 0) seg('+' + procRow.flat, 'flat', C.accent60);
     if (procRow.pen  > 0) seg('+' + procRow.pen, 'PEN', C.accent2);
   }
-  ctx.strokeStyle = C.border; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(x, fRow + subH - 1); ctx.lineTo(x + w, fRow + subH - 1); ctx.stroke();
 }
 
 /* Положение карточки в сетке. Вынесено отдельно, потому что этими координатами
@@ -12414,18 +12670,20 @@ function ccDrawDiscCard(ctx, C, m, IM, d, slot, procRow, x, y, w) {
    остаток уходит в промежутки между рядами: подложек нет, и именно воздух
    отделяет один диск от другого. Предел 64 — чтобы ряды не разъехались. */
 function ccDiscRect(i) {
-  const colGap = 22, cw = (CC.DISCS_W - colGap) / 2, ch = CC_DISC_H;
-  const rowGap = Math.max(18, Math.min(64, (CC.COL_H - ch * 3) / 2));
+  const g = CC_BOX_GAP;
+  const cw = (CC.DISCS_W - g) / 2, ch = CC_DISC_H;
   return {
-    x: CC.DISCS_X + (i % 2) * (cw + colGap),
-    y: CC.COL_TOP + Math.floor(i / 2) * (ch + rowGap),
+    x: CC.DISCS_X + (i % 2) * (cw + g),
+    y: CC.COL_TOP + Math.floor(i / 2) * (ch + g),
     w: cw, h: ch,
   };
 }
+// Содержимое диска живёт с отступом от рамки — им пользуются все трое.
+function ccDiscInner(i) { return ccInset(ccDiscRect(i)); }
 
 function ccDrawDiscs(ctx, C, m, IM) {
   for (let i = 0; i < 6; i++) {
-    const r = ccDiscRect(i);
+    const r = ccDiscInner(i);
     const d = (m.discs || [])[i] || null;
     const procRow = m.procCounts && m.procCounts.perDisc ? m.procCounts.perDisc[i] : null;
     ccDrawDiscCard(ctx, C, m, IM, d, (d && d.slot) || i + 1, procRow, r.x, r.y, r.w);
@@ -12438,7 +12696,7 @@ function ccDrawDiscs(ctx, C, m, IM) {
    Крутится только картинка. Цифра слота остаётся ровной — иначе на половине
    углов она висела бы вверх ногами. */
 function ccDrawDiscArt(ctx, C, IM, d, slot, i, angle) {
-  const r = ccDiscRect(i), s = CC_DISC_HEAD;
+  const r = ccDiscInner(i), s = CC_DISC_HEAD;
   const cx = r.x + s / 2, cy = r.y + s / 2;
   const img = IM(discUrl(d.setName));
   if (img) {
@@ -12518,7 +12776,7 @@ function ccPointerPos(canvas, ev) {
 function ccDiscAt(m, px, py) {
   for (let i = 0; i < 6; i++) {
     if (!(m.discs || [])[i]) continue;
-    const r = ccDiscRect(i), s = CC_DISC_HEAD;
+    const r = ccDiscInner(i), s = CC_DISC_HEAD;
     const dx = px - (r.x + s / 2), dy = py - (r.y + s / 2);
     if (dx * dx + dy * dy <= (s / 2) * (s / 2)) return i;
   }
@@ -12529,6 +12787,16 @@ function ccComposite() {
   const S = ccSpin;
   if (!S) return;
   S.ctx.clearRect(0, 0, CC.W, CC.H);
+  /* Единственное, что не берётся из base, — подложка баннера: она движется.
+     Порядок тот же, что был внутри base: заливка, поверх неё фон, и уже сверху
+     ложится base со своей прозрачной дырой на месте баннера. */
+  S.ctx.save();
+  ccRR(S.ctx, CC.PAD, CC.PAD, CC.LEFT_W, CC.BANNER_H, CC.R);
+  S.ctx.clip();
+  S.ctx.fillStyle = S.C.bg2;
+  S.ctx.fillRect(CC.PAD, CC.PAD, CC.LEFT_W, CC.BANNER_H);
+  ccBannerBackdrop(S.ctx, S.IM(CC_BANNER_BG_URL), CC.PAD, CC.PAD, CC.LEFT_W, CC.BANNER_H, ccBgCard);
+  S.ctx.restore();
   S.ctx.drawImage(S.base, 0, 0);
   /* Кадр модели ложится между слоями баннера: под ним подложка из base, над ним
      затемнения и подписи из overlay. Обрезка по скруглённому прямоугольнику —
@@ -12561,6 +12829,8 @@ function ccSpinTick(ts) {
       alive = true;
     } else S.vel[i] = 0;
   }
+  // Пока крутится диск, кадры идут отсюда, и фон обязан ехать вместе с ними.
+  ccBgAdvance(ccBgCard, ts);
   ccComposite();
   S.raf = alive ? requestAnimationFrame(ccSpinTick) : 0;
 }
@@ -12616,16 +12886,21 @@ function ccAttachSpin(canvas) {
     ev.preventDefault();
   });
 
-  // Наведение: только вид курсора, само вращение живёт в слушателе окна.
+  /* Наведение: вид курсора и прицел параллакса. Само вращение живёт в слушателе
+     окна. Пока диск тянут, ранний выход отсюда заодно подмораживает фон — так и
+     нужно: под рукой должен ехать диск, а не подложка. */
   canvas.addEventListener('pointermove', ev => {
     const S = ccSpin;
     if (!S || S.drag != null) return;
     const p = ccPointerPos(canvas, ev);
     canvas.style.cursor = ccDiscAt(S.m, p.x, p.y) >= 0 ? 'grab' : '';
+    ccBgAim(p.x, p.y);
   });
   canvas.addEventListener('pointerleave', () => {
     const S = ccSpin;
     if (S && S.drag == null) canvas.style.cursor = '';
+    ccBgCard.tx = 0; ccBgCard.ty = 0;
+    l2dKick();
   });
 
   if (ccSpinWindowBound) return;
@@ -13002,7 +13277,16 @@ function l2dLiveCanvases() {
   return document.querySelectorAll('canvas.pd-banner-cv[data-agent]');
 }
 function l2dNeedsFrame() {
-  if (!l2dEnabled() || l2dBroken || document.hidden) return false;
+  if (document.hidden) return false;
+  /* Фон движется сам по себе, поэтому кадр бывает нужен и при выключенном
+     Live2D — проверка стоит ПЕРЕД тумблером, они друг от друга не зависят.
+     Но только пока на экране есть чему двигаться: уехал баннер за край окна —
+     цикл гаснет. Иначе rAF крутился бы вечно на странице, где ничего не видно. */
+  if (ccBgMoves()) {
+    if (profileViewMode === 'compact') { if (ccSpin) return true; }
+    else { for (const cv of l2dLiveCanvases()) if (cv.dataset.offscreen !== '1') return true; }
+  }
+  if (!l2dEnabled() || l2dBroken) return false;
   if (profileViewMode === 'compact') {
     return !!(ccSpin && ccSpin.m && l2dActive(ccSpin.m.agentKey));
   }
@@ -13026,10 +13310,14 @@ function l2dTick(ts) {
 
   if (profileViewMode === 'compact') {
     /* Карточку пересобирает ccComposite. Если сейчас крутятся диски, у них свой
-       тик, который уже вызывает ccComposite — второй раз за кадр не нужно. */
+       тик, который уже вызывает ccComposite — второй раз за кадр не нужно.
+       Шаг фона зовём всё равно: у ccBgAdvance() своя защита от двойного вызова
+       по метке времени, а пропустить его нельзя — иначе на крутящихся дисках
+       фон замрёт. */
+    ccBgAdvance(ccBgCard, ts);
     if (!(ccSpin && ccSpin.raf)) ccComposite();
   } else {
-    l2dLiveCanvases().forEach(cv => l2dPaintBanner(cv));
+    l2dLiveCanvases().forEach(cv => l2dPaintBanner(cv, ts));
   }
   l2dRaf = requestAnimationFrame(l2dTick);
 }
@@ -13058,7 +13346,7 @@ function pdBannerHtml(agentKey, skin) {
   return `<div class="pd-banner"><canvas class="pd-banner-cv" width="${L2D_GL_W}" height="${L2D_GL_H}" data-agent="${escapeHtml(agentKey)}"${skin ? ` data-skin="${escapeHtml(skin)}"` : ''}></canvas></div>`;
 }
 
-function l2dPaintBanner(cv) {
+function l2dPaintBanner(cv, ts) {
   const agentKey = cv.dataset.agent;
   const skin = cv.dataset.skin || null;
   const ctx = cv.getContext('2d');
@@ -13066,6 +13354,16 @@ function l2dPaintBanner(cv) {
   ctx.clearRect(0, 0, cv.width, cv.height);
   ctx.fillStyle = C.bg2;
   ctx.fillRect(0, 0, cv.width, cv.height);
+  /* Подложка рисуется ДО проверки на живую модель — ниже стоит ранний return,
+     и после него сюда уже не возвращаются: поставь вызов туда, и при включённом
+     Live2D баннер остался бы без текстуры. Картинка берётся синхронно из кэша,
+     потому что баннер перерисовывается покадрово; первый кадр может уйти без
+     неё, дорисовку заказывает l2dScanBanners().
+     Метка времени приходит только из цикла. Вызвали без неё (первая отрисовка,
+     дорисовка по загрузке) — сглаживание не шагает, фон просто рисуется там,
+     где стоял. */
+  const bg = ccBgAdvance(ccBgState(cv), ts);
+  ccBannerBackdrop(ctx, ccImgReady(CC_BANNER_BG_URL), 0, 0, cv.width, cv.height, bg);
   // Живая модель показывает базовый вид и скин не знает — поэтому при удачной
   // отрисовке модели выходим до того, как подставится скиновый портрет.
   if (l2dActive(agentKey) && l2dPaint(ctx, agentKey, 0, 0, cv.width, cv.height)) return true;
@@ -13073,6 +13371,41 @@ function l2dPaintBanner(cv) {
   if (art) ccBannerArt(ctx, art, agentKey, 0, 0, cv.width, cv.height, skin);
   return false;
 }
+/* Уехал баннер за край окна — движение фона выключается. Это единственное, что
+   отделяет «фон живёт, пока на него смотрят» от «rAF крутится всегда». Флаг
+   пишется в data-атрибут, потому что l2dNeedsFrame() перебирает холсты по
+   селектору и держать рядом отдельную коллекцию было бы лишней сущностью. */
+const ccBgSeen = new IntersectionObserver(entries => {
+  entries.forEach(e => { e.target.dataset.offscreen = e.isIntersecting ? '0' : '1'; });
+  l2dKick();
+});
+
+/* Курсор для параллакса развёрнутого баннера.
+   Слушатели висят на обёртке .pd-banner, а не на холсте: холст пересоздаётся
+   при каждой пересборке панели, обёртка — вместе с ним, а прямоугольник обёртки
+   удобнее как система координат. Сам холст ищется в момент события, а не
+   запоминается в замыкании: иначе после пересборки мы бы двигали состояние
+   мёртвого элемента. */
+function ccBgBindBanner(cv) {
+  const host = cv.parentElement;
+  if (!host || host.dataset.bgBound === '1') return;
+  host.dataset.bgBound = '1';
+  const aim = (nx, ny) => {
+    const c = host.querySelector('canvas.pd-banner-cv');
+    if (!c) return;
+    const st = ccBgState(c);
+    st.tx = nx; st.ty = ny;
+    l2dKick();
+  };
+  host.addEventListener('pointermove', ev => {
+    const r = host.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    aim((ev.clientX - r.left) / r.width * 2 - 1, (ev.clientY - r.top) / r.height * 2 - 1);
+  });
+  host.addEventListener('pointerleave', () => aim(0, 0));
+  ccBgSeen.observe(cv);
+}
+
 /* Разметка панели собирается строкой и вставляется через innerHTML, причём
    сразу в нескольких местах. Вместо того чтобы дописывать вызов в каждое,
    слушаем сам контейнер: любая пересборка — повод перерисовать баннеры. */
@@ -13083,6 +13416,9 @@ function l2dScanBanners() {
     const agentKey = cv.dataset.agent;
     // статика рисуется сразу, как только картинка доедет
     ccImage(agentPortraitUrl(agentKey, cv.dataset.skin || null)).then(() => l2dPaintBanner(cv));
+    // тем же порядком и фон: первый кадр без него, следующий — уже с текстурой
+    ccImage(CC_BANNER_BG_URL).then(() => l2dPaintBanner(cv));
+    ccBgBindBanner(cv);
     l2dPaintBanner(cv);
     l2dSyncButton(agentKey);
     if (l2dActive(agentKey)) l2dEnsure(l2dIdFor(agentKey)).then(m => { if (m) l2dKick(); });
@@ -13147,6 +13483,7 @@ async function drawCompactCard(canvas, m) {
   else ccDrawBanner(bctx, C, m, IM);
   ccDrawMiddle(bctx, C, m, IM);
   ccDrawDiscs(bctx, C, m, IM);
+  ccDrawBoxes(bctx, C);   // рамки последними — см. комментарий у ccBoxOutline()
 
   /* Верхний слой баннера — затемнения и подписи. Существует только при
      включённой анимации: в статике он уже нарисован внутри base. */
