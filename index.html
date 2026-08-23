@@ -35,6 +35,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;700;900&family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap');
 
 :root {
+  /* Ширина полосы прокрутки. Запасное значение до замера; настоящее ставит
+     ccMeasureScrollbar() сразу после загрузки. */
+  --sb: 6px;
   --bg:      #111111;
   --bg2:     #181818;
   --bg3:     #1f1f1f;
@@ -1453,10 +1456,41 @@ select {
    Отдельный класс, а не .profile-agent-list-col > *, потому что в модалке
    публичных пресетов лежит такой же .profile-agent-list со своей шириной и
    своим скроллом — его задевать нельзя. */
+/* Полоса прокрутки вынесена ВЛЕВО и ЗА пределы колонки. Пока она стояла внутри
+   справа, её появление отъедало ширину у карточек: список с прокруткой и без
+   были разной ширины, и карточки дёргались.
+   Как это устроено. Скроллер и так позиционирован абсолютно, поэтому его левый
+   край просто уезжает за колонку на ширину полосы плюс зазор. direction:rtl
+   переносит саму полосу к левому краю (в rtl полоса всегда с той стороны), а
+   содержимое возвращается в ltr дочерним правилом — иначе весь текст в
+   карточках пошёл бы справа налево.
+   Дальше арифметика: левый край на −(6+6), полоса съедает первые 6, остаётся
+   −6, и padding-left:6 возвращает содержимое ровно на 0. Карточки получают всю
+   ширину колонки, полоса живёт в поле страницы слева и ничего не перекрывает. */
 .profile-agent-list-scroll {
-  position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain;
+  /* min(): если система рисует широкую полосу, вылет упирается в поле страницы
+     и не уезжает за край окна. Карточки при этом станут чуть уже колонки, но
+     полоса останется видимой — это лучше, чем обрезанная краем экрана. */
+  position: absolute; inset: 0 0 0 calc(-1 * min(var(--sb) + 6px, 16px));
+  overflow-y: auto; overscroll-behavior: contain;
   display: flex; flex-direction: column; gap: 6px;
+  direction: rtl; padding-left: 6px;
 }
+/* Ширина вылета считается от РЕАЛЬНОЙ ширины полосы, а не от числа: у одних
+   систем полоса занимает место в потоке, у других рисуется поверх и не занимает
+   ничего. Захардкодь сюда шесть — и на втором варианте карточки вылезут за
+   колонку ровно на эти шесть. Настоящее значение замеряет ccMeasureScrollbar()
+   и кладёт в --sb; до замера действует запасное значение из :root.
+   scrollbar-width намеренно НЕ задан: стоит выставить его или scrollbar-color,
+   и Chrome перестаёт применять правила ::-webkit-scrollbar ниже — полоса
+   вернулась бы к системной ширине. */
+/* Направление возвращается содержимому: rtl нужен ровно для того, чтобы
+   переставить полосу, и больше ни на что влиять не должен. */
+.profile-agent-list-scroll > * { direction: ltr; }
+.profile-agent-list-scroll::-webkit-scrollbar { width: 6px; }
+.profile-agent-list-scroll::-webkit-scrollbar-track { background: transparent; }
+.profile-agent-list-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+.profile-agent-list-scroll::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
 /* flex-shrink:0 здесь обязателен, без него скролла не будет вообще. У скроллера
    теперь конечная высота, а flex-элементы по умолчанию ужимаются под
    контейнер: списки молча сплющились бы ровно по высоте панели вместо того,
@@ -1524,7 +1558,39 @@ select {
    и тот же буфер, разойтись они не могут. display:block убирает щель под
    inline-элементом, из-за которой рамка панели не прилегала бы к холсту. */
 .cc-canvas { display: block; width: 100%; height: auto; border-radius: var(--r-sm); }
-.cc-note { margin-top: 10px; color: var(--text-mid); font-size: 12px; }
+/* Панель под компактной карточкой обнуляется: холст сам себе карточка, и его
+   собственный фон — та же --bg, что у страницы, поэтому подложка обёртки
+   читалась лишней серой рамкой вокруг готового изображения.
+   Правило через :has(), а не через класс из JS, намеренно: содержимое панели
+   переписывается через innerHTML из четырёх разных мест, и класс пришлось бы
+   вешать заново в каждом. :has() следует за содержимым сам и устареть не может.
+   Развёрнутый вид и состояния «Loading…» под правило не попадают — там внутри
+   не холст, и подложка им нужна. */
+.profile-detail:has(> .cc-canvas) {
+  background: none; border: 0; padding: 0; border-radius: 0;
+  overflow: hidden;   /* обрезает вылет холста, см. правило ниже */
+}
+/* Собственное поле карточки (CC.PAD = 34) на странице лишнее: оно
+   складывается с зазором раскладки, и разрыв до соседних колонок выходит вдвое
+   больше, чем везде. Убирать его из отрисовки нельзя — в скачанном PNG оно
+   нужно, иначе боксы упрутся в край изображения.
+   Поэтому холст показывается ШИРЕ контейнера ровно на это поле и обрезается
+   родителем. Наружу уходит только та полоса, где нарисован фон карточки, а
+   видимым краем становится край первого бокса.
+   Числа выведены, а не подобраны: содержимое занимает 34…1886, то есть 1852 из
+   1920. Чтобы эти 1852 легли на ширину контейнера C:
+     ширина холста  W = C × 1920/1852 = 103.671706%
+     вылет          34/1920 × W       =   1.835853% от C
+   Проценты в margin считаются от ширины контейнера по всем четырём сторонам, а
+   холст масштабируется равномерно — поэтому одно и то же число работает и по
+   вертикали. Привязка к процентам, а не к пикселям, принципиальна: поле внутри
+   холста тоже пропорционально ширине, и на другом мониторе фиксированное число
+   разъехалось бы.
+   Скачиваемый PNG при этом не меняется: обрезка живёт только в CSS. */
+.profile-detail > .cc-canvas {
+  width: 103.671706%;
+  margin: -1.835853%;
+}
 .profile-detail-empty { color: var(--text-dim); font-size: 13px; text-align: center; padding: 60px 0; }
 .profile-favorites { display: flex; flex-wrap: wrap; gap: 6px; }
 
@@ -7610,6 +7676,24 @@ let profileViewMode = localStorage.getItem('zzz_profile_view_mode') === 'compact
    жжёт видеокарту, а цвета взяты официальные — из данных Enka, — так что
    включённым он даёт ровно тот вид, за которым сюда и приходят. Кому мешает,
    выключит и вернётся к своему акценту из настроек. */
+/* Ширину полосы прокрутки знает только браузер, и она зависит от системы: где-то
+   полоса занимает место в потоке, где-то рисуется поверх содержимого и не
+   занимает ничего. От этого зависит, насколько выдвигать скроллер списка
+   агентов влево, поэтому меряем честно: временный блок с гарантированной
+   прокруткой и тем же классом (иначе не подхватятся правила ::-webkit-scrollbar),
+   разница между внешней и внутренней шириной и есть ответ. */
+(function ccMeasureScrollbar() {
+  const probe = document.createElement('div');
+  probe.className = 'profile-agent-list-scroll';
+  probe.style.cssText = 'position:absolute;inset:auto;top:-9999px;left:0;' +
+                        'width:80px;height:80px;overflow-y:scroll;padding:0;visibility:hidden';
+  probe.innerHTML = '<div style="height:200px"></div>';
+  document.body.appendChild(probe);
+  const sb = probe.offsetWidth - probe.clientWidth;
+  probe.remove();
+  document.documentElement.style.setProperty('--sb', sb + 'px');
+})();
+
 let profileDisplayOptions = Object.assign({procs:true, totals:true, skills:true, wengine:true, sets:true, discs:true, notes:true, owner:true, live2d:false, slots:true, date:true, tint:true},
   JSON.parse(localStorage.getItem('zzz_profile_display_options') || '{}'));
 /* Totals больше не тумблер — секция показывается всегда. Поле оставлено, потому
@@ -11373,6 +11457,13 @@ const CC_BOX_PAD_X = 16;    // поле внутри бокса по бокам
 const CC_BOX_PAD_Y = 10;    // поле внутри бокса сверху и снизу
 const CC_BOX_LW = 1;        // толщина рамки
 const CC_BOX_R = 14;        // скругление рамки
+/* Заливка боксов — та же --bg2 (#181818), что под карточками команд и панелями
+   Shiyu Defense с Deadly Assault. Берётся из темы, а не числом: поменяется
+   палитра сайта — компактная карточка поедет за ней сама.
+   Подкраску под цвет агента пробовали и отказались: на пяти процентах она почти
+   не читалась, а карточка переставала быть одинаковой у всех агентов без
+   внятной пользы. Если понадобится вернуть — это режим наложения 'color'
+   цветом C.accent поверх заливки: он меняет только тон, светлоту не трогает. */
 const CC_MID_INNER_GAP = 14;   // между двумя рядами внутри одного бокса
 /* Блок проков. Первые две величины — РЕЗЕРВЫ ВЫСОТЫ под ряд иконок и под
    строку с цифрами, по ним считается высота бокса. Ровно чернилами они не
@@ -12585,10 +12676,30 @@ function ccBoxOutline(ctx, C, r) {
   ctx.lineWidth = CC_BOX_LW;
   ctx.stroke();
 }
+/* Список боксов один на всех: по нему и заливают, и обводят. Баннера в нём нет
+   — у него своя текстура и свои границы. */
+function ccBoxRects() {
+  const out = [{ x: CC.STATS_X, y: CC.LOWER_Y, w: CC.STATS_W, h: CC.STATS_H }];
+  ccMidRects().forEach(r => out.push(r));
+  for (let i = 0; i < 6; i++) out.push(ccDiscRect(i));
+  return out;
+}
+
+/* Заливка идёт ПЕРЕД содержимым, в отличие от рамок: иначе она накрыла бы
+   текст. Отсюда и две отдельные функции вместо одной. */
+function ccFillBoxes(ctx, C) {
+  ccBoxRects().forEach(r => {
+    ctx.save();
+    ccRR(ctx, r.x, r.y, r.w, r.h, CC_BOX_R);
+    ctx.clip();
+    ctx.fillStyle = C.bg2;
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.restore();
+  });
+}
+
 function ccDrawBoxes(ctx, C) {
-  ccBoxOutline(ctx, C, { x: CC.STATS_X, y: CC.LOWER_Y, w: CC.STATS_W, h: CC.STATS_H });
-  ccMidRects().forEach(r => ccBoxOutline(ctx, C, r));
-  for (let i = 0; i < 6; i++) ccBoxOutline(ctx, C, ccDiscRect(i));
+  ccBoxRects().forEach(r => ccBoxOutline(ctx, C, r));
 }
 
 /* ── ПРАВАЯ КОЛОНКА: ШЕСТЬ ДИСКОВ 2×3 ──
@@ -13481,6 +13592,7 @@ async function drawCompactCard(canvas, m) {
   bctx.fillStyle = C.bg; bctx.fillRect(0, 0, CC.W, CC.H);
   if (live) ccBannerBelow(bctx, C, m, IM, false);   // без арта — его место займёт модель
   else ccDrawBanner(bctx, C, m, IM);
+  ccFillBoxes(bctx, C);   // заливка — до содержимого
   ccDrawMiddle(bctx, C, m, IM);
   ccDrawDiscs(bctx, C, m, IM);
   ccDrawBoxes(bctx, C);   // рамки последними — см. комментарий у ccBoxOutline()
@@ -13524,8 +13636,7 @@ function compactCardShellHtml(m) {
     const cp = document.getElementById('tbCardCopy');
     if (cp) { cp.classList.toggle('hidden', !ccClipboardSupported()); cp.disabled = false; }
   });
-  return `<canvas id="compactCardCanvas" class="cc-canvas" width="${CC.W}" height="${CC.H}"></canvas>
-    <div class="cc-note">1920×1080 · drag a disc icon to spin it · the ⤓ button saves this exact image.</div>`;
+  return `<canvas id="compactCardCanvas" class="cc-canvas" width="${CC.W}" height="${CC.H}"></canvas>`;
 }
 
 /* Копирование карточки в буфер обмена. Смысл — убрать три лишних шага: сейчас
