@@ -32,7 +32,7 @@
      approach — same zero-build-step experience for visitors, none of the
      single-point-of-failure risk. -->
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;700;900&family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Outfit:wght@400;500;600;700;900&family=Barlow+Condensed:wght@500;700;900&family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap');
 
 :root {
   /* Ширина полосы прокрутки. Запасное значение до замера; настоящее ставит
@@ -58,7 +58,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--bg); color: var(--text); font-family: 'Barlow', 'Inter', sans-serif; min-height: 100vh; }
+body { background: var(--bg); color: var(--text); font-family: 'Outfit', 'Inter', sans-serif; min-height: 100vh; }
 button { appearance: none; -webkit-appearance: none; font: inherit; color: inherit; }
 
 /* ── PINNED BAR STACK (header + primary nav + toolbar) ──
@@ -567,7 +567,7 @@ button { appearance: none; -webkit-appearance: none; font: inherit; color: inher
 select, input[type=number], .fld input[type=text] {
   background: var(--bg); border: 1px solid var(--border);
   border-radius: var(--r-sm); color: var(--text);
-  padding: 6px 10px; font-family: 'Barlow', 'Inter', sans-serif; font-size: 13px;
+  padding: 6px 10px; font-family: 'Outfit', 'Inter', sans-serif; font-size: 13px;
   outline: none; transition: border-color .15s; -webkit-appearance: none;
 }
 select:focus, input:focus { border-color: var(--accent); }
@@ -978,7 +978,7 @@ select {
   flex: 1; min-height: 90px; resize: vertical;
   background: var(--bg); border: 1px solid var(--border);
   border-radius: var(--r-sm); color: var(--text);
-  font-family: 'Barlow', 'Inter', sans-serif; font-size: 12px; line-height: 1.5;
+  font-family: 'Outfit', 'Inter', sans-serif; font-size: 12px; line-height: 1.5;
   padding: 8px 10px; outline: none;
   transition: border-color .15s;
 }
@@ -1032,7 +1032,7 @@ select {
   background: var(--bg); border: 1px solid var(--border);
   border-radius: var(--r-sm); color: var(--text); font-size: 13px;
   outline: none; transition: border-color .15s;
-  font-family: 'Barlow', 'Inter', sans-serif;
+  font-family: 'Outfit', 'Inter', sans-serif;
 }
 .modal-srch input:focus { border-color: var(--accent); }
 .modal-srch input:focus-visible { outline: 2px solid var(--accent-60); outline-offset: 2px; }
@@ -1222,7 +1222,7 @@ select {
 .disc-import-body.hidden { display: flex; max-height: 0; opacity: 0; margin-top: -10px; pointer-events: none; }
 .disc-import-check {
   display: flex; align-items: center; gap: 6px;
-  font-family: 'Barlow', 'Inter', sans-serif; font-size: 12.5px; color: var(--text-mid);
+  font-family: 'Outfit', 'Inter', sans-serif; font-size: 12.5px; color: var(--text-mid);
   cursor: pointer; user-select: none;
 }
 .disc-import-check input { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
@@ -1908,7 +1908,7 @@ select {
 .disc-detail-row {
   display: flex; align-items: center; justify-content: space-between;
   padding: 7px 0; border-bottom: 1px solid var(--border);
-  font-family: 'Barlow', 'Inter', sans-serif; font-size: 13px;
+  font-family: 'Outfit', 'Inter', sans-serif; font-size: 13px;
 }
 .disc-detail-row-label { color: var(--text); }
 .disc-detail-row-val { font-family: 'Share Tech Mono', monospace; color: var(--text); font-weight: 700; }
@@ -1947,7 +1947,7 @@ select {
 }
 .disc-manual-field select {
   background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-sm);
-  color: var(--text); font-family: 'Barlow', 'Inter', sans-serif; font-size: 12.5px;
+  color: var(--text); font-family: 'Outfit', 'Inter', sans-serif; font-size: 12.5px;
   padding: 7px 8px; outline: none; transition: border-color .15s;
 }
 .disc-manual-field select:focus { border-color: var(--accent); }
@@ -1971,7 +1971,7 @@ select {
 .disc-manual-sub-row { display: flex; gap: 8px; align-items: center; }
 .disc-manual-sub-row select {
   flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-sm);
-  color: var(--text); font-family: 'Barlow', 'Inter', sans-serif; font-size: 12.5px;
+  color: var(--text); font-family: 'Outfit', 'Inter', sans-serif; font-size: 12.5px;
   padding: 7px 8px; outline: none; transition: border-color .15s;
 }
 .disc-manual-sub-row select:focus { border-color: var(--accent); }
@@ -2006,7 +2006,7 @@ select {
 .cd-select-btn {
   width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px;
   background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-sm);
-  color: var(--text); font-family: 'Barlow', 'Inter', sans-serif; font-size: 12.5px;
+  color: var(--text); font-family: 'Outfit', 'Inter', sans-serif; font-size: 12.5px;
   padding: 7px 8px; cursor: pointer; transition: border-color .15s; text-align: left;
 }
 .cd-select-btn:hover { border-color: var(--border2); }
@@ -2039,7 +2039,7 @@ select {
 .cd-select-imgslot { flex: 0 0 auto; }
 .manual-set-trigger { display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .manual-set-slot { width: 46px; flex-shrink: 0; }
-.manual-set-name { font-family: 'Barlow', 'Inter', sans-serif; font-size: 12.5px; color: var(--text); white-space: nowrap; }
+.manual-set-name { font-family: 'Outfit', 'Inter', sans-serif; font-size: 12.5px; color: var(--text); white-space: nowrap; }
 .manual-set-name.placeholder { color: var(--text-mid); }
 .cd-select-imgslot .cd-select-list { left: 0; right: auto; width: 460px; max-width: 80vw; }
 
@@ -11371,7 +11371,7 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
         key: preset.wengine,
         name: prettyName(preset.wengine),
         level: wengineLibLevel,
-        rankLabel: `R${preset.wrank || 1}`,
+        rank: preset.wrank || 1,
         rarity: wengineInfo?.rarity || null,
         specialty: wengineInfo?.specialty || null,
         baseATK: wengineInfo?.baseATK || null,
@@ -11434,7 +11434,7 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
    пользователь получает картинку, которую можно кинуть в чат. Браузер не умеет
    сохранять кусок DOM в PNG, а обходные пути (foreignObject в SVG, html2canvas)
    требуют вшивать шрифты base64-строкой и всё равно дают расхождение между
-   экраном и файлом — классическая беда, когда вместо Barlow в скачанном PNG
+   экраном и файлом — классическая беда, когда вместо Outfit в скачанном PNG
    вылезает системный шрифт. Здесь превью и файл — буквально один и тот же
    пиксельный буфер: то, что нарисовано, то и сохранится.
 
@@ -11489,7 +11489,7 @@ const CC = {
   W: 1920, H: 1080, PAD: 34, GAP: CC_BOX_GAP,
   STATS_W: 630,  // лист статов — ровно тот же блок, что был в средней колонке
   R: 14, R_SM: 10,
-  F: 'Barlow', FC: '"Barlow Condensed"', FM: '"Share Tech Mono"',
+  F: 'Outfit', FC: '"Barlow Condensed"', FM: '"Share Tech Mono"',
 };
 /* Раскладка: сверху горизонтальный баннер агента во всю ширину левее дисков,
    под ним лист статов слева и колонка с движком и проками справа. Диски
@@ -11921,9 +11921,10 @@ function ccImage(url) {
    ничего не запрашивает, поэтому каждое нужное начертание заказывается явно. */
 async function ccEnsureFonts() {
   const wanted = [
-    `900 70px ${CC.FC}`, `700 30px ${CC.FC}`,
-    `700 34px ${CC.F}`, `600 22px ${CC.F}`, `500 20px ${CC.F}`, `400 18px ${CC.F}`,
-    `400 16px ${CC.FM}`,
+    /* Холст рисует только основным шрифтом: узкое начертание и моноширинный
+       остались за вёрсткой сайта, и заказывать их здесь больше незачем. */
+    `900 70px ${CC.F}`, `700 34px ${CC.F}`, `700 20px ${CC.F}`,
+    `600 22px ${CC.F}`, `500 20px ${CC.F}`, `400 18px ${CC.F}`,
   ];
   try {
     await Promise.all(wanted.map(f => document.fonts.load(f).catch(() => {})));
@@ -11939,12 +11940,9 @@ async function ccPreload(m) {
      без текстуры — картинка просто не успела бы доехать к моменту отрисовки. */
   add(CC_BANNER_BG_URL);
   if (m.agentKey) { add(agentPortraitUrl(m.agentKey, m.skin)); }
-  if (m.attributeIcon) add(attributeUrl(m.attributeIcon));
-  if (m.specialtyIcon) add(specialtyUrl(m.specialtyIcon));
+
   if (m.wengine) {
     if (m.wengine.key) add(wengineUrl(m.wengine.key));
-    if (m.wengine.rarity) add(iconUrl('item-rank-' + String(m.wengine.rarity).toLowerCase()));
-    if (m.wengine.specialty) add(specialtyUrl(m.wengine.specialty));
     if (m.wengine.baseATK != null) add(iconUrl('ATK'));
     if (m.wengine.secName) { const k = ccStatIconKey(m.wengine.secName); if (k) add(iconUrl(k)); }
   }
@@ -12001,6 +11999,13 @@ function ccText(ctx, text, x, y, o) {
 }
 /* Разрядка вручную, посимвольно: ctx.letterSpacing есть не во всех браузерах, а
    заголовки секций без разрядки теряют сходство с остальным интерфейсом. */
+// Ширина строки с разрядкой. Нужна там, где такая строка прижата к правому
+// краю: нарисовать её можно только слева направо, а начать — зная ширину.
+function ccTrackW(ctx, text, sp) {
+  let cx = 0;
+  for (const ch of String(text)) cx += ctx.measureText(ch).width + sp;
+  return Math.max(0, cx - sp);
+}
 function ccTrackText(ctx, text, x, y, sp, o) {
   o = o || {};
   ctx.textAlign = 'left'; ctx.textBaseline = o.baseline || 'alphabetic';
@@ -12067,9 +12072,16 @@ const CC_BANNER_BG_STRENGTH = 1;
 /* Ход под курсором и собственный дрейф — в пикселях холста ШИРИНОЙ
    CC_BANNER_BG_REF_W. Числа подобраны на баннере развёрнутого вида (2340), а в
    компактной карточке он вдвое уже: без пересчёта одно и то же число двигало бы
-   фон там вдвое размашистее. Поэтому смещение всегда умножается на w / REF_W. */
-const CC_BANNER_BG_PARALLAX = 25;
-const CC_BANNER_BG_DRIFT = 25;
+   фон там вдвое размашистее. Поэтому смещение всегда умножается на w / REF_W.
+   ОБА ОБНУЛЕНЫ. Фон стоит неподвижно в обоих баннерах — и в компактной
+   карточке, и в развёрнутом виде. Движение стоило двух вещей: постоянно
+   крутящегося цикла перерисовки (см. l2dNeedsFrame) и запаса по краям картинки,
+   без которого при сдвиге показался бы её край, — то есть лишнего кропа. Без
+   движения запас не нужен, и подложка вписывается в баннер ровно по cover.
+   Механика движения намеренно оставлена в коде: вернуть его — это поставить
+   сюда ненулевые числа, всё остальное подстроится само. */
+const CC_BANNER_BG_PARALLAX = 0;
+const CC_BANNER_BG_DRIFT = 0;
 const CC_BANNER_BG_REF_W = 2340;
 /* Зерно и виньетка — отдельные слои ПОВЕРХ картинки. Они её действительно
    меняют, но это осознанно: тон самого файла остаётся нетронутым, а фактура и
@@ -12147,13 +12159,16 @@ function ccBannerBackdrop(ctx, bg, x, y, w, h, st) {
   const ox = (st ? st.px : 0) * k, oy = (st ? st.py : 0) * k;
 
   if (bg && bg.width) {
-    /* Запас по краям. Картинка ездит, и вписанная впритык показала бы свой край
-       на первом же сдвиге: при cover она даёт 2340×1011 на холст 2340×976 —
-       по горизонтали свободного места ноль. Запас считается из предельного
+    /* Запас по краям нужен только движущейся подложке: вписанная впритык, она
+       показала бы свой край на первом же сдвиге. Считается из предельного
        размаха, а не подбирается на глаз, поэтому меняешь ход — он подстроится
-       сам. Плата за это лишний кроп примерно в 4%. */
-    const mx = (CC_BANNER_BG_PARALLAX + CC_BANNER_BG_DRIFT) * k + 2;
-    const my = (CC_BANNER_BG_PARALLAX * 0.5 + CC_BANNER_BG_DRIFT * 0.55) * k + 2;
+       сам. Неподвижной подложке запас не нужен и вреден: это лишний кроп
+       примерно в 4% и лишнее увеличение картинки. Поэтому при нулевом ходе
+       поля ровно нулевые, и остаётся честный cover — картинка занимает баннер
+       целиком, а по одной из осей вылезает за него и обрезается. */
+    const moving = CC_BANNER_BG_PARALLAX > 0 || CC_BANNER_BG_DRIFT > 0;
+    const mx = moving ? (CC_BANNER_BG_PARALLAX + CC_BANNER_BG_DRIFT) * k + 2 : 0;
+    const my = moving ? (CC_BANNER_BG_PARALLAX * 0.5 + CC_BANNER_BG_DRIFT * 0.55) * k + 2 : 0;
     const scale = Math.max((w + mx * 2) / bg.width, (h + my * 2) / bg.height);
     const dw = bg.width * scale, dh = bg.height * scale;
     ctx.save();
@@ -12259,51 +12274,59 @@ function ccBannerAbove(ctx, C, m, IM) {
   gBot.addColorStop(0, 'rgba(0,0,0,0)'); gBot.addColorStop(1, 'rgba(0,0,0,.8)');
   ctx.fillStyle = gBot; ctx.fillRect(x, y + h - 140, w, 140);
 
-  /* Верх слева — две строки. Первая: ник и UID, ими управляет тумблер Owner.
-     Вторая: дата снимка, у неё свой тумблер. Они намеренно развязаны: дата —
-     это подпись самой карточки (по ней видно, насколько свежая стата), а Owner
-     отвечает за твои данные. Связать их значило бы, что выключение ника молча
-     уносит и дату. */
-  let hy = y + 40;
+  /* Верх баннера — две служебные подписи по разным углам, на одной строке.
+     Слева ник с UID, им управляет тумблер Owner; справа дата снимка со своим
+     тумблером. Они намеренно развязаны: дата — подпись самой карточки (по ней
+     видно, насколько свежая стата), а Owner отвечает за твои данные; связать
+     их значило бы, что выключение ника молча уносит и дату.
+     Дата стоит справа на месте бывших значков атрибута и специальности: они с
+     карточки убраны, а угол пустым не оставляют. Правая подпись прижата к
+     краю, поэтому её ширину надо знать до отрисовки — ccTrackW. */
+  const hy = y + 40;
   if (m.showOwner && m.owner && (m.owner.nickname || m.owner.uid)) {
-    ccFont(ctx, 400, 20, CC.FM);
+    ccFont(ctx, 500, 20);
     ccTrackText(ctx, [m.owner.nickname, m.owner.uid].filter(Boolean).join(' · '),
       x + 26, hy, 1.5, { color: CC_MUTED });
-    hy += 28;
   }
   if (m.showDate && m.dateText) {
-    ccFont(ctx, 400, 20, CC.FM);
-    ccTrackText(ctx, m.dateText, x + 26, hy, 1.5, { color: CC_MUTED });
+    ccFont(ctx, 500, 20);
+    const dw = ccTrackW(ctx, m.dateText, 1.5);
+    ccTrackText(ctx, m.dateText, x + w - 26 - dw, hy, 1.5, { color: CC_MUTED });
   }
 
-  /* Верх справа — атрибут и специальность. Без подложек: тёмные кружки с
-     рамкой спорили с тёмным фоном карточки и выглядели инородно. Читаемость
-     на светлых артах держат верхний градиент баннера и мягкая тень под самим
-     значком — она же не даёт белой иконке специальности слиться с белым артом. */
-  let ix = x + w - 26 - CC_BANNER_ICO;
-  [m.specialtyIcon && specialtyUrl(m.specialtyIcon), m.attributeIcon && attributeUrl(m.attributeIcon)]
-    .forEach(url => {
-      if (!url) return;
-      ctx.save();
-      ctx.shadowColor = 'rgba(0,0,0,.85)';
-      ctx.shadowBlur = 14;
-      ctx.shadowOffsetY = 2;
-      ccContain(ctx, IM(url), ix, y + 24, CC_BANNER_ICO, CC_BANNER_ICO);
-      ctx.restore();
-      ix -= CC_BANNER_ICO + 14;
-    });
 
   const bottom = y + h;
-  // Низ слева — имя и подпись под ним.
+
+  /* Размеры ряда эйдосов — общие с рядом пробуждений движка, см. CC_CHIP.
+     Оптический центр строки от размера НЕ зависит: плашки растут в обе
+     стороны от него, иначе ряд при увеличении сползал бы к низу баннера.
+     Сам ряд рисуется ниже, но геометрия объявлена здесь: по ней ставится имя
+     агента, а оно идёт первым. */
+  const rowMid = bottom - 31;
+
+  // Низ слева — имя агента, выровненное по низу этого ряда.
   let size = 74;
-  ccFont(ctx, 900, size, CC.FC);
+  /* Имя набрано основным шрифтом карточки, а не узким: карточка переехала на
+     Outfit целиком, и узкий Barlow Condensed остался только в вёрстке сайта.
+     Плата за это — ширина: Outfit шире примерно в полтора раза, поэтому цикл
+     ужатия ниже срабатывает у длинных имён чаще и сильнее, чем раньше. */
+  ccFont(ctx, 900, size);
   const nameUp = String(m.displayName || '').toUpperCase();
-  while (size > 34 && ctx.measureText(nameUp).width > w * 0.34) { size -= 2; ccFont(ctx, 900, size, CC.FC); }
-  ccText(ctx, nameUp, x + 26, bottom - 52, { color: '#ffffff' });
-  if (m.subLine) {
-    ccFont(ctx, 400, 21);
-    ccText(ctx, m.subLine, x + 28, bottom - 22, { color: CC_MUTED, max: w * 0.34 });
-  }
+  while (size > 34 && ctx.measureText(nameUp).width > w * 0.34) { size -= 2; ccFont(ctx, 900, size); }
+  /* Имя стоит НИЗОМ на той же горизонтали, что и низ ряда эйдосов справа:
+     оба нижних угла баннера читаются стоящими на одной линии. Прописные не
+     имеют выносных элементов, поэтому низ букв и есть базовая линия, и её
+     достаточно посадить на край плашки. Через переменные ряда, а не числом:
+     высота плашки зависит от масштаба, и при его изменении имя уедет вместе
+     с рядом само. Кегль имени в расчёте не участвует — ужатое длинное имя
+     встанет на ту же линию, что и короткое.
+     Ради этой строки геометрия ряда объявлена выше по функции, хотя рисуется
+     он ниже: имя должно знать, где проходит линия. */
+  ccText(ctx, nameUp, x + 26, rowMid + CC_CHIP.h / 2, { color: '#ffffff' });
+  /* Подпись под именем (полное имя, пол, рост) с карточки убрана: справка из
+     профиля, которая на карточке никому ничего не решает, а место под именем
+     занимала. Поле m.subLine в модели осталось — им пользуется развёрнутый
+     вид, и через него подпись можно вернуть одной строкой. */
 
   // Низ справа — пресет сверху, уровень с эйдосами снизу. Обе строки прижаты
   // вправо, поэтому ширина считается заранее.
@@ -12314,34 +12337,16 @@ function ccBannerAbove(ctx, C, m, IM) {
       { r: 16, fill: 'rgba(0,0,0,.55)', stroke: C.border2 });
     ccText(ctx, m.presetName, x + w - 26 - tw - 13, bottom - 66, { color: C.text, max: tw });
   }
-  /* Ряд эйдосов начинается с M0, а не с M1. Без нулевой плашки состояние «нет
-     эйдосов» и «данные не подтянулись» выглядят одинаково — шесть одинаково
-     тусклых M1…M6, и не понять, что именно имеется в виду.
-     M0 горит ВСЕГДА, при любом числе эйдосов: это не «текущее значение», а
-     базовое состояние агента, оно у него есть по определению. Ряд читается как
-     шкала — сколько плашек подряд горит от начала, столько всего и открыто,
-     считая нулевую. У агента без эйдосов горит одна M0, у M2 — M0, M1, M2.
-     Показывается постоянно ещё и затем, чтобы M1…M6 стояли на одном месте у
-     всех агентов и ряд не прыгал по ширине.
-     Уровень белый, а не акцентный: жёлтым в этом ряду теперь говорит только
-     подсветка эйдосов, и второй жёлтый рядом спорил бы с ней за внимание. */
-  const chipW = 26, chipGap = 6, chipN = 7;
-  ccFont(ctx, 700, 22);
+  /* Ряд эйдосов начинается с M0, а не с M1: M0 — базовое состояние агента, и
+     без него «нет эйдосов» и «данные не подтянулись» выглядели бы одинаково.
+     Он же держит M1…M6 на одном месте у всех агентов, чтобы ряд не прыгал по
+     ширине. Правило подсветки общее для обоих рядов карточки — см. ccDrawChips.
+     Ряд прижат к правому краю и растёт влево, поэтому его ширина нужна до
+     отрисовки; measureOnly и считает её, ничего не рисуя. */
   const lvTxt = `Lv.${m.level}${m.levelMax ? '/' + m.levelMax : ''}`;
-  const lvW = ctx.measureText(lvTxt).width;
-  const rowW = lvW + 18 + chipW * chipN + chipGap * (chipN - 1);
-  let cx = x + w - 26 - rowW;
-  ccText(ctx, lvTxt, cx, bottom - 24, { color: '#ffffff' });
-  cx += lvW + 18;
-  const ms = m.mindscape || 0;
-  for (let i = 0; i <= 6; i++) {
-    const on = i === 0 || i <= ms;
-    ccPanel(ctx, cx, bottom - 41, chipW, 20, { r: 4, fill: on ? C.accent : 'rgba(255,255,255,.10)' });
-    ccFont(ctx, 700, 13, CC.FM);
-    ccText(ctx, 'M' + i, cx + chipW / 2, bottom - 27, { color: on ? '#000000' : 'rgba(255,255,255,.45)', align: 'center' });
-    ccFont(ctx, 700, 22);
-    cx += chipW + chipGap;
-  }
+  const lit = 1 + (m.mindscape || 0);
+  const rowW = ccLevelChipRow(ctx, C, 0, 0, lvTxt, CC_MINDSCAPE_LABELS, lit, true);
+  ccLevelChipRow(ctx, C, x + w - 26 - rowW, rowMid, lvTxt, CC_MINDSCAPE_LABELS, lit);
   ctx.restore();
 
   ccRR(ctx, x, y, w, h, CC.R);
@@ -12349,6 +12354,100 @@ function ccBannerAbove(ctx, C, m, IM) {
 }
 
 // Статичный баннер целиком — оба слоя подряд, поведение до появления Live2D.
+/* ── РЯД ПЛАШЕК ──
+   Одна и та же деталь в двух местах карточки: эйдосы агента на баннере
+   (M0…M6) и пробуждения движка (P1…P5). Живёт здесь общей, а не двумя копиями,
+   потому что смысл у неё один — шкала «сколько подряд открыто от начала», — и
+   разъехавшись в размерах, две копии читались бы как разные сущности.
+
+   Ряд читается именно как шкала, а не как «текущее значение»: горят все
+   плашки подряд от первой до текущей. Первая горит ВСЕГДА — у агента это M0,
+   базовое состояние без эйдосов, у движка P1, первое пробуждение, которое
+   есть у любого движка по определению. Без горящей первой плашки состояние
+   «ничего не открыто» и «данные не подтянулись» выглядели бы одинаково.
+
+   Весь ряд задан ОДНИМ коэффициентом: числа-множители — исходные размеры, и
+   пока они умножаются на общий S, ряд растёт и ужимается целиком, без
+   разъезда подписи относительно плашек. S больше единицы, потому что на
+   исходных 13 пикселях буква попадала штрихами между пикселями холста и
+   мылилась. Буквы набраны основным шрифтом карточки, а не моноширинным: у
+   Share Tech Mono на таком кегле тонкие штрихи размывались сильнее всего, а
+   ширины здесь и так одинаковые — плашки фиксированной ширины.
+
+   Зазор между плашками живёт со своим множителем: он единственный, кому общий
+   масштаб не идёт на пользу — при увеличении ряд начинал рассыпаться на
+   отдельные кнопки вместо одной шкалы. 0.85 поджимает его на 15%. Зазор между
+   «Lv» и первой плашкой сюда НЕ входит: он разделяет две разные сущности, и
+   держать его шире правильно. */
+const CC_CHIP_S = 1.10, CC_CHIP_GAP_K = 0.85;
+/* Размеры считаются функцией, потому что наборов два: полный — для баннера и
+   движка, и уменьшенный — для карточки диска, которая вдвое уже и куда полный
+   ряд влезает впритык. k — множитель поверх общего масштаба. */
+function ccChipMetrics(k) {
+  const S = CC_CHIP_S * (k || 1);
+  return {
+    w: Math.round(26 * S),
+    h: Math.round(20 * S),
+    r: Math.round(4 * S),
+    gap: Math.round(6 * S * CC_CHIP_GAP_K),
+    font: Math.round(13 * S),
+    lvFont: Math.round(22 * S),
+    lvGap: Math.round(18 * S),
+  };
+}
+const CC_CHIP = ccChipMetrics(1);
+/* Карточка диска вдвое уже баннера: полный ряд туда влезает, но с запасом
+   меньше десяти пикселей до правого края. 0.85 даёт воздух и заодно снимает
+   спор с главным статом, который в этой же шапке набран крупно. */
+const CC_CHIP_DISC = ccChipMetrics(0.85);
+// Ширина ряда из n плашек. Нужна заранее там, где ряд прижат к правому краю.
+function ccChipsW(n, M) { M = M || CC_CHIP; return M.w * n + M.gap * (n - 1); }
+/* Рисует ряд. mid — оптический центр строки: плашки растут в обе стороны от
+   него, поэтому смена масштаба не сдвигает строку по вертикали. lit — сколько
+   плашек подряд горит, считая первую. */
+function ccDrawChips(ctx, C, x, mid, labels, lit, M) {
+  M = M || CC_CHIP;
+  let cx = x;
+  labels.forEach((label, i) => {
+    const on = i < lit;
+    ccPanel(ctx, cx, mid - M.h / 2, M.w, M.h,
+      { r: M.r, fill: on ? C.accent : 'rgba(255,255,255,.10)' });
+    ccFont(ctx, 700, M.font);
+    ccText(ctx, label, cx + M.w / 2, mid + Math.round(M.font * 0.36),
+      { color: on ? '#000000' : 'rgba(255,255,255,.45)', align: 'center' });
+    cx += M.w + M.gap;
+  });
+  return ccChipsW(labels.length, M);
+}
+/* Строка «Lv.x/y + ряд плашек» целиком. Возвращает свою ширину, чтобы
+   вызывающий мог прижать её к правому краю. Уровень белый, а не акцентный:
+   жёлтым в этой строке говорит только подсветка плашек, и второй жёлтый рядом
+   спорил бы с ней за внимание. */
+function ccLevelChipRow(ctx, C, x, mid, lvTxt, labels, lit, measureOnly, M) {
+  M = M || CC_CHIP;
+  ccFont(ctx, 700, M.lvFont);
+  const lvW = ctx.measureText(lvTxt).width;
+  if (!measureOnly) {
+    ccText(ctx, lvTxt, x, mid + Math.round(M.lvFont * 0.32), { color: '#ffffff' });
+    ccDrawChips(ctx, C, x + lvW + M.lvGap, mid, labels, lit, M);
+  }
+  return lvW + M.lvGap + ccChipsW(labels.length, M);
+}
+const CC_MINDSCAPE_LABELS = ['M0', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6'];
+const CC_WENGINE_RANK_LABELS = ['P1', 'P2', 'P3', 'P4', 'P5'];
+/* Сколько сабстатов было у диска при выпадении. Каждое улучшение добавляет
+   ровно один прок: либо создаёт четвёртый сабстат, либо докручивает уже
+   имеющийся, — а улучшений сделано «уровень / 3». Значит стартовое число
+   сабстатов это общее число проков минус число улучшений. На пятнадцатом
+   уровне: девять проков минус пять улучшений — выпал с четырьмя, восемь минус
+   пять — с тремя. Формулой, а не таблицей на два случая, чтобы недокачанный
+   диск считался так же верно. */
+const CC_DISC_SUB_LABELS = ['S3', 'S4'];
+function ccDiscStartSubs(d) {
+  const procs = (d.subStats || []).reduce((a, s) => a + (s.procs || 1), 0);
+  return procs - Math.floor((d.level || 0) / 3);
+}
+
 function ccDrawBanner(ctx, C, m, IM) {
   ccBannerBelow(ctx, C, m, IM, true);
   ccBannerAbove(ctx, C, m, IM);
@@ -12399,7 +12498,9 @@ function ccDrawStats(ctx, C, m, IM, x, y, w) {
     const col = ccBucketColor(C, bucket) || C.text;
     const icoKey = CC_STAT_ICON[r.fam];
     if (icoKey) ccContain(ctx, IM(iconUrl(icoKey)), x, mid - 15, 30, 30);
-    ccFont(ctx, 500, 22);
+    /* Подпись набрана 600, а не 500: справа в той же строке стоит цифра 700,
+       и на 500 название читалось выцветшим рядом с ней. */
+    ccFont(ctx, 600, 22);
     ccText(ctx, r.label, x + 42, mid + 8, { color: bucket ? col : C.text, max: w * .5 });
     /* Только итог. Разбивка «база + бонус» в скобках отсюда убрана намеренно:
        на карточке, которую кидают в чат, важна итоговая цифра, а серая скобка
@@ -12428,40 +12529,30 @@ function ccDrawWengine(ctx, C, m, IM, x, y, w) {
     ccText(ctx, 'No W-Engine equipped', x, y + 74, { color: CC_MUTED, max: w });
     return;
   }
-  /* Ширина группы считается по самой длинной из трёх строк, а не по колонке:
-     иначе «центрировать» означало бы центрировать пустоту справа от короткого
-     названия, и блок съезжал бы влево тем сильнее, чем короче имя движка. */
-  /* Строка уровня набрана ровно тем же, чем уровень агента на баннере (Barlow
-     700/22, белый): это одна и та же величина, и разный кегль с разным цветом
-     читались как разные по важности вещи. Заодно у движка появился потолок
-     «/60» — у агента он есть, а тут раньше стоял голый «Lv.60», и было не
-     понять, это максимум или просто столько накачали. */
-  const weLv = `Lv.${we.level}${we.levelMax ? '/' + we.levelMax : ''} · ${we.rankLabel}`;
-  ccFont(ctx, 700, 26);
-  let bodyW = ctx.measureText(we.name).width;
-  ccFont(ctx, 700, 22);
-  bodyW = Math.max(bodyW, ctx.measureText(weLv).width + 14
-    + (we.rarity ? 40 : 0) + (we.specialty ? 32 : 0));
-  ccFont(ctx, 700, 23);
-  let statsW = 0;
-  if (we.baseATK != null) statsW += CC_MAIN_ICO + 8 + ctx.measureText(String(we.baseATK)).width + 26;
-  if (we.secValue != null) statsW += CC_MAIN_ICO + 8 + ctx.measureText(String(we.secValue)).width;
-  bodyW = Math.max(bodyW, statsW);
-  const groupW = Math.min(CC_WENGINE_ICO + 16 + bodyW, w);
-  x += (w - groupW) / 2;
-
+  /* Блок прижат к левому полю бокса. Раньше группа «иконка + текст»
+     центровалась по ширине самой длинной из трёх строк, и весь блок ездил
+     влево-вправо в зависимости от длины названия движка — при том, что все
+     соседние блоки карточки набраны от левого края. */
   ccContain(ctx, IM(we.key ? wengineUrl(we.key) : null), x, y + 4, CC_WENGINE_ICO, CC_WENGINE_ICO);
   const tx = x + CC_WENGINE_ICO + 16, tw = w - CC_WENGINE_ICO - 16;
 
+  // Первая строка — только название, во всю ширину блока.
   ccFont(ctx, 700, 26);
   ccText(ctx, we.name, tx, y + 38, { color: C.text, max: tw });
 
-  // Уровень и ранг словами, дальше ранг предмета и специальность картинками.
-  let cx = tx;
-  ccFont(ctx, 700, 22);
-  cx += ccText(ctx, weLv, tx, y + 76, { color: '#ffffff' }) + 14;
-  if (we.rarity) { ccContain(ctx, IM(iconUrl('item-rank-' + String(we.rarity).toLowerCase())), cx, y + 52, 32, 32); cx += 40; }
-  if (we.specialty) ccContain(ctx, IM(specialtyUrl(we.specialty)), cx, y + 52, 32, 32);
+  /* Вторая строка — ровно та же, что уровень с эйдосами у агента на баннере:
+     общий ccLevelChipRow, общие размеры, общее правило подсветки. Это одна и
+     та же величина в двух местах карточки, и набирать её по-разному значило бы
+     говорить, что величины разные. Потолок «/60» здесь тоже есть: без него
+     стоял голый «Lv.60» и было не понять, это максимум или просто столько
+     накачали.
+     Пробуждений у движка пять и нулевого не существует, поэтому ряд начинается
+     с P1 — и он же горит всегда, как M0 у агента. Ограничение по краям — от
+     кривых данных: ряд рисует пять плашек и на шестое пробуждение не рассчитан. */
+  ccLevelChipRow(ctx, C, tx, y + 68,
+    `Lv.${we.level}${we.levelMax ? '/' + we.levelMax : ''}`,
+    CC_WENGINE_RANK_LABELS,
+    Math.max(1, Math.min(CC_WENGINE_RANK_LABELS.length, we.rank || 1)));
 
   // Базовая атака и второй стат: значок плюс число, как на карточках дисков.
   let sx = tx;
@@ -12474,6 +12565,7 @@ function ccDrawWengine(ctx, C, m, IM, x, y, w) {
   };
   statSeg('ATK', we.baseATK);
   statSeg(we.secName ? ccStatIconKey(we.secName) : null, we.secValue);
+
 }
 
 /* ── СРЕДНЯЯ КОЛОНКА: НАВЫКИ ──
@@ -12558,20 +12650,20 @@ function ccDrawProcNumbers(ctx, C, m, IM, x, base, w) {
   let total = 0;
   segs.forEach(([num, label]) => {
     ccFont(ctx, 700, 50); total += ctx.measureText(num).width + 8;
-    if (label) { ccFont(ctx, 600, 20); total += ctx.measureText(label).width + 24; }
+    if (label) { ccFont(ctx, 700, 20); total += ctx.measureText(label).width + 24; }
     else total += 16;
   });
-  ccFont(ctx, 400, 21);
+  ccFont(ctx, 600, 21);
   total += ctx.measureText(tail).width;
 
   let cx = x + Math.max(0, (w - total) / 2);
   segs.forEach(([num, label, color]) => {
     ccFont(ctx, 700, 50);
     cx += ccText(ctx, num, cx, base, { color }) + 8;
-    if (label) { ccFont(ctx, 600, 20); cx += ccText(ctx, label, cx, base, { color }) + 24; }
+    if (label) { ccFont(ctx, 700, 20); cx += ccText(ctx, label, cx, base, { color }) + 24; }
     else cx += 16;
   });
-  ccFont(ctx, 400, 21);
+  ccFont(ctx, 600, 21);
   ccText(ctx, tail, cx, base, { color: CC_MUTED, max: Math.max(0, x + w - cx) });
 }
 
@@ -12735,11 +12827,31 @@ function ccDrawDiscCard(ctx, C, m, IM, d, slot, procRow, x, y, w) {
   // Значок сета и цифра слота здесь НЕ рисуются — они накладываются поверх
   // отдельным слоем, потому что вращаются. См. ccDrawDiscArt().
 
-  /* Главный стат центрован по высоте шапки. Строка с рангом и уровнем над ним
-     была и убрана: у дисков со стенда ранг почти всегда S, а уровень почти
-     всегда 15, так что шесть карточек показывали шесть одинаковых пар. */
+  /* Шапка диска в два этажа: строка уровня сверху, главный стат под ней.
+     Уровень с рангом набран ровно тем же, чем строка движка, — Outfit 700,
+     белый, следом картинка ранга предмета. Это одна и та же величина у
+     агента, у движка и у диска, и разный кегль с разным цветом читались бы
+     как разные по важности вещи. Кегль на два пункта меньше движкового
+     (20 против 22) только потому, что карточка диска вдвое уже.
+     Строку эту однажды убирали: у дисков со стенда ранг почти всегда S, а
+     уровень почти всегда 15, и шесть карточек показывали шесть одинаковых
+     пар. Возвращена намеренно — место в шапке теперь есть, а уровень
+     подписан и у агента, и у движка, так что диск без подписи выбивался.
+     Главный стат из-за этого больше не центрован по шапке, а сдвинут вниз
+     на половину новой строки: +16 — это её высота с воздухом. */
   const hx = x + headH + 14;
-  const mIco = CC_MAIN_ICO, mid = y + headH / 2;
+  const mIco = CC_MAIN_ICO, mid = y + headH / 2 + 16;
+  if (d.level != null) {
+    /* Уровень и следом ряд из двух плашек — той же деталью, что эйдосы агента
+       и пробуждения движка. S3 горит всегда: меньше трёх сабстатов диск не
+       выпадает; S4 загорается у выпавших сразу с четырьмя. Значок ранга,
+       стоявший здесь раньше, убран — у дисков на витрине он всё равно всегда
+       один и тот же, а место занимал. Если данные вдруг не сойдутся и по
+       формуле выйдет не три и не четыре, горит одна S3. */
+    ccLevelChipRow(ctx, C, hx, y + 25,
+      `Lv.${d.level}${d.maxLevel ? '/' + d.maxLevel : ''}`,
+      CC_DISC_SUB_LABELS, ccDiscStartSubs(d) >= 4 ? 2 : 1, false, CC_CHIP_DISC);
+  }
   const mk = ccStatIconKey(d.mainStat);
   if (mk) ccContain(ctx, IM(iconUrl(mk)), hx, mid - mIco / 2, mIco, mIco);
   ccFont(ctx, 700, CC_MAIN_FONT);
@@ -12756,7 +12868,8 @@ function ccDrawDiscCard(ctx, C, m, IM, d, slot, procRow, x, y, w) {
     const extra = (sub.procs || 1) - 1; // первый прок — базовый ролл, в бейдже только докрутки
     let nameMax = w - vW - 14;
     if (extra > 0) nameMax -= 44;
-    ccFont(ctx, 500, 21);
+    // 600 по той же причине, что и в листе статов: значение рядом набрано 600/23.
+    ccFont(ctx, 600, 21);
     const nW = ccText(ctx, ccSubName(ctx, sub.name, nameMax), x, sMid + 8, { color: col });
     if (extra > 0) {
       ccFont(ctx, 700, 22);
@@ -12772,7 +12885,7 @@ function ccDrawDiscCard(ctx, C, m, IM, d, slot, procRow, x, y, w) {
     let fx = x;
     const seg = (num, label, color) => {
       ccFont(ctx, 700, 21); fx += ccText(ctx, num, fx, fMid + 7, { color }) + 5;
-      ccFont(ctx, 400, 19); fx += ccText(ctx, label, fx, fMid + 7, { color }) + 14;
+      ccFont(ctx, 600, 19); fx += ccText(ctx, label, fx, fMid + 7, { color }) + 14;
     };
     if (procRow.main > 0) seg(String(procRow.main), ccProcWord(procRow.main), C.accent);
     if (procRow.flat > 0) seg('+' + procRow.flat, 'flat', C.accent60);
@@ -13725,9 +13838,14 @@ function ccMakeModel(src) {
      получилось бы 8/17/2026, и одна и та же карточка читалась бы по-разному. */
   const d = new Date();
   const p2 = n => String(n).padStart(2, '0');
+  /* Рост и день рождения — из того же справочника, что и остальная биография.
+     Строка собирается здесь, а не при отрисовке: у части агентов полей нет
+     вовсе (у Pyrois пуст весь блок биографии), и решать «показывать ли» надо
+     один раз, там же, где решается всё остальное про модель.
+     Рост берётся КАК ЕСТЬ, включая скобки вроде «163 (Ears Included)cm»: это
+     подпись из официального профиля, и вычищать из неё шутку — значит
+     переписывать источник. */
   return Object.assign({}, src, {
-    attributeIcon: attr ? (attr.special || attr.base) : null,
-    specialtyIcon: cls || null,
     dateText: `${p2(d.getDate())}.${p2(d.getMonth() + 1)}.${d.getFullYear()}`,
     showDate: profileDisplayOptions.date,
     fileBase: tail ? `${slug}-${tail}` : slug,
@@ -13849,7 +13967,7 @@ async function renderProfileDetail(i) {
            уровню — это догадка (на Lv.50 движок может быть и на 4-й, и на 5-й
            прокачке), но лучше показать «/50», чем не показать ничего. */
         levelMax: ((a.Weapon.BreakLevel ?? levelToBreakLevel(a.Weapon.Level)) + 1) * 10,
-        rankLabel: `P${a.Weapon.UpgradeLevel || 1}`,
+        rank: a.Weapon.UpgradeLevel || 1,
         rarity: wengineInfo?.rarity || null,
         specialty: wengineInfo?.specialty || null,
         baseATK: wengineInfo?.baseATK || null,
