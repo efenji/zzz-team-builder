@@ -13131,6 +13131,17 @@ function ccDiscRect(i) {
 }
 // Содержимое диска живёт с отступом от рамки — им пользуются все трое.
 function ccDiscInner(i) { return ccInset(ccDiscRect(i)); }
+/* Центр иконки сета — ОДНА точка на всех трёх потребителей: отрисовку, попадание
+   курсора и ось вращения при перетаскивании. Раньше центр считался в каждом из
+   трёх мест заново, и обработчик pointerdown брал ВНЕШНИЙ прямоугольник вместо
+   внутреннего: ось уезжала ровно на поля бокса (16 влево, 10 вверх), то есть на
+   треть иконки от её центра. Рисовалась иконка при этом правильно, поэтому
+   расхождение было видно не глазом, а рукой — диск уходил из-под курсора.
+   Отсюда правило: координаты центра берутся только здесь. */
+function ccDiscArtCenter(i) {
+  const r = ccDiscInner(i), s = CC_DISC_HEAD;
+  return { cx: r.x + s / 2, cy: r.y + s / 2 };
+}
 
 function ccDrawDiscs(ctx, C, m, IM) {
   for (let i = 0; i < 6; i++) {
@@ -13147,8 +13158,8 @@ function ccDrawDiscs(ctx, C, m, IM) {
    Крутится только картинка. Цифра слота остаётся ровной — иначе на половине
    углов она висела бы вверх ногами. */
 function ccDrawDiscArt(ctx, C, IM, d, slot, i, angle) {
-  const r = ccDiscInner(i), s = CC_DISC_HEAD;
-  const cx = r.x + s / 2, cy = r.y + s / 2;
+  const s = CC_DISC_HEAD;
+  const { cx, cy } = ccDiscArtCenter(i);
   const img = IM(discUrl(d.setName));
   if (img) {
     ctx.save();
@@ -13233,8 +13244,8 @@ function ccPointerPos(canvas, ev) {
 function ccDiscAt(m, px, py) {
   for (let i = 0; i < 6; i++) {
     if (!(m.discs || [])[i]) continue;
-    const r = ccDiscInner(i), s = CC_DISC_HEAD;
-    const dx = px - (r.x + s / 2), dy = py - (r.y + s / 2);
+    const s = CC_DISC_HEAD, c = ccDiscArtCenter(i);
+    const dx = px - c.cx, dy = py - c.cy;
     if (dx * dx + dy * dy <= (s / 2) * (s / 2)) return i;
   }
   return -1;
@@ -13333,10 +13344,10 @@ function ccAttachSpin(canvas) {
     const p = ccPointerPos(canvas, ev);
     const i = ccDiscAt(S.m, p.x, p.y);
     if (i < 0) return;
-    const r = ccDiscRect(i), s = CC_DISC_HEAD;
+    const c = ccDiscArtCenter(i);
     S.drag = i;
     S.vel[i] = 0;
-    S.cx = r.x + s / 2; S.cy = r.y + s / 2;
+    S.cx = c.cx; S.cy = c.cy;
     S.lastAngle = Math.atan2(p.y - S.cy, p.x - S.cx);
     S.lastMoveTs = performance.now();
     canvas.style.cursor = 'grabbing';
