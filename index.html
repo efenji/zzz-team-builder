@@ -1377,6 +1377,9 @@ select {
   display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;
   font-family: 'Share Tech Mono', monospace; font-size: 11px;
 }
+/* Хвост с потолком приглушён так же, как в сводке над таблицей сумм: это
+   справка о пределе, а не ещё один зачёт, и спорить цветом с ними он не должен. */
+.dd-useful .up-of { color: var(--text-dim); }
 
 /* ── TOASTS ── */
 #toastContainer { position: fixed; top: 16px; right: 16px; z-index: 400; display: flex; flex-direction: column; gap: 8px; max-width: 340px; }
@@ -10592,18 +10595,53 @@ function usefulProcBucket(statName, useful) {
   return '';
 }
 
+/* ── ПОТОЛОК ПОЛЕЗНЫХ ПРОКОВ ──
+   Знаменатель строки «44 of 50 possible». Отсчёт идёт от ИДЕАЛЬНОГО диска:
+   S-ранг, Lv.15, четыре сабстата — четыре базовых ролла плюс пять докруток,
+   девять проков. Число намеренно не зависит от того, что реально выпало у
+   игрока и до какого уровня прокачано: строка отвечает на вопрос «сколько
+   полезного вообще можно выжать из этих шести слотов», а не «повезло ли с
+   роллами». Поэтому ни уровень, ни ранг, ни фактические сабстаты в расчёт не
+   идут — только мейн-статы. */
+const DISC_MAX_SUBSTATS = 4, DISC_MAX_PROCS = 9;
+
+/* Потолок одного диска. Ограничение ровно одно: сабстат не может повторять
+   мейн-стат этого диска (см. комментарий к DISC_SUBSTAT_POOL), а сабстатов
+   всего четыре. Если полезных для агента типов после вычета мейна осталось
+   меньше четырёх, недостающие слоты неизбежно займёт мусор, и каждый такой
+   слот стоит РОВНО один прок — свой базовый ролл; все пять докруток при этом
+   можно увести в полезное.
+   Пример: аномальной сборке полезны Anomaly Proficiency, ATK%, плоский ATK и
+   PEN. На диске второго слота мейн — плоский ATK, сабстатом он там уже не
+   выпадет, полезных типов остаётся три, и потолок диска восемь, а не девять.
+   Без правила (агент нам неизвестен или тумблер Procs выключен) потолка нет:
+   строку с ним всё равно никто не рисует, а «5 of 9» из пустых наборов было бы
+   откровенной выдумкой. */
+function maxUsefulProcsForDisc(d, useful) {
+  if (!d || !useful || !useful.rule) return 0;
+  const slots = Math.min(DISC_MAX_SUBSTATS,
+    DISC_SUBSTAT_POOL.filter(n => n !== d.mainStat && usefulProcBucket(n, useful)).length);
+  return DISC_MAX_PROCS - (DISC_MAX_SUBSTATS - slots);
+}
+
 // Считает проки по зачётам — суммарно и отдельно по каждому диску.
 function countUsefulProcs(discEntries, useful) {
-  const total = { main: 0, flat: 0, pen: 0, all: 0 };
+  const total = { main: 0, flat: 0, pen: 0, all: 0, sum: 0, max: 0 };
   const perDisc = (discEntries || []).map(d => {
-    const row = { main: 0, flat: 0, pen: 0, all: 0 };
+    const row = { main: 0, flat: 0, pen: 0, all: 0, sum: 0, max: 0 };
     ((d && d.subStats) || []).forEach(s => {
       const n = s.procs || 0;
       row.all += n;
       const b = usefulProcBucket(s.name, useful);
       if (b) row[b] += n;
     });
-    ['main', 'flat', 'pen', 'all'].forEach(k => total[k] += row[k]);
+    /* sum — все три зачёта вместе, числитель строки «44 of 50»; max — потолок.
+       Оба считаются здесь, а не при отрисовке: обе площадки (развёрнутый вид и
+       карточка) берут готовые числа из одного места, иначе одна и та же строка
+       на сайте и на картинке могла бы разойтись. */
+    row.sum = row.main + row.flat + row.pen;
+    row.max = maxUsefulProcsForDisc(d, useful);
+    ['main', 'flat', 'pen', 'all', 'sum', 'max'].forEach(k => total[k] += row[k]);
     return row;
   });
   return { total, perDisc };
@@ -10698,7 +10736,13 @@ function usefulSetsTitle(useful) {
   const pen = useful.noPen
     ? "PEN doesn't count for this class"
     : 'PEN always counts, and always separately';
-  return `Useful: ${m}\nFlat: ${f}\n${pen}`;
+  /* Последняя строка объясняет знаменатель «of N possible»: без неё число
+     выглядит взятым с потолка, а вопрос «почему у одного диска 9, а у соседнего
+     8» возникает первым же. */
+  return `Useful: ${m}\nFlat: ${f}\n${pen}\n`
+    + 'Ceiling: a perfect disc is S-rank Lv.15 with 4 sub-stats = 9 procs. '
+    + "A sub-stat can't repeat the disc's own main stat, so every useful type "
+    + 'blocked that way costs one proc off that disc.';
 }
 
 /* Сегменты строки-сводки проков. Нулевые зачёты не печатаются ВООБЩЕ: «+0 flat
@@ -10725,7 +10769,7 @@ function usefulProcsSummaryHtml(counts, useful) {
   if (!segs.length) return '';
   return `<div class="up-summary" title="${escapeHtml(usefulSetsTitle(useful))}">
     ${segs.join('\n    ')}
-    <span class="up-of">of ${counts.total.all} procs</span>
+    <span class="up-of">${counts.total.sum} of ${counts.total.max} possible</span>
   </div>`;
 }
 
@@ -12801,15 +12845,22 @@ function ccDrawProcNumbers(ctx, C, m, IM, x, base, w) {
   if (t.main > 0) segs.push([String(t.main), '', C.accent]);
   if (t.flat > 0) segs.push(['+' + t.flat, 'flat', C.accent60]);
   if (t.pen  > 0) segs.push(['+' + t.pen, 'PEN', C.accent2]);
-  const tail = `of ${t.all} ${ccProcWord(t.all)}`;
+  /* Знаменателя на карточке нет вовсе — ни «of N procs», ни потолка полезных.
+     Карточку смотрят со стороны, и там важно само число полезных проков, а не
+     то, из скольких возможных оно набрано: разбор «сколько вообще можно было
+     выжать» — работа над сборкой, и живёт он в развёрнутом виде на сайте, см.
+     usefulProcsSummaryHtml(). Заодно отпала подгонка кегля под хвост: без него
+     строка помещается в колонку целиком при любом составе зачётов. */
   let total = 0;
   segs.forEach(([num, label]) => {
     ccFont(ctx, 700, 50); total += ctx.measureText(num).width + 8;
     if (label) { ccFont(ctx, 700, 20); total += ctx.measureText(label).width + 24; }
     else total += 16;
   });
-  ccFont(ctx, 600, 21);
-  total += ctx.measureText(tail).width;
+  /* У последнего сегмента остаётся его правый отступ — раньше он отделял хвост,
+     а теперь просто входит в измеренную ширину и утаскивает строку левее
+     оптического центра. Вычитаем: центруется то, что видно. */
+  if (segs.length) total -= segs[segs.length - 1][1] ? 24 : 16;
 
   let cx = x + Math.max(0, (w - total) / 2);
   segs.forEach(([num, label, color]) => {
@@ -12818,8 +12869,6 @@ function ccDrawProcNumbers(ctx, C, m, IM, x, base, w) {
     if (label) { ccFont(ctx, 700, 20); cx += ccText(ctx, label, cx, base, { color }) + 24; }
     else cx += 16;
   });
-  ccFont(ctx, 600, 21);
-  ccText(ctx, tail, cx, base, { color: CC_MUTED, max: Math.max(0, x + w - cx) });
 }
 
 /* ── СРЕДНЯЯ КОЛОНКА: ПОЛЕЗНЫЕ ПРОКИ ──
@@ -13045,6 +13094,8 @@ function ccDrawDiscCard(ctx, C, m, IM, d, slot, procRow, x, y, w) {
     if (procRow.main > 0) seg(String(procRow.main), ccProcWord(procRow.main), C.accent);
     if (procRow.flat > 0) seg('+' + procRow.flat, 'flat', C.accent60);
     if (procRow.pen  > 0) seg('+' + procRow.pen, 'PEN', C.accent2);
+    // Потолок диска («9 of 9») на карточке не печатается по той же причине,
+    // что и общий знаменатель выше, — он есть в развёрнутом виде на сайте.
   }
 }
 
@@ -14221,9 +14272,13 @@ function discDetailBlockHtml(d, opts = {}) {
   // Строка прячется целиком, когда у диска нет ни одного прока ни в одном
   // зачёте — пустой .dd-useful оставлял бы margin-top на ровном месте.
   const usefulSegs = (useful && useful.rule) ? usefulProcSegments(row, false) : [];
+  // Хвост «9 of 9» — сумма зачётов этого диска против его собственного потолка.
+  // Без слова possible, как и на карточке: под диском место дороже.
+  const discMax = maxUsefulProcsForDisc(d, useful);
   const usefulLine = usefulSegs.length
     ? `<div class="dd-useful" title="${escapeHtml(usefulSetsTitle(useful))}">
         ${usefulSegs.join('\n        ')}
+        <span class="up-of">${row.main + row.flat + row.pen} of ${discMax}</span>
       </div>`
     : '';
   const deleteBtn = opts.showDelete
