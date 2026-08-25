@@ -2245,7 +2245,7 @@ select {
   </div>
   <div class="tb-sep"></div>
   <div class="tb-group">
-    <button class="tb-toggle" data-modes="full compact" data-key="procs" onclick="toggleProfileVisOption('procs', this)" title="Highlight useful sub-stat procs, on disc cards and in the Sub-Stat Totals row">Procs</button>
+    <button class="tb-toggle" data-modes="full" data-key="procs" onclick="toggleProfileVisOption('procs', this)" title="Highlight useful sub-stat procs, on disc cards and in the Sub-Stat Totals row">Procs</button>
     <button class="tb-toggle" data-modes="full compact" data-key="live2d" onclick="toggleProfileVisOption('live2d', this)" title="Animated agent banner instead of static art">Live2D</button>
     <button class="tb-toggle" data-modes="full compact" data-key="tint" onclick="toggleProfileVisOption('tint', this)" title="Colour the card after the agent — official Enka accent, or the skin's own colour when a skin is equipped. Off: your accent from settings">Tint</button>
     <button class="tb-toggle" data-modes="compact" data-key="slots" onclick="toggleProfileVisOption('slots', this)" title="Show the slot number badge on each disc icon">Slots</button>
@@ -7709,6 +7709,19 @@ let profileDisplayOptions = Object.assign({procs:true, totals:true, skills:true,
    поднимаем его здесь, иначе у тех, кто успел выключить тумблер, значение
    осталось бы в localStorage навсегда. */
 profileDisplayOptions.totals = true;
+/* Подсветка проков в компактной карточке включена ВСЕГДА, тумблера там нет.
+   Карточку кидают в чат, и весь её смысл в том, какие проки полезны этому
+   агенту: выключенная подсветка превращала её в список чисел без ответа.
+   В развёрнутом виде тумблер остался — там карточка не картинка, а рабочий
+   экран, и иногда нужно посмотреть на голые данные. */
+function profileProcsOn() {
+  return profileViewMode === 'compact' ? true : !!profileDisplayOptions.procs;
+}
+/* Live2D не запоминается между загрузками страницы и всегда стартует
+   выключенным — в обоих видах. Анимация тянет по мегабайту на агента и жжёт
+   видеокарту; человек включает её осознанно на сессию, а не получает по
+   наследству от прошлого захода. Внутри сессии тумблер работает как прежде. */
+profileDisplayOptions.live2d = false;
 
 /* ── DRIVE DISC PICKER MODE ──
    All library management (Agent/W-Engine/Bangboo/Drive Disc) is available by
@@ -8445,6 +8458,20 @@ function presetIsExternalSnapshot(p) {
   return false;
 }
 
+/* Снят ли билд с живой витрины Enka — своей (verified) или чужой (imported со
+   стенда). Отличие от presetIsExternalSnapshot() выше существенное: та отвечает
+   на вопрос «сверять ли диски с моей библиотекой», а эта — «за билдом стоит
+   реальный аккаунт или он собран руками». По ней карточка решает, что писать в
+   плашке над уровнем: имя пресета или предупреждение (см. ccBannerAbove).
+   Копия чужой публикации стендом НЕ считается, хотя тоже лежит в imported:
+   опубликовать можно только собранное руками (см. publishPreset), так что за
+   копией живого аккаунта нет. Новые копии помечены kind:'preset', у старых
+   source.uid просто пуст — обе разновидности отсекает одно условие. */
+function presetIsStandSnapshot(p) {
+  if (presetCategory(p) === 'verified') return true;
+  return !!(p.source && p.source.uid && p.source.kind !== 'preset');
+}
+
 /* ── ЗНАЧКИ КАТЕГОРИЙ ПРЕСЕТОВ ──
    Монохромные SVG вместо эмодзи (были ✅ / 🛠 / 📥). Эмодзи рисует сама
    система — на маке они цветные и объёмные, на винде другой формы, в размер
@@ -8577,7 +8604,13 @@ function createAgentPreset(agentKey, wengineKey, wrank, discEntries, name, sourc
     wengine: wengineKey,
     wrank: wrank || 1,
     discs: discs.slice().sort((a, b) => a.slot - b.slot).map(discToSnapshot),
-    source: source ? { uid: source.uid || null, nickname: source.nickname || null } : null,
+    /* kind различает два вида источника, которые оба лежат в категории
+       imported: снимок с живой витрины ('stand') и копия чужой ПУБЛИКАЦИИ
+       ('preset'). Разница не косметическая — на карточке первый подписан
+       именем пресета, а второй предупреждением «собрано руками», см.
+       presetIsStandSnapshot(). У пресетов, сохранённых до появления поля,
+       kind нет вовсе, и их разбирает та же функция по source.uid. */
+    source: source ? { uid: source.uid || null, nickname: source.nickname || null, kind: source.kind || 'stand' } : null,
     category,
     skills: (skillSnapshot && skillSnapshot.skills && skillSnapshot.skills.length) ? skillSnapshot.skills : null,
     coreSkillEnhancement: (skillSnapshot && skillSnapshot.coreSkillEnhancement) || 0,
@@ -9306,6 +9339,22 @@ async function buildManualAgentStatSheet(agentKey, wengineKey, discEntries) {
 // Skill index -> label (docs/zzz/api.md → Definitions → Skills). Index 4 is
 // unused/reserved by the API itself, not a gap in this mapping.
 const ENKA_SKILL_TYPE_LABEL = { 0: 'Basic Attack', 1: 'Special Attack', 2: 'Dodge', 3: 'Ultimate', 5: 'Core Skill', 6: 'Assist' };
+const ENKA_SKILL_CORE_INDEX = 5;
+/* Уровень навыка, как он подписан В ИГРЕ. Enka отдаёт ВЛОЖЕННЫЙ уровень, без
+   надбавки от эйдосов: у агента с M4 в игре под кнопкой стоит Lv.14, а в
+   данных лежит 12. Третий эйдос даёт +2 пяти боевым навыкам, пятый — ещё +2;
+   четвёртый и шестой уровней не трогают, поэтому ступени идут парами. Core
+   Skill не поднимается вовсе — у него свои ранги A…F.
+   Надбавка считается при показе, а НЕ подмешивается в данные. Причина в
+   пресетах: снимок навыков хранит вложенные уровни, а число эйдосов у пресета
+   берётся из библиотеки агентов и может отличаться от того, что было в момент
+   снимка, — заранее просуммированное значение врало бы после первой же правки
+   эйдосов. */
+function skillLevelShown(index, level, mindscape) {
+  if (level == null || index === ENKA_SKILL_CORE_INDEX) return level;
+  const ms = mindscape || 0;
+  return level + (ms >= 5 ? 4 : ms >= 3 ? 2 : 0);
+}
 function enkaSkillLevels(avatarRaw) {
   return (avatarRaw.SkillLevelList || []).map(s => ({
     index: s.Index, label: ENKA_SKILL_TYPE_LABEL[s.Index] || `Skill ${s.Index}`, level: s.Level,
@@ -10990,6 +11039,12 @@ async function unpublishPreset(agentKey, presetId) {
    `presets` table instead of local storage, and rendered read-only. */
 let publicPresetsCache = [];
 let publicPresetsOwnerLabel = '';
+/* Игровые ник и UID автора — отдельно от publicPresetsOwnerLabel, который
+   остаётся Discord-именем и держит заголовок окна. Карточке нужна та же
+   подпись «ник · UID», что и у стенда, а строка в таблице presets знает про
+   автора только user_id — значит, за парой надо сходить в profiles. */
+let publicPresetsOwnerNick = '';
+let publicPresetsOwnerUid = null;
 let currentPublicPresetView = null; // { agentKey, preset } for whichever one is on screen
 
 async function openPublicPresetsViewer(userId, encodedUsername) {
@@ -10999,6 +11054,21 @@ async function openPublicPresetsViewer(userId, encodedUsername) {
   document.getElementById('publicPresetsDetail').innerHTML = '<div class="profile-detail-empty">Select an agent to see their published presets.</div>';
   document.getElementById('publicPresetsBg').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
+
+  /* Один запрос на открытие окна, а не на каждый просмотр пресета: автор у
+     всего окна один. Промах не ломает ничего — подпись просто останется с
+     Discord-ником и без UID, как было до этой правки. */
+  publicPresetsOwnerNick = publicPresetsOwnerLabel;
+  publicPresetsOwnerUid = null;
+  try {
+    const { data: prof } = await sb.from('profiles').select('game_uid, game_nickname').eq('id', userId).maybeSingle();
+    if (prof) {
+      publicPresetsOwnerUid = prof.game_uid || null;
+      publicPresetsOwnerNick = prof.game_nickname || publicPresetsOwnerLabel;
+    }
+  } catch (err) {
+    console.error('[Presets] failed to look up the author profile:', err.message || err);
+  }
 
   try {
     const { data, error } = await sb.from('presets').select('*').eq('user_id', userId).order('agent_key');
@@ -11032,6 +11102,8 @@ function closePublicPresetsViewer() {
   document.body.style.overflow = '';
   publicPresetsCache = [];
   currentPublicPresetView = null;
+  publicPresetsOwnerNick = '';
+  publicPresetsOwnerUid = null;
 }
 function publicPresetsBgClick(e) { if (e.target === document.getElementById('publicPresetsBg')) closePublicPresetsViewer(); }
 
@@ -11045,11 +11117,14 @@ function showPublicAgentPresets(agentKey) {
 async function viewPublicPresetDetail(rowId) {
   const row = publicPresetsCache.find(r => r.id === rowId);
   if (!row) return;
-  const preset = { id: row.id, name: row.name, wengine: row.wengine, wrank: row.wrank, discs: row.discs || [] };
+  /* category приезжает из базы вместе со строкой: source у публикации нет, и
+     без неё presetIsStandSnapshot() приняла бы за «собранный руками» вообще
+     любой чужой пресет, включая снятый с подтверждённого стенда. */
+  const preset = { id: row.id, name: row.name, wengine: row.wengine, wrank: row.wrank, discs: row.discs || [], category: row.category || 'manual' };
   currentPublicPresetView = { agentKey: row.agent_key, preset };
   const matching = findMatchingPresetBySnapshots(row.agent_key, preset.wengine, preset.wrank || 1, preset.discs);
   document.getElementById('publicPresetsDetail').innerHTML =
-    await presetDetailHtml(row.agent_key, preset, { readOnly: true, ownerLabel: publicPresetsOwnerLabel, matchingName: matching ? matching.name : null });
+    await presetDetailHtml(row.agent_key, preset, { readOnly: true, ownerLabel: publicPresetsOwnerNick || publicPresetsOwnerLabel, ownerUid: publicPresetsOwnerUid, matchingName: matching ? matching.name : null });
 }
 
 function copyPublicPresetToMine() {
@@ -11065,8 +11140,16 @@ function copyPublicPresetToMine() {
   // everywhere (presetDetailHtml, the tab row, the team-builder chips, the
   // conflict modal), instead of silently being compared against our library
   // and flagged as "6 of 6 discs missing".
+  /* Автор копии. Копировать можно из двух мест сразу — со страницы профиля
+     (ownerPresetViewAgentKey) и из окна ленты, — и владелец у них разный,
+     поэтому пара берётся по тому, что именно открыто. kind:'preset' помечает,
+     что за копией стоит чужая ПУБЛИКАЦИЯ, а не живой стенд: без метки UID
+     автора выдал бы копию за снимок со стенда, см. presetIsStandSnapshot(). */
+  const fromProfileView = !!ownerPresetViewAgentKey;
+  const srcNick = fromProfileView ? (profileCurrentNickname || null) : (publicPresetsOwnerNick || publicPresetsOwnerLabel || null);
+  const srcUid = fromProfileView ? (profileCurrentUid || null) : (publicPresetsOwnerUid || null);
   const created = createAgentPreset(agentKey, preset.wengine, preset.wrank || 1, (preset.discs || []).map(d => ({ ...d })), `${preset.name} (copy)`,
-    { uid: null, nickname: publicPresetsOwnerLabel || null }, 'imported');
+    { uid: srcUid, nickname: srcNick, kind: 'preset' }, 'imported');
   if (created) {
     showToast(`Preset "${created.name}" added to your presets.`, 'success');
     refreshPresetViews(agentKey);
@@ -11166,7 +11249,7 @@ async function renderOwnerPresetView() {
   }
   const row = rows.find(r => String(r.id) === ownerPresetViewPresetId) || rows[0];
   ownerPresetViewPresetId = String(row.id);
-  const preset = { id: row.id, name: row.name, wengine: row.wengine, wrank: row.wrank, discs: row.discs || [] };
+  const preset = { id: row.id, name: row.name, wengine: row.wengine, wrank: row.wrank, discs: row.discs || [], category: row.category || 'manual' };
   currentPublicPresetView = { agentKey, preset }; // lets the shared copyPublicPresetToMine() handler work
 
   renderPresetTabs(rows.map(r => ({
@@ -11181,7 +11264,8 @@ async function renderOwnerPresetView() {
     handler: `selectOwnerPresetTab('${r.id}')`,
   })));
 
-  const detailHtml = await presetDetailHtml(agentKey, preset, { hideActions: true, readOnly: true, ownerLabel: profileCurrentNickname });
+  // Владелец здесь — тот, чей стенд открыт на вкладке: его ник и UID уже под рукой.
+  const detailHtml = await presetDetailHtml(agentKey, preset, { hideActions: true, readOnly: true, ownerLabel: profileCurrentNickname, ownerUid: profileCurrentUid });
   document.getElementById('profileDetail').innerHTML = detailHtml;
   updateSaveBuildToolbar();
 }
@@ -11263,7 +11347,7 @@ function presetActionsHtml(agentKey, preset, opts = {}) {
 }
 
 async function presetDetailHtml(agentKey, preset, opts = {}) {
-  const { readOnly = false, ownerLabel = null, hideActions = false } = opts;
+  const { readOnly = false, ownerLabel = null, ownerUid = null, hideActions = false } = opts;
   const sheet = await buildManualAgentStatSheet(agentKey, preset.wengine, preset.discs).catch(() => null);
   const profile = AGENT_PROFILE[agentKey];
   const libEntry = getAgentLibEntry(agentKey);
@@ -11306,7 +11390,7 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
   // substatTotalsRowHtml) already treats as "nothing to highlight" — so this
   // one branch is enough to turn off every highlight at once, no other call
   // site needs to know the toggle exists.
-  const useful = resolveUsefulSubstats(profileDisplayOptions.procs ? agentKey : null, discEntries);
+  const useful = resolveUsefulSubstats(profileProcsOn() ? agentKey : null, discEntries);
   const procCounts = countUsefulProcs(discEntries, useful);
 
   const statsHtml = statSheetRowsHtml(sheet, useful);
@@ -11318,7 +11402,7 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
   const snapshotCoreLetter = preset.coreSkillEnhancement ? enkaCoreSkillLetter(preset.coreSkillEnhancement) : null;
   const skillsHtml = (profileDisplayOptions.skills && preset.skills && preset.skills.length)
     ? `<div class="pd-section-title">Skills</div>
-       <div class="pd-skills">${preset.skills.map(s => `<div class="pd-skill-pill">${escapeHtml(s.label)} <b>Lv.${s.level}</b></div>`).join('')}${snapshotCoreLetter ? `<div class="pd-skill-pill">Core Skill Enhancement <b>${snapshotCoreLetter}</b></div>` : ''}</div>`
+       <div class="pd-skills">${preset.skills.map(s => `<div class="pd-skill-pill">${escapeHtml(s.label)} <b>Lv.${skillLevelShown(s.index, s.level, libEntry.mindscape)}</b></div>`).join('')}${snapshotCoreLetter ? `<div class="pd-skill-pill">Core Skill Enhancement <b>${snapshotCoreLetter}</b></div>` : ''}</div>`
     : '';
 
   const wengineBlock = preset.wengine
@@ -11346,13 +11430,35 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
     : '<div class="pd-sub">No Drive Discs equipped.</div>';
   const agg = aggregateProfileDiscSubstats(discEntries);
 
+  /* Подпись владельца в шапке карточки. Ник и UID берутся ПАРОЙ из одного
+     источника, а не по отдельному полю: подставив к чужому нику свой UID,
+     карточка подписала бы чужой билд моим аккаунтом.
+       readOnly     — это чужая публикация: владелец тот, чей профиль или лента
+                      открыты (см. renderOwnerPresetView и openPublicPresetsViewer);
+       preset.source — снимок со стенда или копия чужой публикации: ник и UID
+                      сняты вместе, в паре;
+       иначе        — мой собственный пресет, и подписывать его надо моим
+                      подтверждённым аккаунтом. Откат на текущий стенд нужен
+                      для незалогиненного: UID тогда известен только тот, что
+                      открыт на вкладке Profile, и ник берётся оттуда же. */
+  const cardOwner = readOnly
+    ? { nickname: ownerLabel || null, uid: ownerUid || null }
+    : (preset.source
+        ? { nickname: preset.source.nickname || null, uid: preset.source.uid || null }
+        : (myGameUid
+            ? { nickname: myGameNickname || (profileCurrentUid === myGameUid ? profileCurrentNickname : null), uid: myGameUid }
+            : { nickname: profileCurrentNickname || null, uid: profileCurrentUid || profileMyUid || null }));
+  /* Публикация приходит из базы без source, поэтому «снят со стенда» у неё
+     решает category, которую сюда кладут оба места чтения строки. */
+  const manualBadge = !presetIsStandSnapshot(preset);
+
   /* Компактный вид. Уровень и Core Skill Enhancement у пресета берутся из
      Agent Library (как и в развёрнутом виде — см. publicNote), а снимок
      навыков есть только у пресетов, сохранённых со стенда: у остальных
      preset.skills === null, и карточка рисует иконки навыков без уровней. */
   if (profileViewMode === 'compact') {
     const skillMap = {};
-    (preset.skills || []).forEach(sk => { skillMap[sk.index] = sk.level; });
+    (preset.skills || []).forEach(sk => { skillMap[sk.index] = skillLevelShown(sk.index, sk.level, libEntry.mindscape); });
     return compactCardShellHtml(ccMakeModel({
       agentKey,
       displayName: cardName(agentKey),
@@ -11378,11 +11484,13 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
         secName: wengineInfo?.secondaryStat?.name || null,
         secValue: wengineInfo?.secondaryStat?.value || null,
       } : null,
-      // Владелец пресета: у чужого/публичного это ownerLabel, у своего — свой
-      // же ник со стенда. UID есть только в снимке, снятом со стенда.
-      owner: { nickname: ownerLabel || (preset.source?.nickname) || profileCurrentNickname, uid: preset.source?.uid || null },
+      owner: cardOwner,
       showOwner: profileDisplayOptions.owner,
+      /* presetName остаётся в модели даже когда на баннер вместо него уйдёт
+         предупреждение: от него зависит имя скачиваемого файла, см.
+         ccMakeModel(). Что именно рисовать, решает ccBannerAbove. */
       presetName: preset.name || null,
+      presetManual: manualBadge,
     }));
   }
 
@@ -11932,6 +12040,15 @@ async function ccEnsureFonts() {
   } catch (e) { /* шрифты не критичны — упадём на системный, но карточку нарисуем */ }
 }
 // Собирает все адреса, нужные модели, грузит их разом и отдаёт геттер url→img.
+/* Плашка «собрано руками» на баннере — подпись и значок. Значок лежит в общей
+   папке иконок статов, поэтому адрес собирает тот же iconUrl(). Вынесены в
+   константы, потому что нужны в двух местах: ccPreload() обязан заранее
+   скачать картинку, а ccBannerAbove() — нарисовать. Канвас рисует только уже
+   загруженные изображения: пропусти мы значок в предзагрузке, он бы пропал и с
+   карточки, и из скачанного PNG, причём молча. */
+const CC_MANUAL_LABEL = 'Manually created preset';
+const CC_MANUAL_ICON = 'dialogue-danger';
+
 async function ccPreload(m) {
   const urls = new Set();
   const add = u => { if (u) urls.add(u); };
@@ -11940,6 +12057,7 @@ async function ccPreload(m) {
      без текстуры — картинка просто не успела бы доехать к моменту отрисовки. */
   add(CC_BANNER_BG_URL);
   if (m.agentKey) { add(agentPortraitUrl(m.agentKey, m.skin)); }
+  if (m.presetManual) add(iconUrl(CC_MANUAL_ICON));
 
   if (m.wengine) {
     if (m.wengine.key) add(wengineUrl(m.wengine.key));
@@ -12330,12 +12448,25 @@ function ccBannerAbove(ctx, C, m, IM) {
 
   // Низ справа — пресет сверху, уровень с эйдосами снизу. Обе строки прижаты
   // вправо, поэтому ширина считается заранее.
-  if (m.presetName) {
+  /* В плашке либо имя пресета, либо предупреждение — и никогда оба сразу.
+     У билда, собранного руками, имя со значком не соседствует намеренно: имя
+     живёт только в моей библиотеке («Preset 1») и постороннему на картинке не
+     говорит ничего, а «за этим билдом нет подтверждённого стенда» — говорит.
+     Значок ставится слева от текста, внутрь той же плашки: отдельной иконкой
+     рядом он читался бы как часть ряда эйдосов под ним. */
+  const chipText = m.presetManual ? CC_MANUAL_LABEL : m.presetName;
+  if (chipText) {
     ccFont(ctx, 600, 20);
-    const tw = Math.min(ctx.measureText(m.presetName).width, w * 0.3);
-    ccPanel(ctx, x + w - 26 - tw - 26, bottom - 88, tw + 26, 32,
-      { r: 16, fill: 'rgba(0,0,0,.55)', stroke: C.border2 });
-    ccText(ctx, m.presetName, x + w - 26 - tw - 13, bottom - 66, { color: C.text, max: tw });
+    const ico = m.presetManual ? 22 : 0;
+    const gap = ico ? 8 : 0;
+    const tw = Math.min(ctx.measureText(chipText).width, w * 0.3);
+    // Плашка прижата к правому краю и растёт влево, поэтому её ширину надо
+    // знать до отрисовки — отсюда и разложенные по переменным слагаемые.
+    const pw = 13 + ico + gap + tw + 13;
+    const px = x + w - 26 - pw;
+    ccPanel(ctx, px, bottom - 88, pw, 32, { r: 16, fill: 'rgba(0,0,0,.55)', stroke: C.border2 });
+    if (ico) ccContain(ctx, IM(iconUrl(CC_MANUAL_ICON)), px + 13, bottom - 88 + (32 - ico) / 2, ico, ico);
+    ccText(ctx, chipText, px + 13 + ico + gap, bottom - 66, { color: C.text, max: tw });
   }
   /* Ряд эйдосов начинается с M0, а не с M1: M0 — базовое состояние агента, и
      без него «нет эйдосов» и «данные не подтянулись» выглядели бы одинаково.
@@ -12607,6 +12738,19 @@ function ccDrawCoreRow(ctx, C, m, IM, x, y, w) {
    границ внутреннего поля, а весь воздух уходит в промежутки между значками. */
 function ccSkillStep(w) { return (w - CC_SKILL_ICO) / 5; }
 
+/* Потолок уровня навыка при текущих эйдосах. Пять боевых навыков качаются до
+   двенадцати, а третий эйдос поднимает потолок до четырнадцати, пятый — до
+   шестнадцати; четвёртый и шестой на уровни не влияют, поэтому ступени идут
+   парами: M0…M2 — 12, M3…M4 — 14, M5…M6 — 16.
+   Core Skill живёт по своим правилам: у него шесть рангов A…F, эйдосы его не
+   двигают вовсе, и потолок у него всегда седьмой уровень. */
+const CC_SKILL_CORE_INDEX = ENKA_SKILL_CORE_INDEX, CC_SKILL_CORE_MAX = 7;
+function ccSkillMax(skillIndex, mindscape) {
+  if (skillIndex === CC_SKILL_CORE_INDEX) return CC_SKILL_CORE_MAX;
+  const ms = mindscape || 0;
+  return 12 + (ms >= 5 ? 4 : ms >= 3 ? 2 : 0);
+}
+
 function ccDrawSkills(ctx, C, m, IM, x, y, w) {
   const step = ccSkillStep(w);
   CC_SKILL_ORDER.forEach((sk, i) => {
@@ -12615,10 +12759,18 @@ function ccDrawSkills(ctx, C, m, IM, x, y, w) {
     const lv = m.skills ? m.skills[sk.index] : null;
     // Пресеты без снимка навыков рисуются теми же иконками без уровней.
     if (lv != null) {
-      /* Уровни навыков — белым, а не акцентом: это справка, а не оценка.
-         Жёлтый на карточке оставлен за одним смыслом — «полезно этому агенту». */
+      /* Акцентом горит навык, докачанный до потолка при текущих эйдосах, —
+         «сюда больше не вложишь». Остальные белые.
+         Это второе значение жёлтого на карточке: первым было «полезно этому
+         агенту» (сабстаты, плашки эйдосов и пробуждений). Смыслы родственные —
+         оба про «здесь хорошо», — и заводить ради второго отдельный цвет
+         значило бы усложнить чтение сильнее, чем упростить.
+         Сравнение нестрогое: если данные когда-нибудь придут выше потолка,
+         подсветка не должна молча пропасть. */
+      const capped = lv >= ccSkillMax(sk.index, m.mindscape);
       ccFont(ctx, 700, 20);
-      ccText(ctx, 'Lv.' + lv, centre, y + 76, { color: C.text, align: 'center' });
+      ccText(ctx, 'Lv.' + lv, centre, y + 76,
+        { color: capped ? C.accent : C.text, align: 'center' });
     }
   });
 }
@@ -12941,7 +13093,13 @@ function ccDrawDiscArt(ctx, C, IM, d, slot, i, angle) {
   /* Номер слота с тёмной подложкой — единое целое, тумблер Slots прячет их
      вместе. Иконка сета при этом остаётся: скрывается подпись, а не диск. */
   if (!profileDisplayOptions.slots) return;
-  const bd = Math.round(s * 0.46);
+  /* Диаметр подложки — доля от иконки сета, поэтому бейдж сам подстроится,
+     если когда-нибудь поменяется размер самой иконки. 0.46 было исходно, 0.75
+     поверх — уменьшение на четверть: цифра слота читается по позиции в сетке,
+     и крупный бейдж закрывал арт диска сильнее, чем того стоил.
+     Шрифт и скругление считаются от этого же диаметра, так что вся плашка
+     ужимается пропорционально. */
+  const bd = Math.round(s * 0.46 * 0.75);
   ccPanel(ctx, cx - bd / 2, cy - bd / 2, bd, bd, { r: bd / 2, fill: 'rgba(0,0,0,.72)', stroke: C.accent30 });
   ccFont(ctx, 700, Math.round(bd * 0.62));
   ccText(ctx, String(slot), cx, cy + bd * 0.22, { color: C.text, align: 'center' });
@@ -13896,12 +14054,12 @@ async function renderProfileDetail(i) {
   // тогда resolveUsefulSubstats() отдаёт пустые наборы, подсветки и итога нет,
   // а всё остальное в панели рисуется как обычно. "Procs" toggle off works
   // the same way, on purpose — see the matching comment in presetDetailHtml.
-  const useful = resolveUsefulSubstats(profileDisplayOptions.procs ? slug : null, discEntries);
+  const useful = resolveUsefulSubstats(profileProcsOn() ? slug : null, discEntries);
   const procCounts = countUsefulProcs(discEntries, useful);
 
   const statsHtml = statSheetRowsHtml(sheet, useful);
 
-  const skillsInner = skillLevels.map(s => `<div class="pd-skill-pill">${escapeHtml(s.label)} <b>Lv.${s.level}</b></div>`).join('')
+  const skillsInner = skillLevels.map(s => `<div class="pd-skill-pill">${escapeHtml(s.label)} <b>Lv.${skillLevelShown(s.index, s.level, a.TalentLevel)}</b></div>`).join('')
     + (coreLetter ? `<div class="pd-skill-pill">Core Skill Enhancement <b>${coreLetter}</b></div>` : '');
   const skillsHtml = (profileDisplayOptions.skills && (skillLevels.length || coreLetter))
     ? `<div class="pd-section-title">Skills</div><div class="pd-skills">${skillsInner}</div>`
@@ -13941,7 +14099,7 @@ async function renderProfileDetail(i) {
      не должно менять НИЧЕГО, кроме способа показать одни и те же числа. */
   if (profileViewMode === 'compact') {
     const skillMap = {};
-    skillLevels.forEach(sk => { skillMap[sk.index] = sk.level; });
+    skillLevels.forEach(sk => { skillMap[sk.index] = skillLevelShown(sk.index, sk.level, a.TalentLevel); });
     panel.innerHTML = compactCardShellHtml(ccMakeModel({
       agentKey: slug,
       displayName: slug ? cardName(slug) : `Unknown (Id ${a.Id})`,
