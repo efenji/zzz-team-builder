@@ -11993,13 +11993,26 @@ const CC_SKILL_ORDER = [
    всегда есть, и текст падал бы до 14px сразу на всех шести дисках. Поэтому
    кегль фиксирован и крупный, а конкретно это название сокращается. Порядок
    попыток: полное → сокращённое → обрезка многоточием как последняя страховка. */
+/* Имена, которые в карточке диска пишутся сокращённо ВСЕГДА, а не только когда
+   полное не влезает. По длине «Anomaly Proficiency» вдвое обгоняет любое другое
+   имя сабстата, и от того, есть ли рядом бейдж докруток, менялась вся строка:
+   на одном диске стат подписан полностью, на соседнем — сокращённо. Разнобой
+   читался хуже, чем само сокращение. */
 const CC_SUB_SHORT = { 'Anomaly Proficiency': 'Anomaly Prof.' };
+/* Обязательный зазор между именем сабстата и его значением. Раньше здесь стояло
+   14 — ровно столько, чтобы буквы не налезли на цифры, — и длинное имя вплотную
+   подходило к числу: имя, бейдж и значение сливались в одну ленту. Сорока
+   хватает, чтобы правый столбец отделялся глазом, а коротким именам (ATK, PEN,
+   CRIT DMG) места по-прежнему с запасом. */
+const CC_SUB_NAME_GAP = 40;
+/* Короткая форма берётся СРАЗУ, не по остатку места: см. CC_SUB_SHORT. Замер
+   остался ради последней ступени — если и сокращённое имя не влезает (узкая
+   карточка, неизвестный длинный стат из будущего патча), его дорежет ccFit с
+   многоточием, что всё равно лучше наезда на значение. */
 function ccSubName(ctx, name, maxW) {
   const full = discStatLabel(name);
-  if (ctx.measureText(full).width <= maxW) return full;
-  const short = CC_SUB_SHORT[full];
-  if (short && ctx.measureText(short).width <= maxW) return short;
-  return ccFit(ctx, full, maxW);
+  const short = CC_SUB_SHORT[full] || full;
+  return ctx.measureText(short).width <= maxW ? short : ccFit(ctx, short, maxW);
 }
 
 const ccProcWord = n => (n === 1 ? 'proc' : 'procs');
@@ -13070,7 +13083,7 @@ function ccDrawDiscCard(ctx, C, m, IM, d, slot, procRow, x, y, w) {
     ccFont(ctx, 600, 23);
     const vW = ccText(ctx, sub.value, x + w, sMid + 8, { color: col, align: 'right' });
     const extra = (sub.procs || 1) - 1; // первый прок — базовый ролл, в бейдже только докрутки
-    let nameMax = w - vW - 14;
+    let nameMax = w - vW - CC_SUB_NAME_GAP;
     if (extra > 0) nameMax -= 44;
     // 600 по той же причине, что и в листе статов: значение рядом набрано 600/23.
     ccFont(ctx, 600, 21);
