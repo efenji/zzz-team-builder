@@ -1178,6 +1178,11 @@ select {
    (padding-bottom trick, or aspect-ratio + absolute img) don't resolve
    reliably against CSS Grid row track sizing, so a plain fixed height
    is the robust choice here. */
+/* Черта перед уровнями кнопок висит на первой из них: updateLibCardSizing()
+   меряет высоту карточки по .ag-eidolon-slider, и отдельный разделитель в
+   расчёт бы не попал — карточки обрезало бы снизу. */
+.lib-agent-card .lib-skill-first { border-top: 1px solid var(--border); padding-top: 5px; margin-top: 4px; }
+.lib-skill-eff { color: var(--text-dim); }
 .lib-agent-card .ag-portrait { aspect-ratio: auto; height: var(--lib-portrait-h, 150px); }
 
 /* ── W-ENGINE LIBRARY CARD ── W-Engine art is square (400x400), so the
@@ -1724,13 +1729,247 @@ select {
 .pd-name { font-family: 'Barlow Condensed', 'Oswald', sans-serif; font-size: 22px; font-weight: 700; }
 .pd-sub { color: var(--text-dim); font-size: 12.5px; margin-top: 2px; }
 .pd-badges { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+/* Паспорт: фракция, атрибут, специальность, редкость. Плашки легче, чем
+   .pd-badge под ними, и намеренно: ниже — состояние сборки (уровень, эйдосы),
+   а здесь неизменные свойства агента, и путать эти два ряда не надо. */
+.pd-tags { display: flex; gap: 6px; margin-top: 7px; flex-wrap: wrap; align-items: center; }
+.pd-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
+  padding: 3px 8px; font-size: 11.5px; color: var(--text-mid); line-height: 1.5;
+}
+.pd-tag img { width: 14px; height: 14px; object-fit: contain; flex-shrink: 0; opacity: .85; }
+.pd-tag-faction { color: var(--text); }
+.pd-tag-rank { font-family: 'Share Tech Mono', monospace; font-size: 11px; }
+.pd-rank-s { color: var(--accent); border-color: var(--accent-30); }
+.pd-rank-a { color: var(--accent2); border-color: var(--border2); }
 .pd-badge {
   background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
   padding: 3px 8px; font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-mid);
 }
+/* ── РАЗБИВКА ПОДСЧЁТОВ ──
+   Одна колонка и всегда развёрнуто: секция существует ровно затем, чтобы её
+   читали, и лишний клик между вопросом и ответом тут ни к чему. Числа —
+   моноширинным, как везде на панели, чтобы разряды стояли столбиком. */
+.pd-bd { display: flex; flex-direction: column; gap: 10px; }
+.pd-bd-stat {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: 9px 12px 8px;
+}
+.pd-bd-head {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  padding-bottom: 6px; margin-bottom: 5px; border-bottom: 1px solid var(--border);
+}
+.pd-bd-label { font-size: 13px; font-weight: 600; }
+.pd-bd-total { font-family: 'Share Tech Mono', monospace; font-size: 14px; color: var(--accent); font-weight: 700; }
+.pd-bd-line {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  font-size: 12px; line-height: 1.75; color: var(--text-mid);
+}
+.pd-bd-src { min-width: 0; flex: 1; display: flex; align-items: baseline; }
+.pd-bd-note { color: var(--text-dim); font-size: 10.5px; margin-left: 7px; font-family: 'Share Tech Mono', monospace; }
+.pd-bd-val { font-family: 'Share Tech Mono', monospace; color: var(--text); white-space: nowrap; }
+/* Процентные прибавки красятся отдельно: они умножают базу, а не добавляются к
+   ней, и в столбце чисел это единственное, что их различает. */
+.pd-bd-ratio { color: var(--accent2); }
+.pd-bd-formula {
+  margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border2);
+  font-family: 'Share Tech Mono', monospace; font-size: 11.5px; color: var(--text-mid);
+  overflow-x: auto; white-space: nowrap;
+}
+.pd-bd-formula b { color: var(--accent); }
+.pd-bd-drift { color: var(--accent2); margin-right: 5px; cursor: help; }
+/* ── ЦВЕТА ИСТОЧНИКОВ ──
+   Один цвет на вид источника, общий для всей панели: сегмент полосы, точка у
+   строки и (в будущем) любые другие места читаются как одно и то же. Фиолетовый
+   в набор намеренно НЕ входит — им уже помечены процентные значения в соседнем
+   столбце, и второе значение того же цвета рядом сбивало бы с толку. */
+.pd-c-agent   { --pd-c: #64748b; }
+.pd-c-wengine { --pd-c: #38bdf8; }
+.pd-c-dmain   { --pd-c: #ffcc00; }
+.pd-c-dsub    { --pd-c: #34d399; }
+.pd-c-set     { --pd-c: #fb7185; }
+.pd-c-kit     { --pd-c: #f59e0b; }
+
+.pd-bd-bar {
+  display: flex; height: 4px; border-radius: 2px; overflow: hidden;
+  background: var(--bg4); margin: 0 0 7px;
+}
+.pd-bd-seg { background: var(--pd-c); min-width: 1px; }
+.pd-bd-dot {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--pd-c); margin-right: 7px; vertical-align: middle;
+  position: relative; top: -1px; flex-shrink: 0;
+}
+/* Доля источника в итоге. Столбец фиксированной ширины, иначе проценты
+   запляшут по горизонтали от строки к строке и перестанут читаться столбиком. */
+.pd-bd-share {
+  font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-dim);
+  width: 38px; text-align: right; flex-shrink: 0;
+}
+
+/* ── КАЧЕСТВО ДИСКОВ ── */
+.pd-dq {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: 10px 12px;
+}
+.pd-dq-hd {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px;
+}
+.pd-dq-row, .pd-dq-total { display: flex; align-items: center; gap: 10px; font-size: 12px; line-height: 2; }
+.pd-dq-slot {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text-dim);
+  width: 14px; text-align: center; flex-shrink: 0;
+}
+.pd-dq-set { color: var(--text-mid); width: 140px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pd-dq-bar { flex: 1; min-width: 40px; display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--bg); }
+.pd-dq-seg { min-width: 0; }
+.up-main-bg { background: var(--accent); }
+.up-flat-bg { background: var(--accent-60); }
+.up-pen-bg  { background: var(--accent2); }
+.pd-dq-num { font-family: 'Share Tech Mono', monospace; color: var(--text); flex-shrink: 0; }
+.pd-dq-max { color: var(--text-dim); }
+.pd-dq-pct { color: var(--accent); margin-left: 8px; }
+/* Слабое звено не красится тревожным цветом — оно просто не приглушается, как
+   остальные строки. Красный тут был бы преувеличением: плохой диск это не
+   поломка, а место, куда стоит посмотреть следующим. */
+.pd-dq-row { opacity: .75; }
+.pd-dq-weak { opacity: 1; }
+.pd-dq-weak .pd-dq-set { color: var(--text); }
+.pd-dq-total {
+  margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
+  justify-content: space-between; color: var(--text-mid);
+}
+/* ── ИГРОВАЯ РАЗМЕТКА В ТЕКСТАХ ── */
+/* Названия кнопок и терминов: не ссылки и не кнопки, поэтому без подчёркивания
+   и без цвета акцента — только чуть плотнее фон, чтобы глаз цеплялся. */
+.pd-gt-key {
+  background: var(--bg4); border-radius: 4px; padding: 0 5px;
+  font-family: 'Share Tech Mono', monospace; font-size: .92em; color: var(--text);
+}
+.pd-gt-term { border-bottom: 1px dotted var(--border2); cursor: help; color: var(--text); }
+/* ── ОПИСАНИЯ НАВЫКОВ ── */
+/* Отменяем pre-wrap там, где в тело кладётся РАЗМЕТКА, а не голый текст:
+   иначе переводы строк и отступы шаблона печатаются как пустые полосы. Сам
+   текст описания переводы строк сохраняет — они у него значимые, каждая строка
+   это отдельное свойство навыка. */
+/* Двойной класс не для красоты: у .pd-kit-body та же специфичность, и он
+   объявлен НИЖЕ в таблице стилей, а значит выигрывал бы при равном весе. */
+.pd-kit-body.pd-skl-body { white-space: normal; }
+.pd-skl-desc { white-space: pre-wrap; }
+.pd-skl-group + .pd-skl-group { margin-top: 14px; }
+.pd-skl-group-hd {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px;
+}
+.pd-skl-item + .pd-skl-item { margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--border); }
+.pd-skl-name { font-size: 12.5px; color: var(--text); font-weight: 600; }
+.pd-skl-desc { font-size: 12.5px; line-height: 1.65; color: var(--text-mid); margin-top: 3px; }
+/* ── КИТ И ЭЙДОСЫ ── */
+.pd-kit {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm);
+  margin-bottom: 6px;
+}
+.pd-kit > summary {
+  display: flex; align-items: baseline; gap: 9px; cursor: pointer;
+  padding: 8px 12px; list-style: none; font-size: 12.5px;
+}
+.pd-kit > summary::-webkit-details-marker { display: none; }
+/* Треугольник рисуем сами: у нативного маркера нельзя ни задать цвет, ни
+   выровнять его по базовой линии текста, а строка тут однострочная и всё
+   съезжает на пиксель. */
+.pd-kit > summary::before {
+  content: '▸'; color: var(--text-dim); font-size: 10px; flex-shrink: 0;
+  transition: transform .12s ease; display: inline-block;
+}
+.pd-kit[open] > summary::before { transform: rotate(90deg); }
+.pd-kit > summary:hover { background: var(--bg4); border-radius: var(--r-sm); }
+.pd-kit-label { color: var(--text); flex-shrink: 0; }
+.pd-kit-peek {
+  color: var(--text-dim); font-size: 11.5px; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Раскрытый блок прячет обрезанное начало: оно повторяет первую строку текста,
+   который теперь и так виден целиком. */
+.pd-kit[open] .pd-kit-peek { display: none; }
+.pd-kit-body {
+  padding: 0 12px 11px; font-size: 12.5px; line-height: 1.65; color: var(--text-mid);
+  white-space: pre-wrap;
+}
+.pd-kit-note { font-size: 11.5px; color: var(--text-dim); margin: -2px 0 8px; }
+.pd-mind > summary { opacity: .5; }
+.pd-mind-on > summary { opacity: 1; }
+.pd-mind-n {
+  font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-dim);
+  width: 20px; flex-shrink: 0;
+}
+.pd-mind-state { margin-left: auto; font-size: 9px; color: var(--text-dim); flex-shrink: 0; }
+.pd-mind-on .pd-mind-state { color: var(--accent); }
 .pd-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
 .pd-stat-note { font-size: 10px; color: var(--text-dim); }
 .pd-stat-approx { color: var(--accent2); }
+/* ── ЗОНЫ СТАТОВ ──
+   Цвет здесь несёт смысл, а не украшает, поэтому он же дублируется словом
+   («зелёная», «жёлтая», «красная») — на монохромном экране и при дальтонизме
+   строка обязана читаться без цвета вообще. Справочные пороги намеренно
+   бесцветны: у них другой уровень достоверности, и подкрасить их значило бы
+   уравнять с проверенными. */
+/* Специфичность повышена намеренно: .pd-kit-body объявлен позже и при равном
+   весе перебил бы эти правила — ровно так однажды потерялась .pd-skl-body. */
+.pd-kit-body.pd-awk-body { border-left: 2px solid var(--accent2, var(--accent)); padding-left: 10px; }
+.pd-zones { display: flex; flex-direction: column; gap: 10px; }
+.pd-zone {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm);
+  border-left: 3px solid var(--pd-z, var(--border)); padding: 9px 12px 8px;
+}
+.pd-zone-green { --pd-z: #34d399; }
+.pd-zone-yellow { --pd-z: #ffcc00; }
+.pd-zone-red   { --pd-z: var(--red); }
+.pd-zone-ref   { --pd-z: var(--border2, var(--border)); }
+.pd-zone-head {
+  display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap;
+  padding-bottom: 6px; margin-bottom: 5px; border-bottom: 1px solid var(--border);
+}
+.pd-zone-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--pd-z);
+  flex: none; align-self: center;
+}
+.pd-zone-label { font-size: 13px; font-weight: 600; }
+.pd-zone-val {
+  font-family: 'Share Tech Mono', monospace; font-size: 14px; font-weight: 700;
+  color: var(--pd-z);
+}
+.pd-zone-ref .pd-zone-val { color: var(--text); }
+/* Вердикт словом рядом с числом, а не только цветом: на монохромном экране и
+   при дальтонизме строка обязана читаться. Справа от него — легенда границ, и
+   чтобы вердикт с легендой не сливались в «зелёная зелёная», вердикт стоит
+   плашкой у значения, а легенда уходит к правому краю. */
+.pd-zone-verdict {
+  font-family: 'Share Tech Mono', monospace; font-size: 9.5px; letter-spacing: .08em;
+  text-transform: uppercase; font-weight: 700; color: var(--pd-z);
+  border: 1px solid var(--pd-z); border-radius: 4px; padding: 1px 5px;
+  align-self: center;
+}
+.pd-zone-band {
+  margin-left: auto; font-family: 'Share Tech Mono', monospace;
+  font-size: 10.5px; color: var(--text-mid); white-space: nowrap;
+}
+.pd-zone-why { font-size: 12px; line-height: 1.65; color: var(--text-mid); }
+/* Разбор заливок повторяет вёрстку разбивки подсчётов сознательно: это тот же
+   жанр «итог и из чего он сложился», и читаться он должен так же. */
+.pd-zone-fills { margin-top: 7px; padding-top: 6px; border-top: 1px dashed var(--border2, var(--border)); }
+.pd-zone-fill {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  font-size: 12px; line-height: 1.75; color: var(--text-mid);
+}
+.pd-zone-fill-src { min-width: 0; flex: 1; }
+.pd-zone-fill-head { color: var(--text); font-family: 'Share Tech Mono', monospace; font-size: 11.5px; }
+.pd-zone-target {
+  margin-top: 5px; font-family: 'Share Tech Mono', monospace;
+  font-size: 11.5px; color: var(--accent);
+}
+
 .pd-section-title {
   font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: .12em;
   text-transform: uppercase; color: var(--text-dim); margin: 20px 0 8px;
@@ -1791,6 +2030,33 @@ select {
 .lib-pill-btn.danger:hover { border-color: var(--red); background: rgba(239,68,68,.12); color: var(--red); }
 
 /* ── PRESET CREATION FORM ── */
+/* ── БЛОК BUILD В ФОРМЕ ПРЕСЕТА ── */
+.preset-build-card {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: 10px 12px; margin: 10px 0;
+}
+.preset-build-hd {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 8px;
+}
+/* Разделитель перед пятью кнопками: без него уровень, эйдосы, ранг и навыки
+   сливаются в один список из восьми одинаковых строк. */
+.preset-build-sub {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--text-dim);
+  margin: 12px 0 6px; padding-top: 9px; border-top: 1px solid var(--border);
+}
+.preset-build-card.locked { opacity: .75; }
+.preset-build-note { color: var(--accent); text-transform: none; letter-spacing: 0; }
+/* Прибавка от эйдосов рядом с выставленным значением: приглушена, потому что
+   это следствие, а не то, что человек тут задаёт. */
+.preset-build-eff { color: var(--text-dim); }
+.preset-build-ro {
+  display: flex; flex-wrap: wrap; gap: 6px 14px;
+  font-size: 12px; color: var(--text-mid); line-height: 1.9;
+}
+.preset-build-ro b { color: var(--text); font-family: 'Share Tech Mono', monospace; }
 .preset-form-box { max-width: 480px; height: auto; max-height: 88vh; }
 .public-presets-box { max-width: 1100px; width: 100%; height: 85vh; }
 .public-presets-body { flex: 1; min-height: 0; display: flex; gap: 16px; padding: 16px 20px; overflow: hidden; }
@@ -5330,7 +5596,7 @@ const AGENT_FACTION = {
   'piper': 'Sons of Calydon',
   'promeia': 'Krampus Compliance Authority',
   'pulchra': 'Sons of Calydon',
-  'pyrois': 'Phaeton',
+  'pyrois': 'Phaethon',
   'qingyi': 'Criminal Investigation Special Response Team',
   'rina': 'Victoria Housekeeping Co.',
   'seed': 'Obol Squad',
@@ -7762,10 +8028,51 @@ function openLibraryModal(type) {
    every change (same pattern as the rest of the app), so Save just closes. */
 let agentLibrary = JSON.parse(localStorage.getItem('zzz_agent_library') || '{}');
 function saveAgentLibrary() { localStorage.setItem('zzz_agent_library', JSON.stringify(agentLibrary)); }
+/* ── УРОВНИ КНОПОК ─────────────────────────────────────────────────────────
+   Порядок как в игре и как на компактной карточке (CC_SKILL_ORDER), только без
+   Core Skill: он не «кнопка», а ранг A–F, и живёт отдельным переключателем.
+
+   Хранится БАЗОВЫЙ уровень, 1–12, ровно как приходит со стенда. Прибавку от
+   эйдосов (M3 даёт +2, M5 ещё +2) накидывает при показе skillLevelShown() —
+   если положить сюда уже прибавленное число, оно прибавится второй раз.
+
+   Объявлено ЗДЕСЬ, выше библиотеки агентов, а не рядом с формой пресета:
+   getAgentLibEntry() читает эти константы и вызывается в том числе на старте,
+   до того как выполнится тело файла ниже. const в мёртвой зоне бросил бы
+   ошибку, и библиотека не открылась бы вовсе.
+
+   Короткая подпись — для карточки библиотеки: восемь строк на маленькой
+   карточке и так впритык, «Special Attack» её распирает. */
+const AGENT_SKILL_SLOTS = [
+  { index: 0, label: 'Basic Attack',   short: 'Basic'    },
+  { index: 2, label: 'Dodge',          short: 'Dodge'    },
+  { index: 6, label: 'Assist',         short: 'Assist'   },
+  { index: 1, label: 'Special Attack', short: 'Special'  },
+  { index: 3, label: 'Ultimate',       short: 'Ultimate' },
+];
+const AGENT_SKILL_MAX = 12;
+
 function getAgentLibEntry(key) {
   if (!agentLibrary[key]) agentLibrary[key] = { enabled: false, level: 60, mindscape: 0, coreSkillEnhancement: 0 };
   if (agentLibrary[key].coreSkillEnhancement == null) agentLibrary[key].coreSkillEnhancement = 0;
+  /* Уровни кнопок появились позже остальных полей, поэтому добираются здесь, а
+     не только при создании записи: у всех, кто пользовался сайтом раньше, в
+     localStorage лежат записи без них. Карта по индексу навыка, а не массив —
+     индексы у игры разрежены (0,1,2,3,6), и массив пришлось бы дырявить. */
+  if (!agentLibrary[key].skills || typeof agentLibrary[key].skills !== 'object') agentLibrary[key].skills = {};
+  AGENT_SKILL_SLOTS.forEach(s => {
+    const v = agentLibrary[key].skills[s.index];
+    if (!Number.isFinite(v)) agentLibrary[key].skills[s.index] = AGENT_SKILL_MAX;
+  });
   return agentLibrary[key];
+}
+
+/* Уровень одной кнопки. Ноль игра не допускает — навык всегда хотя бы первого
+   уровня, — поэтому нижняя граница единица, а не ноль, как у эйдосов. */
+function setLibSkill(key, skillIndex, val) {
+  const e = getAgentLibEntry(key);
+  e.skills[skillIndex] = Math.max(1, Math.min(AGENT_SKILL_MAX, val));
+  saveAgentLibrary();
 }
 let libAgentFilterRarity = null, libAgentFilterSpec = null, libAgentFilterAttr = null;
 
@@ -7851,6 +8158,19 @@ function renderAgentLibraryGrid() {
     const mindTrack = makeSegTrack(6, e.mindscape, false, `data-action="lib-mindscape" data-key="${k}"`);
     const coreTrack = makeSegTrack(6, e.coreSkillEnhancement, true, `data-action="lib-coreskill" data-key="${k}"`);
     const coreLabel = e.coreSkillEnhancement ? enkaCoreSkillLetter(e.coreSkillEnhancement) : '—';
+    /* Значение показывается «база → с эйдосами», когда M3/M5 что-то прибавляют:
+       в игре человек видит именно прибавленное число, и без стрелки карточка
+       спорила бы с игрой. Разделительная черта висит на первой строке через
+       класс, а не отдельным элементом, — updateLibCardSizing() меряет высоту по
+       .ag-eidolon-slider, и лишний блок в расчёт бы не попал. */
+    const skillRows = AGENT_SKILL_SLOTS.map((s, i) => {
+      const base = e.skills[s.index];
+      const shown = skillLevelShown(s.index, base, e.mindscape);
+      return `<div class="ag-eidolon-slider${i === 0 ? ' lib-skill-first' : ''}" onclick="event.stopPropagation()">
+        <div class="seg-label"><span>${s.short}</span><span class="seg-val">${base}${shown !== base ? `<span class="lib-skill-eff"> → ${shown}</span>` : ''}</span></div>
+        ${makeSegTrack(AGENT_SKILL_MAX, base, false, `data-action="lib-skill" data-key="${k}" data-idx="${s.index}" data-min="1"`)}
+      </div>`;
+    }).join('');
     return `<div class="ag-card ag-portrait-card lib-agent-card${e.enabled ? '' : ' disabled'}" data-key="${k}" onclick="toggleAgentLibEnabled('${safeKey}')" title="${e.enabled ? 'Enabled — click to disable' : 'Disabled — click to enable'}">
       <div class="ag-portrait">
         <img src="${agentUrl(k)}" style="object-position:${AGENT_CARD_OFFSET[k] || 'center'}" onerror="this.style.opacity=.15">
@@ -7870,6 +8190,7 @@ function renderAgentLibraryGrid() {
         <div class="seg-label purple"><span>Core Skill</span><span class="seg-val">${coreLabel}</span></div>
         ${coreTrack}
       </div>
+      ${skillRows}
     </div>`;
   }).join('') || `<div style="grid-column:1/-1;text-align:center;color:var(--text-dim);font-size:12px;padding:32px 0">No agents match these filters.</div>`;
   updateLibCardSizing();
@@ -8617,6 +8938,22 @@ function createAgentPreset(agentKey, wengineKey, wrank, discEntries, name, sourc
     category,
     skills: (skillSnapshot && skillSnapshot.skills && skillSnapshot.skills.length) ? skillSnapshot.skills : null,
     coreSkillEnhancement: (skillSnapshot && skillSnapshot.coreSkillEnhancement) || 0,
+    /* Отличает «выбрано человеком или снято со стенда» от «поле осталось от
+       старого формата». Нужен ровно из-за ранга Core Skill: ноль там — законный
+       выбор (навык не прокачан), и без флага он неотличим от незаполненного. */
+    buildPinned: !!(skillSnapshot && (skillSnapshot.pinned || Number.isFinite(skillSnapshot.mindscape))),
+    /* null, а не 0: ноль — это законный M0, а null означает «не снимали».
+       Различать обязательно. Пресеты, сохранённые до появления поля, и все
+       ручные сборки остаются с null и продолжают брать эйдосы из твоей
+       библиотеки — задним числом снимок не появится, выдумывать его нельзя. */
+    mindscape: (skillSnapshot && Number.isFinite(skillSnapshot.mindscape)) ? skillSnapshot.mindscape : null,
+    /* Та же логика, что у эйдосов: null значит «не снимали», и тогда всё
+       считается по твоей библиотеке. Ноль тут невозможен, но проверка та же —
+       чтобы правило было одно на все поля снимка. */
+    level: (skillSnapshot && Number.isFinite(skillSnapshot.level)) ? skillSnapshot.level : null,
+    promotionLevel: (skillSnapshot && Number.isFinite(skillSnapshot.promotionLevel)) ? skillSnapshot.promotionLevel : null,
+    wengineLevel: (skillSnapshot && Number.isFinite(skillSnapshot.wengineLevel)) ? skillSnapshot.wengineLevel : null,
+    wengineBreakLevel: (skillSnapshot && Number.isFinite(skillSnapshot.wengineBreakLevel)) ? skillSnapshot.wengineBreakLevel : null,
   };
   agentPresets[agentKey] = [...list, preset];
   saveAgentPresets();
@@ -8641,7 +8978,7 @@ function deleteAgentPreset(agentKey, presetId) {
 // `source`, since editing necessarily re-derives the discs from the user's
 // own Drive Disc Library (via the same picker createAgentPreset's caller
 // uses), so it's no longer a pure showcase snapshot once saved this way.
-function updateAgentPreset(agentKey, presetId, wengineKey, wrank, discEntries, name) {
+function updateAgentPreset(agentKey, presetId, wengineKey, wrank, discEntries, name, build = null) {
   const p = getPresetById(agentKey, presetId);
   if (!p) return null;
   if (!wengineKey) { showToast('Pick a W-Engine before saving the preset.', 'error'); return null; }
@@ -8653,6 +8990,14 @@ function updateAgentPreset(agentKey, presetId, wengineKey, wrank, discEntries, n
   p.wrank = wrank || 1;
   p.discs = discs.slice().sort((a, b) => a.slot - b.slot).map(discToSnapshot);
   p.source = null;
+  if (build) {
+    p.level = build.level;
+    p.mindscape = build.mindscape;
+    p.coreSkillEnhancement = build.coreSkillEnhancement;
+    p.skills = (build.skills && build.skills.length) ? build.skills : null;
+    p.wengineLevel = Number.isFinite(build.wengineLevel) ? build.wengineLevel : null;
+    p.buildPinned = true;
+  }
   saveAgentPresets();
   return p;
 }
@@ -8999,7 +9344,7 @@ const ENKA_STAT_FAMILY_ORDER = ['111','121','131','122','201','211','231','232',
 
 // BaseTotalValue = BaseProps + GrowthValue + PromotionValue + CoreEnhancementValue
 // (see docs/zzz/api.md → Formulas → Agent Stats)
-function computeEnkaCharacterBase(avatarDef, level, promotionLevel, coreSkillEnhancement) {
+function computeEnkaCharacterBaseParts(avatarDef, level, promotionLevel, coreSkillEnhancement) {
   const base = avatarDef.BaseProps || {};
   const growth = avatarDef.GrowthProps || {};
   const promo = (avatarDef.PromotionProps || [])[promotionLevel - 1] || {};
@@ -9008,9 +9353,148 @@ function computeEnkaCharacterBase(avatarDef, level, promotionLevel, coreSkillEnh
   const out = {};
   ids.forEach(id => {
     const g = Math.floor(((growth[id] || 0) * (level - 1)) / 10000);
-    out[id] = (base[id] || 0) + g + (promo[id] || 0) + (core[id] || 0);
+    /* Четыре слагаемых по отдельности, а не их сумма. Сумма — это то, что было
+       здесь раньше, и она никуда не делась: её берёт вызывающий, складывая эти
+       же четыре числа. Разница только в том, что теперь их можно ещё и
+       НАЗВАТЬ — Full-вид печатает каждое отдельной строкой. */
+    out[id] = {
+      'char-base': base[id] || 0,
+      'char-growth': g,
+      'char-promotion': promo[id] || 0,
+      'char-core': core[id] || 0,
+    };
   });
   return out;
+}
+
+/* ── ПРОВЕНАНС СЛАГАЕМЫХ ──────────────────────────────────────────────────
+   Лист статов должен уметь не только назвать итог, но и показать, из чего он
+   сложился: развёрнутый вид печатает каждое слагаемое отдельной строкой.
+   Раньше families[fam] копил только три числа (base/flat/ratio), и источник
+   вклада терялся безвозвратно — восстановить его постфактум нечем, данных
+   попросту не оставалось.
+
+   Теперь рядом с суммами лежит parts[]: по записи на КАЖДЫЙ вклад, с пометкой,
+   откуда он пришёл. Суммы считаются ровно как раньше, слово в слово, — parts
+   только сопровождает их и ни во что не вмешивается. Ни компактная карточка,
+   ни нынешние строки листа на это поле не смотрят, поэтому его появление не
+   меняет на экране ни одного числа.
+
+   src.kind — МАШИННЫЙ ярлык источника, не текст для показа. Подписи строит
+   рендерер: он знает язык интерфейса и формат, движок про них знать не должен.
+     char-base / char-growth / char-promotion / char-core
+     wengine-main / wengine-sec                (+ wengineId, wengineKey)
+     disc-main / disc-sub                      (+ slot, setName, procs)
+     set-2pc                                   (+ setName, count)
+     derived    — поправки, дописанные ПОСЛЕ сборки листа и потому стоящие ВНЕ
+                  формулы: DEF→ATK у Бена и Sheer Force у Rupture, см.
+                  assembleStatSheet() ниже.
+   ────────────────────────────────────────────────────────────────────────── */
+function makeStatFamilyCollector() {
+  const families = {};
+  return {
+    families,
+    note(id, bucket, val, src) {
+      const fam = enkaStatFamily(id);
+      families[fam] = families[fam] || { base: 0, flat: 0, ratio: 0, parts: [] };
+      families[fam][bucket] += val;
+      /* Нулевые вклады не копим. Строка «диск 3 · сабстат ATK +0» в разбивке —
+         это шум, а не информация: источника с нулевым вкладом для читателя не
+         существует. На суммы отсев не влияет, ноль и так ничего не менял. */
+      if (val) families[fam].parts.push({ bucket, raw: val, src });
+    },
+  };
+}
+
+/* Перевод сырого вклада в масштаб показа. Правила ДВА, и путать их нельзя:
+   ratio хранится в сотых долях процента (2100 = +21%), а base/flat — в сыром
+   игровом масштабе, который делится на postDivide своего семейства (у CRIT
+   Rate это 100, у ATK — 1). Одно и то же число 2100 в бакете ratio значит
+   «+21%», а в бакете flat у семейства CRIT Rate — «21». Именно здесь сходятся
+   две ветки движка: Enka-стенд держит значения дисков сырыми, ручная сборка
+   поднимает их обратно через toRawPropValue(), и если печатать слагаемые «как
+   есть», один и тот же билд покажет на стенде и в пресете разные числа. */
+function statPartDisplayValue(fam, bucket, raw) {
+  if (bucket === 'ratio') return raw / 100;
+  const pd = ENKA_STAT_FAMILY_META[fam]?.postDivide || 1;
+  return raw / pd;
+}
+
+/* ── СБОРКА ЛИСТА ─────────────────────────────────────────────────────────
+   Один код на обе ветки — живой стенд Enka и ручная сборка. Раньше этот кусок
+   стоял в каждой из них своей копией, слово в слово, вместе с обеими
+   поправками. Копия — не экономия: правка формулы, внесённая в одну ветку и
+   забытая в другой, разводит стенд и пресет ОДНОГО И ТОГО ЖЕ билда на разные
+   числа, а заметить это можно только сличив их вручную.
+
+   Поправки ниже — универсальные и задокументированные правила, привязанные к
+   рангу Core Skill Enhancement и к специальности, а не догадки про конкретный
+   аккаунт, поэтому к теоретической сборке применяются ровно так же, как к
+   живому стенду. Обе дописываются ПОСЛЕ сборки листа и в формулу
+   base × (1 + ratio) + flat не входят — отсюда отдельный бакет 'derived' и
+   отдельное поле formula.derived: без них напечатанная формула не сходилась бы
+   с итогом, и это выглядело бы как ошибка счёта.
+   ────────────────────────────────────────────────────────────────────────── */
+function assembleStatSheet(families, avatarDef, ctx) {
+  const { enkaId, coreSkillEnhancement } = ctx;
+  const assemble = (d) => d.base * (1 + d.ratio / 10000) + d.flat;
+
+  const highlightFams = new Set((avatarDef.HighlightProps || []).map(enkaStatFamily));
+
+  const sheet = ENKA_STAT_FAMILY_ORDER
+    .filter(fam => families[fam])
+    .map(fam => {
+      const meta = ENKA_STAT_FAMILY_META[fam];
+      const d = families[fam];
+      const rawTotal = assemble(d);
+      const total = rawTotal / meta.postDivide;
+      const baseDisplay = d.base / meta.postDivide; // character-only portion, for the "base + bonus" split
+      return {
+        fam, label: meta.label, isPercent: meta.isPercent,
+        total, base: baseDisplay, bonus: total - baseDisplay,
+        approximate: highlightFams.has(fam),
+        /* Всё, что ниже, нужно только развёрнутой разбивке. На числа выше не
+           влияет: parts сопровождает суммы, а не участвует в них. */
+        parts: d.parts.map(p => ({ ...p, value: statPartDisplayValue(fam, p.bucket, p.raw) })),
+        formula: { base: baseDisplay, ratioPct: d.ratio / 100, flat: d.flat / meta.postDivide, derived: 0 },
+      };
+    });
+
+  // ── Corrections (documented, universal — not per-agent guesses) ──
+  const atkEntry = sheet.find(s => s.fam === '121');
+  const defEntry = sheet.find(s => s.fam === '131');
+  const hpEntry = sheet.find(s => s.fam === '111');
+
+  if (enkaId === 1121 && atkEntry && defEntry) { // Ben
+    const BEN_DEF_TO_ATK = [0.4, 0.46, 0.52, 0.6, 0.66, 0.72, 0.8];
+    const mult = BEN_DEF_TO_ATK[coreSkillEnhancement || 0] ?? BEN_DEF_TO_ATK[0];
+    const bonus = Math.floor(Math.floor(defEntry.total) * mult);
+    atkEntry.total += bonus;
+    atkEntry.bonus += bonus;
+    atkEntry.approximate = false;
+    atkEntry.formula.derived += bonus;
+    atkEntry.parts.push({ bucket: 'derived', raw: bonus, value: bonus,
+      src: { kind: 'derived', rule: 'ben-def-to-atk', from: '131', share: mult } });
+  }
+
+  if (avatarDef.ProfessionType === 'Rupture' && atkEntry && hpEntry) {
+    /* Порядок важен: ATK здесь уже с поправкой Бена, если она была. Так же
+       было и до вынесения этого кода в общую функцию. */
+    const fromAtk = Math.floor(Math.floor(atkEntry.total) * 0.3);
+    const fromHp = Math.floor(Math.floor(hpEntry.total) * 0.1);
+    const sheerForce = fromAtk + fromHp;
+    sheet.push({
+      fam: 'sheer', label: 'Sheer Force', isPercent: false,
+      total: sheerForce, base: 0, bonus: sheerForce, approximate: false,
+      parts: [
+        { bucket: 'derived', raw: fromAtk, value: fromAtk, src: { kind: 'derived', rule: 'sheer-force', from: '121', share: 0.3 } },
+        { bucket: 'derived', raw: fromHp, value: fromHp, src: { kind: 'derived', rule: 'sheer-force', from: '111', share: 0.1 } },
+      ],
+      formula: { base: 0, ratioPct: 0, flat: 0, derived: sheerForce },
+    });
+  }
+
+  return sheet;
 }
 
 // W-Engine main/secondary stat, using the exact per-(level,rarity)/(breakLevel,rarity)
@@ -9035,9 +9519,9 @@ function computeEnkaWeaponContribs(weaponDef, level, breakLevel) {
      Вторичный стат не усекается: он идёт в ratio/flat-бакеты, а не в базу, и
      там игра дробную часть сохраняет — Energy Regen у той же Sunna сходится
      до десятой без всякого floor. */
-  if (main) out.push({ id: main.PropertyId, value: Math.floor(main.PropertyValue * (1 + (enhanceRate + starRate) / 10000)) });
+  if (main) out.push({ id: main.PropertyId, role: 'main', value: Math.floor(main.PropertyValue * (1 + (enhanceRate + starRate) / 10000)) });
   const sec = weaponDef.SecondaryStat;
-  if (sec) out.push({ id: sec.PropertyId, value: sec.PropertyValue * (1 + randRate / 10000) });
+  if (sec) out.push({ id: sec.PropertyId, role: 'sec', value: sec.PropertyValue * (1 + randRate / 10000) });
   return out;
 }
 
@@ -9073,15 +9557,10 @@ async function buildEnkaAgentStatSheet(avatarRaw) {
   if (!avatarDef) return null;
   const weaponDef = avatarRaw.Weapon ? weaponsRef[String(avatarRaw.Weapon.Id)] : null;
 
-  const charBase = computeEnkaCharacterBase(avatarDef, avatarRaw.Level, avatarRaw.PromotionLevel, avatarRaw.CoreSkillEnhancement);
+  const charParts = computeEnkaCharacterBaseParts(avatarDef, avatarRaw.Level, avatarRaw.PromotionLevel, avatarRaw.CoreSkillEnhancement);
 
-  const families = {};
-  const noteFam = (id, bucket, val) => {
-    const fam = enkaStatFamily(id);
-    families[fam] = families[fam] || { base: 0, flat: 0, ratio: 0 };
-    families[fam][bucket] += val;
-  };
-  /* Бакет ОБЯЗАТЕЛЬНО через enkaPropBucket(), а не жёстко 'base': computeEnkaCharacterBase()
+  const { families, note: noteFam } = makeStatFamilyCollector();
+  /* Бакет ОБЯЗАТЕЛЬНО через enkaPropBucket(), а не жёстко 'base': computeEnkaCharacterBaseParts()
      складывает BaseProps + GrowthProps + PromotionProps + CoreEnhancementProps, и последний
      содержит не только базовые id ('…01'), но и процентные ('…02').
      Раньше здесь стояло 'base', и процент попадал в базу как плоская добавка — сразу двумя
@@ -9090,12 +9569,19 @@ async function buildEnkaAgentStatSheet(avatarRaw) {
      выходила 750 + 2100 + 713.76 = 3563.8 вместо 1463.8, а итог — 7220.1 вместо 3535.
      Задеты ровно три агента (проверено по всему avatars.json): sunna — 12102 (ATK% до +21%),
      zhao (1341) и manato (1441) — 11102 (HP% до +18%). Остальным 55 правка ничего не меняет,
-     у них в charBase только '…01'. */
-  Object.entries(charBase).forEach(([id, v]) => noteFam(id, enkaPropBucket(id), v));
+     у них в charParts только '…01'. */
+  Object.entries(charParts).forEach(([id, p]) => {
+    const bucket = enkaPropBucket(id);
+    Object.entries(p).forEach(([kind, v]) => noteFam(id, bucket, v, { kind }));
+  });
 
   if (avatarRaw.Weapon) {
     computeEnkaWeaponContribs(weaponDef, avatarRaw.Weapon.Level, avatarRaw.Weapon.BreakLevel)
-      .forEach(c => noteFam(c.id, enkaPropBucket(c.id), c.value));
+      .forEach(c => noteFam(c.id, enkaPropBucket(c.id), c.value, {
+        kind: c.role === 'main' ? 'wengine-main' : 'wengine-sec',
+        wengineId: avatarRaw.Weapon.Id, wengineKey: ENKA_WENGINE_MAP[avatarRaw.Weapon.Id] || null,
+        level: avatarRaw.Weapon.Level,
+      }));
   }
 
   const discs = avatarRaw.EquippedList || [];
@@ -9106,14 +9592,22 @@ async function buildEnkaAgentStatSheet(avatarRaw) {
     const rarityNum = itemDef?.Rarity || 4;
     const suitId = itemDef?.SuitId;
     if (suitId) setCounts[suitId] = (setCounts[suitId] || 0) + 1;
+    /* Имя сета — для подписи слагаемого. Разбивка называет источник так же,
+       как его называет карточка диска: «диск 4 · Astral Voice», а не suitId. */
+    const setName = ENKA_DISCSET_MAP[suitId] || null;
 
     (eq.MainPropertyList || []).forEach(m => {
       const v = enkaDiscMainStatValue(m.PropertyValue, eq.Level, rarityNum);
-      noteFam(m.PropertyId, enkaPropBucket(m.PropertyId), v);
+      noteFam(m.PropertyId, enkaPropBucket(m.PropertyId), v,
+              { kind: 'disc-main', slot: e.Slot, setName, level: eq.Level });
     });
     (eq.RandomPropertyList || []).forEach(s => {
       const v = s.PropertyValue * s.PropertyLevel;
-      noteFam(s.PropertyId, enkaPropBucket(s.PropertyId), v);
+      /* procs = PropertyLevel — та же величина, что показывает карточка диска
+         (см. enkaBuildDiscDisplayEntry), чтобы разбивка и карточка не
+         разошлись в счёте прокрутов одного и того же сабстата. */
+      noteFam(s.PropertyId, enkaPropBucket(s.PropertyId), v,
+              { kind: 'disc-sub', slot: e.Slot, setName, procs: s.PropertyLevel });
     });
   });
 
@@ -9121,51 +9615,14 @@ async function buildEnkaAgentStatSheet(avatarRaw) {
   Object.entries(setCounts).forEach(([suitId, count]) => {
     if (count < 2) return;
     const props = DISC_SET_BONUS_PROPS[suitId] || {};
-    Object.entries(props).forEach(([id, val]) => noteFam(id, enkaPropBucket(id), val));
+    Object.entries(props).forEach(([id, val]) => noteFam(id, enkaPropBucket(id), val,
+      { kind: 'set-2pc', setName: ENKA_DISCSET_MAP[suitId] || String(suitId), count }));
   });
 
-  const assemble = (fam) => {
-    const d = families[fam];
-    if (!d) return 0;
-    return d.base * (1 + d.ratio / 10000) + d.flat;
-  };
-
-  const highlightFams = new Set((avatarDef.HighlightProps || []).map(enkaStatFamily));
-
-  const sheet = ENKA_STAT_FAMILY_ORDER
-    .filter(fam => families[fam])
-    .map(fam => {
-      const meta = ENKA_STAT_FAMILY_META[fam];
-      const rawTotal = assemble(fam);
-      const total = rawTotal / meta.postDivide;
-      const baseDisplay = families[fam].base / meta.postDivide; // character-only portion, for the "base + bonus" split
-      return {
-        fam, label: meta.label, isPercent: meta.isPercent,
-        total, base: baseDisplay, bonus: total - baseDisplay,
-        approximate: highlightFams.has(fam),
-      };
-    });
-
-  // ── Corrections (documented, universal — not per-agent guesses) ──
-  const atkEntry = sheet.find(s => s.fam === '121');
-  const defEntry = sheet.find(s => s.fam === '131');
-  const hpEntry = sheet.find(s => s.fam === '111');
-
-  if (avatarRaw.Id === 1121 && atkEntry && defEntry) { // Ben
-    const BEN_DEF_TO_ATK = [0.4, 0.46, 0.52, 0.6, 0.66, 0.72, 0.8];
-    const mult = BEN_DEF_TO_ATK[avatarRaw.CoreSkillEnhancement || 0] ?? BEN_DEF_TO_ATK[0];
-    const bonus = Math.floor(Math.floor(defEntry.total) * mult);
-    atkEntry.total += bonus;
-    atkEntry.bonus += bonus;
-    atkEntry.approximate = false;
-  }
-
-  if (avatarDef.ProfessionType === 'Rupture' && atkEntry && hpEntry) {
-    const sheerForce = Math.floor(Math.floor(atkEntry.total) * 0.3) + Math.floor(Math.floor(hpEntry.total) * 0.1);
-    sheet.push({ fam: 'sheer', label: 'Sheer Force', isPercent: false, total: sheerForce, base: 0, bonus: sheerForce, approximate: false });
-  }
-
-  return sheet;
+  return assembleStatSheet(families, avatarDef, {
+    enkaId: avatarRaw.Id,
+    coreSkillEnhancement: avatarRaw.CoreSkillEnhancement || 0,
+  });
 }
 
 // ── MANUAL / PRESET STAT ENGINE ────────────────────────────────────────
@@ -9212,7 +9669,20 @@ function levelToBreakLevel(level) { return levelToPromotion(level) - 1; }
 // Library shape ({ setName, mainStat, mainStatValue, subStats:[{name,value}] }).
 // Returns the same sheet shape as buildEnkaAgentStatSheet (or null if this
 // agent has no Enka reference data mapped yet).
-async function buildManualAgentStatSheet(agentKey, wengineKey, discEntries) {
+/* opts — снимок со стенда, если сборка пришла оттуда. Без него всё считается
+   по твоей Agent Library, как и раньше; это путь ручных сборок и всех
+   пресетов, сохранённых до появления снимка.
+
+   Зачем вообще переопределения. Пресет категории Imported подписан как
+   «frozen snapshot straight off that account's stand», но считался при этом на
+   ТВОЁМ уровне агента, ТВОЁМ ранге Core Skill и ТВОЁМ уровне движка — то есть
+   замороженной была только половина сборки. Хуже того, ранг Core Skill в
+   пресете уже лежал и печатался бейджем в шапке, а числа под бейджем шли по
+   твоему: экран сам себе противоречил.
+
+   Прокачка и BreakLevel берутся снимком, а не выводятся из уровня: levelToPromotion()
+   угадывает их по уровню, и на Lv.50 промах на единицу вполне реален. */
+async function buildManualAgentStatSheet(agentKey, wengineKey, discEntries, opts = {}) {
   const enkaId = SLUG_TO_ENKA_AGENT_ID[agentKey];
   if (enkaId == null) return null;
   const avatarsRef = await getEnkaAvatarsRefData();
@@ -9220,19 +9690,16 @@ async function buildManualAgentStatSheet(agentKey, wengineKey, discEntries) {
   if (!avatarDef) return null;
 
   const libEntry = getAgentLibEntry(agentKey);
-  const level = libEntry.level || 60;
-  const promotionLevel = levelToPromotion(level);
-  const coreSkillEnhancement = libEntry.coreSkillEnhancement || 0;
+  /* ?? , а не ||: уровень и ранг могут быть законным нулём или единицей, и
+     проверка на «ложность» подменила бы их библиотечными. */
+  const level = opts.level ?? (libEntry.level || 60);
+  const promotionLevel = opts.promotionLevel ?? levelToPromotion(level);
+  const coreSkillEnhancement = opts.coreSkillEnhancement ?? (libEntry.coreSkillEnhancement || 0);
 
-  const charBase = computeEnkaCharacterBase(avatarDef, level, promotionLevel, coreSkillEnhancement);
+  const charParts = computeEnkaCharacterBaseParts(avatarDef, level, promotionLevel, coreSkillEnhancement);
 
-  const families = {};
-  const noteFam = (id, bucket, val) => {
-    const fam = enkaStatFamily(id);
-    families[fam] = families[fam] || { base: 0, flat: 0, ratio: 0 };
-    families[fam][bucket] += val;
-  };
-  /* Бакет ОБЯЗАТЕЛЬНО через enkaPropBucket(), а не жёстко 'base': computeEnkaCharacterBase()
+  const { families, note: noteFam } = makeStatFamilyCollector();
+  /* Бакет ОБЯЗАТЕЛЬНО через enkaPropBucket(), а не жёстко 'base': computeEnkaCharacterBaseParts()
      складывает BaseProps + GrowthProps + PromotionProps + CoreEnhancementProps, и последний
      содержит не только базовые id ('…01'), но и процентные ('…02').
      Раньше здесь стояло 'base', и процент попадал в базу как плоская добавка — сразу двумя
@@ -9241,8 +9708,11 @@ async function buildManualAgentStatSheet(agentKey, wengineKey, discEntries) {
      выходила 750 + 2100 + 713.76 = 3563.8 вместо 1463.8, а итог — 7220.1 вместо 3535.
      Задеты ровно три агента (проверено по всему avatars.json): sunna — 12102 (ATK% до +21%),
      zhao (1341) и manato (1441) — 11102 (HP% до +18%). Остальным 55 правка ничего не меняет,
-     у них в charBase только '…01'. */
-  Object.entries(charBase).forEach(([id, v]) => noteFam(id, enkaPropBucket(id), v));
+     у них в charParts только '…01'. */
+  Object.entries(charParts).forEach(([id, p]) => {
+    const bucket = enkaPropBucket(id);
+    Object.entries(p).forEach(([kind, v]) => noteFam(id, bucket, v, { kind }));
+  });
 
   if (wengineKey) {
     const wEnkaId = SLUG_TO_ENKA_WENGINE_ID[wengineKey];
@@ -9250,10 +9720,13 @@ async function buildManualAgentStatSheet(agentKey, wengineKey, discEntries) {
       const weaponsRef = await getEnkaWeaponsRefData();
       const weaponDef = weaponsRef[String(wEnkaId)];
       if (weaponDef) {
-        const wLevel = getWengineLibEntry(wengineKey).level || 60;
-        const wBreakLevel = levelToBreakLevel(wLevel);
+        const wLevel = opts.wengineLevel ?? (getWengineLibEntry(wengineKey).level || 60);
+        const wBreakLevel = opts.wengineBreakLevel ?? levelToBreakLevel(wLevel);
         computeEnkaWeaponContribs(weaponDef, wLevel, wBreakLevel)
-          .forEach(c => noteFam(c.id, enkaPropBucket(c.id), c.value));
+          .forEach(c => noteFam(c.id, enkaPropBucket(c.id), c.value, {
+            kind: c.role === 'main' ? 'wengine-main' : 'wengine-sec',
+            wengineId: wEnkaId, wengineKey: wengineKey, level: wLevel,
+          }));
       }
     }
   }
@@ -9274,11 +9747,13 @@ async function buildManualAgentStatSheet(agentKey, wengineKey, discEntries) {
     if (d.setName) setCounts[d.setName] = (setCounts[d.setName] || 0) + 1;
     const mainId = mainStatEnkaPropId(d.mainStat);
     if (mainId != null && d.mainStatValue != null) {
-      noteFam(mainId, enkaPropBucket(mainId), toRawPropValue(mainId, parseFloat(d.mainStatValue) || 0));
+      noteFam(mainId, enkaPropBucket(mainId), toRawPropValue(mainId, parseFloat(d.mainStatValue) || 0),
+              { kind: 'disc-main', slot: d.slot ?? null, setName: d.setName || null, level: d.level ?? null });
     }
     (d.subStats || []).forEach(s => {
       const subId = NAME_TO_ENKA_PROP_ID[s.name];
-      if (subId != null) noteFam(subId, enkaPropBucket(subId), toRawPropValue(subId, parseFloat(s.value) || 0));
+      if (subId != null) noteFam(subId, enkaPropBucket(subId), toRawPropValue(subId, parseFloat(s.value) || 0),
+                                 { kind: 'disc-sub', slot: d.slot ?? null, setName: d.setName || null, procs: s.procs ?? null });
     });
   });
 
@@ -9289,54 +9764,11 @@ async function buildManualAgentStatSheet(agentKey, wengineKey, discEntries) {
     const suitId = SETNAME_TO_SUITID[setName];
     if (suitId == null) return;
     const props = DISC_SET_BONUS_PROPS[String(suitId)] || {};
-    Object.entries(props).forEach(([id, val]) => noteFam(id, enkaPropBucket(id), val));
+    Object.entries(props).forEach(([id, val]) => noteFam(id, enkaPropBucket(id), val,
+      { kind: 'set-2pc', setName, count }));
   });
 
-  const assemble = (fam) => {
-    const d = families[fam];
-    if (!d) return 0;
-    return d.base * (1 + d.ratio / 10000) + d.flat;
-  };
-
-  const highlightFams = new Set((avatarDef.HighlightProps || []).map(enkaStatFamily));
-
-  const sheet = ENKA_STAT_FAMILY_ORDER
-    .filter(fam => families[fam])
-    .map(fam => {
-      const meta = ENKA_STAT_FAMILY_META[fam];
-      const rawTotal = assemble(fam);
-      const total = rawTotal / meta.postDivide;
-      const baseDisplay = families[fam].base / meta.postDivide;
-      return {
-        fam, label: meta.label, isPercent: meta.isPercent,
-        total, base: baseDisplay, bonus: total - baseDisplay,
-        approximate: highlightFams.has(fam),
-      };
-    });
-
-  // Same universal, documented corrections as the Enka path above (Ben's
-  // DEF→ATK conversion, Rupture's Sheer Force) — both are kit-agnostic
-  // rules tied to Core Skill Enhancement / specialty, not per-account
-  // guesses, so they apply identically to a theoretical build.
-  const atkEntry = sheet.find(s => s.fam === '121');
-  const defEntry = sheet.find(s => s.fam === '131');
-  const hpEntry = sheet.find(s => s.fam === '111');
-
-  if (enkaId === 1121 && atkEntry && defEntry) { // Ben
-    const BEN_DEF_TO_ATK = [0.4, 0.46, 0.52, 0.6, 0.66, 0.72, 0.8];
-    const mult = BEN_DEF_TO_ATK[coreSkillEnhancement] ?? BEN_DEF_TO_ATK[0];
-    const bonus = Math.floor(Math.floor(defEntry.total) * mult);
-    atkEntry.total += bonus;
-    atkEntry.bonus += bonus;
-    atkEntry.approximate = false;
-  }
-
-  if (avatarDef.ProfessionType === 'Rupture' && atkEntry && hpEntry) {
-    const sheerForce = Math.floor(Math.floor(atkEntry.total) * 0.3) + Math.floor(Math.floor(hpEntry.total) * 0.1);
-    sheet.push({ fam: 'sheer', label: 'Sheer Force', isPercent: false, total: sheerForce, base: 0, bonus: sheerForce, approximate: false });
-  }
-
-  return sheet;
+  return assembleStatSheet(families, avatarDef, { enkaId, coreSkillEnhancement });
 }
 
 // Skill index -> label (docs/zzz/api.md → Definitions → Skills). Index 4 is
@@ -10806,10 +11238,29 @@ function aggregateProfileDiscSubstats(discEntries) {
    that the team editor's Advanced Mode already uses, so there's exactly
    one "choose a W-Engine" UI and one "choose a disc" UI in the whole app,
    not a second parallel picker built just for this form. */
-let presetDraft = null; // { agentKey, name, wengine, wrank, discSlots: [6], editingPresetId }
+/* Новый пресет наследует уровень, эйдосы и ранг Core Skill из Agent Library —
+   там они у человека уже выставлены, и начинать с чужих значений было бы
+   странно. Уровни кнопок в библиотеке не хранятся вовсе, поэтому берутся
+   максимальные: сборку почти всегда прикидывают на прокачанных навыках, а
+   опустить ползунок дешевле, чем поднимать пять штук с единицы. */
+function presetDraftBuildDefaults(agentKey) {
+  const e = getAgentLibEntry(agentKey);
+  return {
+    level: e.level || 60,
+    mindscape: e.mindscape || 0,
+    coreSkillEnhancement: e.coreSkillEnhancement || 0,
+    skills: AGENT_SKILL_SLOTS.map(s => ({ index: s.index, label: s.label, level: e.skills[s.index] })),
+    /* Движка у нового черновика ещё нет — уровень подставится в момент выбора,
+       см. обработчик модалки 'preset-wengine'. */
+    wengineLevel: null,
+  };
+}
+
+let presetDraft = null; // { agentKey, name, wengine, wrank, discSlots: [6], editingPresetId, level, mindscape, coreSkillEnhancement, skills }
 
 function openPresetCreateForm(agentKey) {
-  presetDraft = { agentKey, name: '', wengine: null, wrank: 1, discSlots: [null, null, null, null, null, null], editingPresetId: null, locked: false, discSnapshots: null };
+  presetDraft = { agentKey, name: '', wengine: null, wrank: 1, discSlots: [null, null, null, null, null, null], editingPresetId: null, locked: false, discSnapshots: null,
+                  ...presetDraftBuildDefaults(agentKey) };
   document.getElementById('presetFormTitle').textContent = 'New Preset';
   renderPresetDraftEditor();
   document.getElementById('presetFormBg').classList.remove('hidden');
@@ -10847,9 +11298,35 @@ function editAgentPreset(agentKey, presetId) {
       if (snap && snap.slot >= 1 && snap.slot <= 6) discSnapshots[snap.slot - 1] = snap;
     });
   }
+  /* У пресета, сохранённого до появления этих полей, их просто нет — тогда
+     форма открывается на значениях из библиотеки, как открылась бы у нового.
+     ?? , а не ||: ноль здесь законен и у эйдосов, и у ранга Core Skill. */
+  const defaults = presetDraftBuildDefaults(agentKey);
   presetDraft = {
     agentKey, name: preset.name, wengine: preset.wengine, wrank: preset.wrank || 1,
     discSlots, editingPresetId: presetId, locked, discSnapshots,
+    level: Number.isFinite(preset.level) ? preset.level : defaults.level,
+    wengineLevel: Number.isFinite(preset.wengineLevel) ? preset.wengineLevel
+      : (preset.wengine ? (getWengineLibEntry(preset.wengine).level || 60) : null),
+    mindscape: Number.isFinite(preset.mindscape) ? preset.mindscape : defaults.mindscape,
+    coreSkillEnhancement: (preset.buildPinned || presetIsStandSnapshot(preset)) && Number.isFinite(preset.coreSkillEnhancement)
+      ? preset.coreSkillEnhancement : defaults.coreSkillEnhancement,
+    /* У заблокированного пресета показываем РОВНО то, что снято со стенда, без
+       добивки недостающих кнопок двенадцаткой: снимок — свидетельство, а не
+       заготовка, и дорисовывать в нём нечего. У редактируемого наоборот:
+       недостающие кнопки добиваются до максимума, иначе ползунок появился бы
+       без значения. Core Skill (индекс 5) из списка кнопок исключён — он
+       отдельный ранг A–F, у него свой переключатель. */
+    skills: locked
+      ? (preset.skills || [])
+          .filter(x => x.index !== ENKA_SKILL_CORE_INDEX)
+          .map(x => ({ index: x.index, label: x.label || (ENKA_SKILL_TYPE_LABEL[x.index] || `Skill ${x.index}`), level: x.level }))
+      : ((preset.skills && preset.skills.length)
+          ? AGENT_SKILL_SLOTS.map(s => {
+              const found = preset.skills.find(x => x.index === s.index);
+              return { index: s.index, label: s.label, level: found ? found.level : getAgentLibEntry(agentKey).skills[s.index] };
+            })
+          : defaults.skills),
   };
   document.getElementById('presetFormTitle').textContent = locked ? 'Rename Preset' : 'Edit Preset';
   renderPresetDraftEditor();
@@ -10862,6 +11339,19 @@ function closePresetForm() {
   presetDraft = null;
 }
 function presetFormBgClick(e) { if (e.target === document.getElementById('presetFormBg')) closePresetForm(); }
+
+/* Уровень агента идёт ползунком, а не дорожкой: шагов шестьдесят, дорожка на
+   столько делений превратилась бы в кашу. Перерисовки формы тут нет намеренно —
+   значение уже показано рядом обработчиком oninput, а полная перерисовка на
+   каждое движение ползунка сбрасывала бы фокус. */
+function setPresetDraftLevel(v) {
+  if (!presetDraft) return;
+  presetDraft.level = Math.max(1, Math.min(60, parseInt(v, 10) || 1));
+}
+function setPresetDraftWengineLevel(v) {
+  if (!presetDraft) return;
+  presetDraft.wengineLevel = Math.max(1, Math.min(60, parseInt(v, 10) || 1));
+}
 
 function renderPresetDraftEditor() {
   const body = document.getElementById('presetFormBody');
@@ -10896,6 +11386,64 @@ function renderPresetDraftEditor() {
     </div>`;
   });
 
+  /* ── УРОВНИ АГЕНТА, ЭЙДОСЫ, РАНГ CORE SKILL И УРОВНИ КНОПОК ──
+     У снимка со стенда всё это уже снято и менять нечего — там показываем
+     только значения. У ручной сборки это выбор человека, и до сих пор его
+     негде было сделать: пресет молча брал уровень и ранг из Agent Library, а
+     уровни кнопок не хранил вовсе, отчего секция Skills у ручных пресетов
+     всегда была пустой.
+
+     Ранг Core Skill помечен фиолетовым, как и в библиотеке агентов, потому что
+     он единственный из четверых реально меняет числа в листе статов. Эйдосы и
+     уровни кнопок на подсчёты не влияют — они для того, чтобы сборка на экране
+     совпадала с той, что человек держит в голове. */
+  const buildBlock = locked
+    ? `<div class="preset-build-card locked">
+        <div class="preset-build-hd">Build <span class="preset-form-locked-tag">⊘ from the stand</span></div>
+        <div class="preset-build-ro">
+          <span>Level <b>${escapeHtml(String(Number.isFinite(presetDraft.level) ? presetDraft.level : '—'))}</b></span>
+          <span>Mindscape <b>M${escapeHtml(String(presetDraft.mindscape ?? 0))}</b></span>
+          <span>Core Skill <b>${escapeHtml(enkaCoreSkillLetter(presetDraft.coreSkillEnhancement || 0) || '—')}</b></span>
+        </div>
+        <div class="preset-build-ro">
+          ${(presetDraft.skills || []).map(s => `<span>${escapeHtml(s.label)} <b>${escapeHtml(String(s.level))}</b></span>`).join('')}
+        </div>
+      </div>`
+    : `<div class="preset-build-card">
+        <div class="preset-build-hd">Build</div>
+        <div class="ag-eidolon-slider preset-level-row">
+          <div class="seg-label"><span>Level</span><span class="seg-val">${presetDraft.level}</span></div>
+          <input type="range" class="lib-level-slider" min="1" max="60" value="${presetDraft.level}"
+            oninput="this.closest('.preset-level-row').querySelector('.seg-val').textContent=this.value"
+            onchange="setPresetDraftLevel(this.value)">
+        </div>
+        <div class="ag-eidolon-slider">
+          <div class="seg-label"><span>Mindscape</span><span class="seg-val">${presetDraft.mindscape}</span></div>
+          ${makeSegTrack(6, presetDraft.mindscape, false, `data-action="preset-mindscape"`)}
+        </div>
+        <div class="ag-eidolon-slider" title="The only one of these that changes the numbers in the stat sheet">
+          <div class="seg-label purple"><span>Core Skill</span><span class="seg-val">${enkaCoreSkillLetter(presetDraft.coreSkillEnhancement) || '—'}</span></div>
+          ${makeSegTrack(6, presetDraft.coreSkillEnhancement, true, `data-action="preset-coreskill"`)}
+        </div>
+        <div class="preset-build-sub">Skill levels${
+          /* Эйдосы M3 и M5 поднимают уровни кнопок сверх выставленных здесь
+             двенадцати. Ползунок задаёт БАЗУ, как её отдаёт стенд, а в панели
+             агента будет стоять уже прибавленное число — без этой строки
+             расхождение выглядело бы ошибкой. */
+          skillLevelShown(0, AGENT_SKILL_MAX, presetDraft.mindscape) > AGENT_SKILL_MAX
+            ? ` <span class="preset-build-note">M${presetDraft.mindscape} adds +${skillLevelShown(0, 0, presetDraft.mindscape)}</span>` : ''
+        }</div>
+        ${(presetDraft.skills || []).map((s, i) => {
+          const shown = skillLevelShown(s.index, s.level, presetDraft.mindscape);
+          return `
+          <div class="ag-eidolon-slider">
+            <div class="seg-label"><span>${escapeHtml(s.label)}</span><span class="seg-val">${s.level}${
+              shown !== s.level ? `<span class="preset-build-eff"> → ${shown}</span>` : ''
+            }</span></div>
+            ${makeSegTrack(AGENT_SKILL_MAX, s.level, false, `data-action="preset-skill" data-idx="${i}" data-min="1"`)}
+          </div>`; }).join('')}
+      </div>`;
+
   const lockNote = locked
     ? `<div class="preset-form-locked-note">⊘ Snapshot of a stand — the W-Engine and discs are fixed. The name is yours to change.</div>`
     : '';
@@ -10912,7 +11460,10 @@ function renderPresetDraftEditor() {
         </div>
         ${wengine ? `<div class="ag-we-refrow">
           <div class="seg-label purple"><span>Refinement</span><span class="seg-val">${wrank || 1}</span></div>
-        </div>` : ''}
+        </div>
+        ${Number.isFinite(presetDraft.wengineLevel) ? `<div class="ag-we-refrow">
+          <div class="seg-label"><span>W-Engine Level</span><span class="seg-val">${presetDraft.wengineLevel}</span></div>
+        </div>` : ''}` : ''}
       </div>`
     : `<div class="ag-we-card" style="margin:10px 0">
         <div class="ag-we-top" onclick="openModal('preset-wengine', 0)">
@@ -10925,6 +11476,12 @@ function renderPresetDraftEditor() {
         ${wengine ? `<div class="ag-we-refrow" onclick="event.stopPropagation()">
           <div class="seg-label purple"><span>Refinement</span><span class="seg-val">${wrank || 1}</span></div>
           ${rankTrack}
+        </div>
+        <div class="ag-we-refrow preset-welevel-row" onclick="event.stopPropagation()">
+          <div class="seg-label"><span>W-Engine Level</span><span class="seg-val">${presetDraft.wengineLevel ?? 60}</span></div>
+          <input type="range" class="lib-level-slider" min="1" max="60" value="${presetDraft.wengineLevel ?? 60}"
+            oninput="this.closest('.preset-welevel-row').querySelector('.seg-val').textContent=this.value"
+            onchange="setPresetDraftWengineLevel(this.value)">
         </div>` : ''}
       </div>`;
 
@@ -10939,6 +11496,7 @@ function renderPresetDraftEditor() {
     </div>
     ${lockNote}
     ${weCard}
+    ${buildBlock}
     <div class="preset-form-label" style="margin-bottom:5px">Drive Discs${locked ? ' <span class="preset-form-locked-tag">⊘ locked</span>' : ''}</div>
     <div class="ag-slots-row" style="margin-bottom:5px">${cells.slice(0, 3).join('')}</div>
     <div class="ag-slots-row">${cells.slice(3, 6).join('')}</div>
@@ -10960,6 +11518,10 @@ async function syncPublishedPreset(preset) {
       wengine: preset.wengine,
       wrank: preset.wrank || 1,
       discs: preset.discs,
+      /* Правка обязана слать те же поля, что и первая публикация: иначе
+         изменённый у себя уровень или ранг остался бы в базе прежним, и
+         опубликованная копия начала бы расходиться с локальным пресетом. */
+      ...presetBuildColumns(preset),
     }).eq('id', preset.publishedId);
     if (error) throw error;
   } catch (err) {
@@ -10999,9 +11561,26 @@ async function savePresetDraft() {
   if (discEntries.length !== 6) { showToast('Discs need to be picked for all 6 slots.', 'error'); return; }
   if (!editingPresetId && presetCategoryCounts(agentKey).other >= PRESET_LIMIT) { showToast(`This agent already has the max regular (non-verified) presets (${PRESET_LIMIT}).`, 'error'); return; }
 
+  /* Всё, что человек выставил в форме, уходит в пресет одним куском. pinned
+     говорит читающей стороне, что эти значения выбраны осознанно, а не
+     достались от старого формата: без этого флага ноль у ранга Core Skill
+     невозможно отличить от «не заполнено», и он молча подменялся бы значением
+     из библиотеки. */
+  const build = {
+    pinned: true,
+    level: presetDraft.level,
+    mindscape: presetDraft.mindscape,
+    coreSkillEnhancement: presetDraft.coreSkillEnhancement,
+    skills: presetDraft.skills,
+    wengineLevel: presetDraft.wengineLevel,
+    /* Прокачку движка ручная сборка не задаёт: в форме её нет, а выводить из
+       уровня — гадание (на Lv.50 движок может быть и на 4-й, и на 5-й). Оставляем
+       пустой, и движок статов выведет её сам через levelToBreakLevel(). */
+    wengineBreakLevel: null,
+  };
   const preset = editingPresetId
-    ? updateAgentPreset(agentKey, editingPresetId, wengine, wrank || 1, discEntries, name)
-    : createAgentPreset(agentKey, wengine, wrank || 1, discEntries, name, null, 'manual');
+    ? updateAgentPreset(agentKey, editingPresetId, wengine, wrank || 1, discEntries, name, build)
+    : createAgentPreset(agentKey, wengine, wrank || 1, discEntries, name, null, 'manual', build);
   if (preset) {
     showToast(`Preset "${preset.name}" saved.`, 'success');
     closePresetForm();
@@ -11028,6 +11607,56 @@ let profileCurrentLiveBuild = null;
    shape (wengine/wrank/discs) already used locally; unpublishing just
    deletes that row. `preset.publishedId` (local-only field) remembers
    which cloud row belongs to this preset, if any. */
+/* ── СНИМОК СБОРКИ В БАЗУ И ОБРАТНО ───────────────────────────────────────
+   До этих двух функций в публикацию уходили только движок и диски, поэтому
+   чужая сборка показывалась с настройками СМОТРЯЩЕГО: его уровень агента, его
+   ранг Core Skill, его эйдосы, его уровень движка.
+
+   Number.isFinite, а не ||: ноль законен и у эйдосов (M0), и у ранга Core Skill
+   («не прокачан»), и подменять его на null значило бы терять осознанный выбор.
+   null уходит только там, где значения ДЕЙСТВИТЕЛЬНО нет — у ручных сборок,
+   собранных до появления этих полей. Читающая сторона понимает null как «не
+   публиковалось» и откатывается на свою библиотеку, то есть ведёт себя как
+   раньше. */
+function presetBuildColumns(preset) {
+  const n = v => (Number.isFinite(v) ? v : null);
+  return {
+    level: n(preset.level),
+    promotion_level: n(preset.promotionLevel),
+    core_skill_enhancement: n(preset.coreSkillEnhancement),
+    mindscape: n(preset.mindscape),
+    skills: (preset.skills && preset.skills.length) ? preset.skills : null,
+    wengine_level: n(preset.wengineLevel),
+    wengine_break_level: n(preset.wengineBreakLevel),
+  };
+}
+
+/* Строка базы → форма пресета, понятная presetDetailHtml(). Одна функция на оба
+   места чтения: раньше строка разворачивалась двумя одинаковыми копиями, и
+   любое новое поле надо было не забыть добавить в обе.
+
+   buildPinned выставляется, только если в строке действительно что-то есть:
+   присвоить его безусловно значило бы сказать «ранг Core Skill равен нулю
+   осознанно» про публикации, где его никогда не было. */
+function publishedRowToPreset(row) {
+  const n = v => (Number.isFinite(v) ? v : null);
+  const build = {
+    level: n(row.level), promotionLevel: n(row.promotion_level),
+    coreSkillEnhancement: n(row.core_skill_enhancement), mindscape: n(row.mindscape),
+    skills: (row.skills && row.skills.length) ? row.skills : null,
+    wengineLevel: n(row.wengine_level), wengineBreakLevel: n(row.wengine_break_level),
+  };
+  /* category приезжает из базы вместе со строкой: source у публикации нет, и
+     без неё presetIsStandSnapshot() приняла бы за «собранный руками» вообще
+     любой чужой пресет, включая снятый с подтверждённого стенда. */
+  return {
+    id: row.id, name: row.name, wengine: row.wengine, wrank: row.wrank,
+    discs: row.discs || [], category: row.category || 'manual',
+    ...build,
+    buildPinned: Object.values(build).some(v => v !== null),
+  };
+}
+
 async function publishPreset(agentKey, presetId) {
   if (!currentUser) { showToast('Sign in with Discord to publish presets.', 'error'); return; }
   if (!myGameUid) { showToast('Verify your UID on the Profile tab first.', 'error'); return; }
@@ -11046,6 +11675,7 @@ async function publishPreset(agentKey, presetId) {
       wrank: preset.wrank || 1,
       discs: preset.discs,
       category: presetCategory(preset),
+      ...presetBuildColumns(preset),
     }).select('id').single();
     if (error) throw error;
     preset.publishedId = data.id;
@@ -11161,10 +11791,7 @@ function showPublicAgentPresets(agentKey) {
 async function viewPublicPresetDetail(rowId) {
   const row = publicPresetsCache.find(r => r.id === rowId);
   if (!row) return;
-  /* category приезжает из базы вместе со строкой: source у публикации нет, и
-     без неё presetIsStandSnapshot() приняла бы за «собранный руками» вообще
-     любой чужой пресет, включая снятый с подтверждённого стенда. */
-  const preset = { id: row.id, name: row.name, wengine: row.wengine, wrank: row.wrank, discs: row.discs || [], category: row.category || 'manual' };
+  const preset = publishedRowToPreset(row);
   currentPublicPresetView = { agentKey: row.agent_key, preset };
   const matching = findMatchingPresetBySnapshots(row.agent_key, preset.wengine, preset.wrank || 1, preset.discs);
   document.getElementById('publicPresetsDetail').innerHTML =
@@ -11192,8 +11819,21 @@ function copyPublicPresetToMine() {
   const fromProfileView = !!ownerPresetViewAgentKey;
   const srcNick = fromProfileView ? (profileCurrentNickname || null) : (publicPresetsOwnerNick || publicPresetsOwnerLabel || null);
   const srcUid = fromProfileView ? (profileCurrentUid || null) : (publicPresetsOwnerUid || null);
+  /* Снимок переносится вместе со сборкой. Без этого копия чужой публикации
+     теряла бы уровень, ранг и эйдосы автора и начинала считаться по МОЕЙ
+     библиотеке — то есть копия показывала бы не то, что показывал оригинал.
+     pinned выставляется только когда переносить действительно есть что: у
+     публикаций без снимка (старых или ручных) поля пустые, и помечать их
+     «выбрано осознанно» было бы неправдой. */
+  const build = {
+    level: preset.level, promotionLevel: preset.promotionLevel,
+    coreSkillEnhancement: preset.coreSkillEnhancement, mindscape: preset.mindscape,
+    skills: preset.skills, wengineLevel: preset.wengineLevel, wengineBreakLevel: preset.wengineBreakLevel,
+  };
+  const hasBuild = Object.values(build).some(v => v !== null && v !== undefined);
   const created = createAgentPreset(agentKey, preset.wengine, preset.wrank || 1, (preset.discs || []).map(d => ({ ...d })), `${preset.name} (copy)`,
-    { uid: srcUid, nickname: srcNick, kind: 'preset' }, 'imported');
+    { uid: srcUid, nickname: srcNick, kind: 'preset' }, 'imported',
+    hasBuild ? { ...build, pinned: true } : null);
   if (created) {
     showToast(`Preset "${created.name}" added to your presets.`, 'success');
     refreshPresetViews(agentKey);
@@ -11293,7 +11933,7 @@ async function renderOwnerPresetView() {
   }
   const row = rows.find(r => String(r.id) === ownerPresetViewPresetId) || rows[0];
   ownerPresetViewPresetId = String(row.id);
-  const preset = { id: row.id, name: row.name, wengine: row.wengine, wrank: row.wrank, discs: row.discs || [], category: row.category || 'manual' };
+  const preset = publishedRowToPreset(row);
   currentPublicPresetView = { agentKey, preset }; // lets the shared copyPublicPresetToMine() handler work
 
   renderPresetTabs(rows.map(r => ({
@@ -11345,7 +11985,9 @@ async function saveCurrentShowcaseBuildAsPreset(agentKey) {
   if (name === null) return;
   const preset = createAgentPreset(agentKey, liveBuild.wengine, liveBuild.wrank || 1, discEntries, name,
     { uid: profileCurrentUid, nickname: profileCurrentNickname || null }, category,
-    { skills: liveBuild.skills, coreSkillEnhancement: liveBuild.coreSkillEnhancement });
+    { skills: liveBuild.skills, coreSkillEnhancement: liveBuild.coreSkillEnhancement,
+      mindscape: liveBuild.mindscape, level: liveBuild.level, promotionLevel: liveBuild.promotionLevel,
+      wengineLevel: liveBuild.wengineLevel, wengineBreakLevel: liveBuild.wengineBreakLevel });
   if (preset) {
     showToast(`Preset "${preset.name}" saved${category === 'verified' ? ' (Verified)' : ' (Imported)'}.`, 'success');
     refreshPresetViews(agentKey);
@@ -11390,14 +12032,1189 @@ function presetActionsHtml(agentKey, preset, opts = {}) {
     <button class="lib-pill-btn danger" onclick="deletePresetPrompt('${agentKey}','${preset.id}')">Delete</button>`;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   РАЗВЁРНУТЫЙ ВИД — ОДИН РЕНДЕРЕР НА ВСЕ ИСТОЧНИКИ
+
+   Панель профиля показывает три разные вещи: агента с живого стенда Enka, свой
+   пресет и чужую публикацию. Раньше развёрнутая разметка стояла двумя копиями —
+   в renderProfileDetail() и в presetDetailHtml(). Копии не были одинаковыми:
+   у стенда уровень печатался с потолком («Lv.60/60»), у пресета без, у стенда
+   ранг движка обозначался P, у пресета R, у стенда секция Skills появлялась и
+   от одной лишь буквы Core Skill, у пресета — только вместе со снимком
+   навыков. Каждое из этих расхождений когда-то было осознанным, но узнать об
+   этом можно было, только положив две функции рядом.
+
+   Дальше секций станет заметно больше — паспорт, разбивка подсчётов, анализ
+   сборки, кит, эйдосы, — и две копии разошлись бы уже не в мелочах. Поэтому
+   разметка здесь одна, а различия переехали в МОДЕЛЬ: каждая ветка описывает
+   свой источник данных полями (levelMax, rankPrefix, corePillLetter,
+   mindscapeTitle …), а не своей версткой. Компактная карточка устроена ровно
+   так же и работает от той же самой модели — см. ccMakeModel().
+
+   extra — то, что относится не к агенту, а к обёртке вокруг него: рамка
+   пресета, приписка с именем сборки, баннеры-предупреждения, кнопки действий.
+   У стенда всего этого нет, и это не ветка внутри разметки, а просто пустые
+   строки.
+   ══════════════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════════
+   ДАННЫЕ АГЕНТОВ ИЗ ОТДЕЛЬНОГО ФАЙЛА
+
+   AGENT_PROFILE в этом файле собран копированием текстов вручную, и в нём
+   видно, чем это кончается: имя пассивки слеплено с её описанием без
+   разделителя, у эйдосов к механике приклеен художественный текст, а описания
+   навыков отсутствуют вовсе. Числа в пассивке при этом заморожены на одном
+   ранге Core Skill Enhancement, хотя в игре они меняются от ранга к рангу —
+   у Zhu Yuan, например, 20% на нулевом ранге против 40% на максимальном.
+
+   zzz-agents.json собран из зеркала Hakushin (Genshin-Optimizer/zzz-hakushin-
+   data) и разложен по полям: имя пассивки отдельно от текста, текст на каждый
+   из 7 рангов, эйдосы без лора, прибавки статов за ранги Core Skill,
+   рекомендации игры по мейн-статам.
+
+   ПОЧЕМУ ОТДЕЛЬНЫЙ ФАЙЛ, А НЕ ВНУТРЬ. Влить сюда ещё почти мегабайт значило бы
+   замедлить первую отрисовку ВСЕМ, включая тех, кто вкладку Profile не
+   открывает. Файл тянется один раз при первом показе агента и дальше живёт в
+   памяти вкладки.
+
+   ПОЧЕМУ БЕЗ localStorage, в отличие от справочников Enka рядом. Там счёт идёт
+   на сотни килобайт, здесь — на без малого мегабайт, а в том же хранилище
+   лежат ДАННЫЕ ПОЛЬЗОВАТЕЛЯ: библиотека дисков, пресеты, команды. Квота
+   localStorage около 5 МБ на домен, и вытеснить чужую библиотеку дисков ради
+   кэша справочника — плохой размен. Статику и так кэширует сам браузер.
+
+   ЕСЛИ ФАЙЛ НЕ ЗАГРУЗИЛСЯ — не беда и не ошибка: панель молча остаётся на
+   встроенном AGENT_PROFILE и работает ровно как раньше. Так будет при открытии
+   index.html с диска двойным кликом (браузер запрещает fetch по file://), пока
+   файл не залит на сайт, и просто без сети.
+   ══════════════════════════════════════════════════════════════════════════ */
+const AGENT_DATA_URL = 'zzz-agents.json';
+const AGENT_SKILLS_URL = 'zzz-skills.json';
+
+let agentDataFile = null;
+let agentDataPromise = null;
+async function getAgentDataFile() {
+  if (agentDataFile !== null) return agentDataFile || null;
+  if (!agentDataPromise) {
+    agentDataPromise = (async () => {
+      try {
+        const res = await fetch(AGENT_DATA_URL);
+        if (!res.ok) throw new Error(res.status + ' ' + AGENT_DATA_URL);
+        const d = await res.json();
+        if (!d || !d.agents) throw new Error('unexpected shape');
+        agentDataFile = d;
+        return d;
+      } catch (err) {
+        /* Пишем в консоль ОДИН раз и запоминаем провал, чтобы не долбить сеть
+           на каждой перерисовке панели. false, а не null: null здесь значит
+           «ещё не пробовали». */
+        console.info('[zzz] extended agent data unavailable, falling back to built-in profiles:', err.message);
+        agentDataFile = false;
+        return null;
+      }
+    })();
+  }
+  return agentDataPromise;
+}
+
+let agentSkillsFile = null;
+let agentSkillsPromise = null;
+async function getAgentSkillsFile() {
+  if (agentSkillsFile !== null) return agentSkillsFile || null;
+  if (!agentSkillsPromise) {
+    agentSkillsPromise = (async () => {
+      try {
+        const res = await fetch(AGENT_SKILLS_URL);
+        if (!res.ok) throw new Error(res.status + ' ' + AGENT_SKILLS_URL);
+        const d = await res.json();
+        if (!d || !d.agents) throw new Error('unexpected shape');
+        agentSkillsFile = d;
+        return d;
+      } catch (err) {
+        console.info('[zzz] skill descriptions unavailable:', err.message);
+        agentSkillsFile = false;
+        return null;
+      }
+    })();
+  }
+  return agentSkillsPromise;
+}
+
+/* ── ИГРОВАЯ РАЗМЕТКА ─────────────────────────────────────────────────────
+   В текстах игры живут ровно три тега: <color=#RRGGBB>…</color>, <IconMap:…>
+   и <Term:id></Term>. Всё остальное — обычный текст.
+
+   Порядок операций тут не косметика, а безопасность: СНАЧАЛА экранируем строку
+   целиком, и только ПОТОМ возвращаем к жизни свои три тега, уже по
+   экранированному виду (&lt;color=…&gt;). Обратный порядок означал бы, что
+   любой символ '<' из данных попадает в разметку как есть. Цвет вдобавок
+   проверяется на строгий hex — подставлять в style произвольную строку из
+   файла нельзя, даже своего. */
+const PD_ICONMAP_LABEL = {
+  Icon_Normal: 'Basic Attack', Icon_Special: 'Special Attack',
+  Icon_SpecialReady: 'EX Special Attack', Icon_SpecialReady_Rp: 'EX Special Attack',
+  Icon_Evade: 'Dodge', Icon_QTE: 'Assist', Icon_Switch: 'Switch',
+  Icon_UltimateReady: 'Ultimate', Icon_JoyStick: 'Move',
+  Icon_GeneralBuff_Ice: 'Ice', Icon_GeneralBuff_Frost: 'Frost',
+  Icon_GeneralBuff_Fire: 'Fire', Icon_GeneralBuff_Thunder: 'Electric',
+  Icon_GeneralBuff_PhysDmg: 'Physical', Icon_GeneralBuff_AuricInk: 'Auric Ink',
+  Icon_GeneralBuff_HonedEdge: 'Honed Edge', Icon_GeneralBuff_DungeonBuffEther: 'Ether',
+  Icon_Pyroisl: 'Pyrois',
+};
+
+function pdGameText(raw, terms) {
+  let s = escapeHtml(String(raw ?? ''));
+  s = s.replace(/&lt;color=(#[0-9a-fA-F]{3,8})&gt;/g, (m, hex) => `<span style="color:${hex}">`)
+       .replace(/&lt;\/color&gt;/g, '</span>');
+  s = s.replace(/&lt;IconMap:([A-Za-z0-9_]+)&gt;/g, (m, key) =>
+        `<span class="pd-gt-key">${escapeHtml(PD_ICONMAP_LABEL[key] || key.replace(/^Icon_/, '').replace(/_/g, ' '))}</span>`);
+  s = s.replace(/&lt;Term:(\d+)&gt;(?:&lt;\/Term&gt;)?/g, (m, id) => {
+        const t = terms && terms[id];
+        if (!t) return '';
+        /* Пояснение термина уезжает в подсказку, а не в текст: иначе одно
+           описание навыка распухло бы на пол-экрана чужими определениями. */
+        const tip = String(t.desc || '').replace(/<[^>]*>/g, '');
+        return `<span class="pd-gt-term" title="${escapeHtml(tip)}">${escapeHtml(t.name || '')}</span>`;
+      });
+  return s;
+}
+
+/* ── ПАСПОРТ АГЕНТА ──
+   Справка, которая не зависит ни от сборки, ни от уровня: кто это такой.
+   Раньше из неё показывались только полное имя, пол и рост — одной строкой
+   под именем. Здесь к ним добавлены день рождения и вторая строка с тем, что
+   определяет агента в бою: фракция, атрибут, специальность, редкость.
+
+   Всё это уже лежало в файле. AGENT_FACTION так и вовсе с пометкой «not yet
+   used in UI, reserved for future display» — вот это и есть то самое future.
+
+   Пустые поля пропускаются молча: у части агентов биография заполнена не вся
+   (у Pyrois пуст весь блок), и подпись «Рост: —» сообщает читателю ровно
+   ничего, зато занимает место. */
+function pdPassportHtml(m) {
+  const p = m.profile;
+  const e = m.ext;
+  /* Выверенные поля перебивают встроенные, но по одному, а не блоком: у пары
+     альтернативных образов биографии в источнике нет вовсе, и целиком отдать
+     ей приоритет значило бы стереть то, что в файле как раз заполнено. Рост
+     приходит числом («175», «170 (Ears Included)»), а «cm» дописывает подпись —
+     ровно как это выглядело раньше. */
+  const stature = e && e.stature ? `${e.stature}cm` : (p && p.stature);
+  const bio = [ (e && e.fullName) || (p && p.fullName),
+                (e && e.gender) || (p && p.gender),
+                stature,
+                (e && e.birthday) || (p && p.birthday) ].filter(Boolean);
+  const bioLine = bio.length
+    ? `<div class="pd-sub">${bio.map(escapeHtml).join(' · ')}</div>` : '';
+
+  if (!m.agentKey) return bioLine;
+
+  const tag = (cls, url, text, title) =>
+    `<span class="pd-tag${cls ? ' ' + cls : ''}"${title ? ` title="${escapeHtml(title)}"` : ''}>` +
+    (url ? `<img src="${url}" alt="" onerror="this.remove()">` : '') +
+    `${escapeHtml(text)}</span>`;
+
+  const faction = getAgentFactionOf(m.agentKey);
+  const attrs = getAgentAttributes(m.agentKey);
+  const classes = getAgentClasses(m.agentKey);
+  const rarity = agentRarityLetter(m.agentKey);
+
+  const tags = [
+    /* Название фракции остаётся своим: по этим же строкам матчатся условия
+       AGENT_ADDITIONAL_ABILITY, и переименование сломало бы подбор напарников.
+       Игровой лагерь (у hakush он шире: «New Eridu Public Security» там, где
+       здесь конкретный отряд) уходит в подсказку. */
+    faction ? tag('pd-tag-faction', factionUrl(faction), faction,
+                  'Faction' + (m.ext && m.ext.camp && m.ext.camp !== faction ? ` · in-game camp: ${m.ext.camp}` : '')) : '',
+    ...attrs.map(a => tag('', attributeUrl(a), a, 'Attribute')),
+    ...classes.map(c => tag('', specialtyUrl(c), c, 'Specialty')),
+    rarity ? tag('pd-tag-rank pd-rank-' + rarity.toLowerCase(), null, rarity + '-Rank', 'Rarity') : '',
+  ].filter(Boolean).join('');
+
+  return `${bioLine}${tags ? `<div class="pd-tags">${tags}</div>` : ''}`;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   РАЗБИВКА ПОДСЧЁТОВ
+
+   Секция Stats выше отвечает на вопрос «сколько», эта — на вопрос «откуда».
+   Каждая строка листа расписывается по источникам и заканчивается формулой,
+   по которой из этих источников получился итог.
+
+   ЧТО СХЛОПЫВАЕТСЯ, А ЧТО НЕТ. Слагаемых у стата бывает под три десятка, и
+   печатать их все — значит утопить ответ в перечислении. Поэтому:
+     • BaseProps + GrowthProps + PromotionProps сливаются в одну строку «база
+       агента»: деление между ними — устройство справочников Enka, а не то, на
+       что игрок может повлиять;
+     • Core Skill Enhancement всегда отдельной строкой — это выбор игрока;
+     • мейн-стат каждого диска отдельной строкой: какой слот какой мейн несёт —
+       тоже решение, и его видно;
+     • сабстаты всех дисков сливаются в одну строку на бакет, с числом проков.
+       Поимённо они уже расписаны ниже, на карточках дисков, и повторять их
+       здесь второй раз незачем;
+     • бонусы сетов — по строке на сет;
+     • поправки кита (Бен, Sheer Force) стоят особняком, потому что они вне
+       формулы — см. assembleStatSheet().
+
+   ФОРМУЛА. Игра усекает промежуточные значения (Math.floor в нескольких
+   местах движка), поэтому напечатанная сумма слагаемых иногда расходится с
+   итогом на десятые. Расхождение не заметается под ковёр и не подгоняется: оно
+   печатается как есть, с пометкой. Соврать округлением было бы хуже, чем
+   показать, что округление есть.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Порядок источников в разбивке — от «своего» к «надетому»: сам агент, его
+   движок, диски, сеты, поправки. Совпадает с тем, как игрок собирает
+   персонажа, и потому читается сверху вниз без объяснений. */
+const PD_PART_ORDER = ['char', 'char-core', 'wengine-main', 'wengine-sec',
+                       'disc-main', 'disc-sub', 'set-2pc', 'derived'];
+
+/* Один и тот же стат приходит в двух видах: процентом, который множит базу, и
+   плоской прибавкой. В листе они сливаются в одну строку (это один стат), но в
+   разбивке обязаны читаться раздельно — иначе две строки «Sub-stats» с разными
+   числами выглядят опечаткой. Суффикс '%' ставится ровно там, где вклад
+   процентный, и совпадает с тем, как эти статы подписаны на карточках дисков
+   ('ATK%' против 'ATK'). */
+function pdStatVariantName(row, bucket) {
+  return row.label + (bucket === 'ratio' ? '%' : '');
+}
+
+function pdPartValueHtml(bucket, value, row) {
+  if (bucket === 'ratio') {
+    const n = Math.round(value * 10) / 10;
+    return `<span class="pd-bd-val pd-bd-ratio">${n > 0 ? '+' : ''}${n}%</span>`;
+  }
+  const s = formatEnkaStatValue(value, row.isPercent, row.fam);
+  /* База — это фундамент, а не прибавка, поэтому она без знака «+»: строка
+     «+750 база» читалась бы как «к чему-то добавили 750». */
+  const sign = bucket === 'base' ? '' : (value > 0 ? '+' : '');
+  return `<span class="pd-bd-val">${sign}${s}</span>`;
+}
+
+/* Группировка слагаемых одной строки листа. Ключ группы решает, что попадёт в
+   одну строку разбивки, а что в разные: у сабстатов это бакет (ATK% и плоский
+   ATK — один и тот же стат, но складываются по-разному и в одну строку их
+   сводить нельзя), у мейн-статов — слот, у сетов — имя сета. */
+function pdGroupParts(row, level) {
+  const groups = new Map();
+  const add = (key, order, kind, label, bucket, value, meta) => {
+    const g = groups.get(key) || { order, kind, label, bucket, value: 0, n: 0, meta: meta || {} };
+    g.value += value; g.n += 1;
+    if (meta && meta.procs) g.meta.procs = (g.meta.procs || 0) + meta.procs;
+    if (meta && meta.tail && !g.meta.tail) g.meta.tail = meta.tail;
+    groups.set(key, g);
+    return g;
+  };
+  (row.parts || []).forEach(p => {
+    const k = p.src.kind;
+    const ord = PD_PART_ORDER.indexOf(k === 'char-base' || k === 'char-growth' || k === 'char-promotion' ? 'char' : k);
+    if (k === 'char-base' || k === 'char-growth' || k === 'char-promotion') {
+      add('char|' + p.bucket, ord, 'agent', `Agent base${level ? ` · Lv.${level}` : ''}`, p.bucket, p.value);
+    } else if (k === 'char-core') {
+      add('core|' + p.bucket, ord, 'agent', 'Core Skill Enhancement', p.bucket, p.value);
+    } else if (k === 'wengine-main' || k === 'wengine-sec') {
+      add(k + '|' + p.bucket, ord, 'wengine',
+          `W-Engine${p.src.wengineKey ? ' · ' + prettyName(p.src.wengineKey) : ''}${k === 'wengine-sec' ? ' (secondary)' : ''}`,
+          p.bucket, p.value);
+    } else if (k === 'disc-main') {
+      add('dm|' + p.src.slot + '|' + p.bucket, ord, 'dmain',
+          `Disc ${p.src.slot ?? '?'} · ${pdStatVariantName(row, p.bucket)}`, p.bucket, p.value,
+          { tail: p.src.setName || '' });
+    } else if (k === 'disc-sub') {
+      const g = add('ds|' + p.bucket, ord, 'dsub', `Sub-stats · ${pdStatVariantName(row, p.bucket)}`,
+                    p.bucket, p.value, { procs: p.src.procs || 0 });
+      (g.meta.slotSet = g.meta.slotSet || new Set()).add(p.src.slot);
+    } else if (k === 'set-2pc') {
+      add('set|' + p.src.setName + '|' + p.bucket, ord, 'set', `2-Pc ${p.src.setName}`, p.bucket, p.value);
+    } else if (k === 'derived') {
+      add('drv|' + p.src.rule + '|' + p.src.from, ord, 'kit', pdDerivedLabel(p.src), p.bucket, p.value);
+    }
+  });
+  return [...groups.values()].sort((a, b) => a.order - b.order);
+}
+
+/* Подписи к поправкам. Обе — правила из кита, а не абстрактная «производная
+   величина»: игрок должен узнать в строке то, что читал в описании агента. */
+function pdDerivedLabel(src) {
+  const from = ENKA_STAT_FAMILY_META[src.from]?.label || src.from;
+  if (src.rule === 'ben-def-to-atk')
+    return `Core Passive: Guardian · ${Math.round(src.share * 100)}% of ${from}`;
+  if (src.rule === 'sheer-force')
+    return `Rupture passive · ${Math.round(src.share * 100)}% of ${from}`;
+  return 'Kit bonus';
+}
+
+/* ── ВКЛАД ИСТОЧНИКА В ИТОГ ──
+   Итог собирается не сложением, а по формуле base × (1 + ratio) + flat, и
+   «сколько процентов итога дал вот этот диск» из неё не читается напрямую.
+   Раскладка, которой пользуемся: базовое слагаемое приносит столько, во что
+   его превращает общий множитель, процентное — столько, во сколько оно
+   превращает общую базу, плоское — само себя. Сумма долей при этом РАВНА
+   итогу тождественно:
+       Σ baseᵢ×(1+r) + Σ base×rⱼ + Σ flatₖ  =  base×(1+r) + flat
+   то есть это не оценка «на глазок», а точное разложение. Именно поэтому
+   проценты в столбце справа складываются в 100 и их можно рисовать полосой. */
+function pdGroupShare(g, f) {
+  if (g.bucket === 'base') return g.value * (1 + f.ratioPct / 100);
+  if (g.bucket === 'ratio') return f.base * (g.value / 100);
+  return g.value;
+}
+
+function pdBreakdownRowHtml(row, level) {
+  const groups = pdGroupParts(row, level);
+  const f = row.formula || { base: 0, ratioPct: 0, flat: 0, derived: 0 };
+
+  /* Доли считаются от суммы вкладов, а не от row.total: при усечении они
+     расходятся на десятые, и полоса, нарисованная от total, не сходилась бы в
+     100%. Разница между суммой и итогом уже помечена значком ≈ ниже. */
+  const shares = groups.map(g => pdGroupShare(g, f));
+  const shareSum = shares.reduce((a, b) => a + b, 0);
+  const pct = i => (shareSum > 0 ? (shares[i] / shareSum) * 100 : 0);
+  const showShares = groups.length > 1 && shareSum > 0 && shares.every(v => v >= 0);
+
+  const barHtml = showShares
+    ? `<div class="pd-bd-bar" aria-hidden="true">${groups.map((g, i) =>
+        `<span class="pd-bd-seg pd-c-${g.kind}" style="width:${pct(i).toFixed(2)}%"></span>`).join('')}</div>`
+    : '';
+
+  const lines = groups.map((g, i) => {
+    /* Хвост строки: у сабстатов — сколько проков и по скольким дискам они
+       разбросаны. Это единственное место, где схлопнутая строка теряет
+       детализацию, поэтому счётчик тут обязателен. */
+    const noteText = g.meta.procs
+      ? `${g.meta.procs} proc${g.meta.procs === 1 ? '' : 's'}${g.meta.slotSet ? ` · ${g.meta.slotSet.size} disc${g.meta.slotSet.size === 1 ? '' : 's'}` : ''}`
+      : (g.meta.tail || '');
+    const note = noteText ? `<span class="pd-bd-note">${escapeHtml(noteText)}</span>` : '';
+    /* Доля меньше половины процента печатается как «<1%», а не как «0%»:
+       ноль означал бы, что источник не даёт ничего, а он даёт — просто мало. */
+    const p = pct(i);
+    const shareHtml = showShares
+      ? `<span class="pd-bd-share">${p > 0 && p < 0.5 ? '<1' : Math.round(p)}%</span>` : '';
+    return `<div class="pd-bd-line">
+      <span class="pd-bd-src"><i class="pd-bd-dot pd-c-${g.kind}"></i>${escapeHtml(g.label)}${note}</span>
+      ${pdPartValueHtml(g.bucket, g.value, row)}
+      ${shareHtml}
+    </div>`;
+  }).join('');
+
+  /* Формула печатается только там, где ей есть что показать. Не показывает она
+     в двух случаях: у стата из одного источника («= 170» не объясняет ничего) и
+     у стата, целиком набранного поправками кита, — там база с множителем равны
+     нулю, и строка выродилась бы в «0 + 1010 = 1010». Sheer Force именно такой:
+     его слагаемые и так стоят выше по отдельности. */
+  const nontrivial = groups.length > 1 && (f.base !== 0 || f.ratioPct !== 0);
+  const fmt = v => formatEnkaStatValue(v, row.isPercent, row.fam);
+  const ratioTerm = f.ratioPct ? ` × (1 + ${Math.round(f.ratioPct * 10) / 10}%)` : '';
+  const flatTerm = f.flat ? ` + ${fmt(f.flat)}` : '';
+  const derivedTerm = f.derived ? ` + ${fmt(f.derived)}` : '';
+  const rebuilt = f.base * (1 + f.ratioPct / 100) + f.flat + f.derived;
+  /* Порог 0.05 — половина последнего печатаемого разряда (числа округляются до
+     десятых). Меньше — расхождения на экране не видно, и предупреждать не о
+     чем; больше — видно, и молчать нельзя. */
+  const drift = Math.abs(rebuilt - row.total) > 0.05
+    ? `<span class="pd-bd-drift" title="The game truncates intermediate values, so the printed terms can add up slightly differently than the final number. The total on the right is what the game shows.">≈</span>`
+    : '';
+  const formulaHtml = nontrivial
+    ? `<div class="pd-bd-formula">${drift}${fmt(f.base)}${ratioTerm}${flatTerm}${derivedTerm} = <b>${fmt(row.total)}</b></div>`
+    : '';
+
+  return `<div class="pd-bd-stat">
+    <div class="pd-bd-head">
+      <span class="pd-bd-label">${escapeHtml(row.label)}</span>
+      <span class="pd-bd-total">${fmt(row.total)}</span>
+    </div>
+    ${barHtml}
+    ${lines}
+    ${formulaHtml}
+  </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ЗОНЫ И КАПЫ
+
+   У части агентов кит устроен так, что стат работает не «чем больше, тем
+   лучше», а до порога. Кор пассив Юзухи раздаёт отряду +40% от её начальной
+   атаки, но не больше +1200 — значит выше 3000 собственной атаки прибавка
+   отряду не растёт вообще, а слоты и проки на неё уже потрачены. Такие точки
+   и называются здесь капами, а вокруг капа рисуется зона: зелёная — стат
+   стоит там, где надо; жёлтая — рядом, доводить; красная — мимо.
+
+   ДВА УРОВНЯ ДОСТОВЕРНОСТИ. Обязательные капы (ZONE_CAPS) выверены игроком и
+   красятся. Справочные (ZONE_REF_CAPS) выведены из текста кита арифметикой и
+   печатаются серым, без зоны: они верны как арифметика, но не проверены
+   практикой, и красить их значило бы уравнять в весе с проверенными.
+
+   ГДЕ ЗАМЕРЯЕТСЯ ЗНАЧЕНИЕ. Все капы заданы по числу из меню игры — тому, что
+   лист статов и так считает: база + движок + диски + бонусы 2-Pc. Ровно это
+   игра показывает в панели персонажа до выхода в бой.
+
+   И РОВНО ОДНО ИСКЛЮЧЕНИЕ — крит. Классовое правило «100% КРИТ ШАНСА»
+   замеряется в БОЮ, потому что крит доливается по ходу боя: китом самого
+   агента, условными бонусами 4-Pc и пассивкой W-Engine. Ничего из этого в
+   меню не видно. Поэтому для крита считается сумма заливок и печатаются оба
+   числа: сколько стоит в меню и сколько станет в бою. Цель по меню —
+   это боевой порог минус заливки, и она у каждой сборки своя: Мияби М0
+   нужно 88% в меню, а М2 — уже 73%, потому что М2 сам льёт +15%.
+
+   ЧТО СЧИТАЕТСЯ ЗАЛИВКОЙ, А ЧТО НЕТ. Заливка — то, чего в меню НЕТ:
+   собственный кит, условные 4-Pc, пассивка движка. Бонусы 2-Pc и вторичный
+   стат движка заливкой не считаются: они безусловны и уже сидят в листе,
+   посчитать их второй раз значило бы завысить боевой крит на эту же величину.
+
+   ЛУЧШИЙ РАСКЛАД. Заливки суммируются в предположении, что все условия
+   выполнены и все стаки набраны — так, как их считает игрок, планируя
+   сборку. Условие каждой заливки печатается рядом, чтобы было видно, за счёт
+   чего набралось число.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Боевые границы классового правила. Жёлтая содержит зелёную: снизу подход к
+   100%, сверху общая граница — выше 102.3% проки крита выбрасываются, и это
+   уже не «почти», а потеря, поэтому жёлтой сверху нет. */
+const ZONE_CRIT_BAND = { green: [99.4, 102.3], yellow: [94.4, 102.3] };
+const ZONE_CRIT_CLASSES = ['Attack', 'Rupture'];
+/* Мияби не Attack и не Rupture, но её урон идёт через собственный крит так же,
+   как у атакера, и правило на неё распространяется поимённо. */
+const ZONE_CRIT_EXTRA = new Set(['miyabi']);
+
+function zoneWantsFullCrit(agentKey) {
+  if (!agentKey) return false;
+  if (ZONE_CRIT_EXTRA.has(agentKey)) return true;
+  return getAgentClasses(agentKey).some(c => ZONE_CRIT_CLASSES.includes(c));
+}
+
+/* Пассивка W-Engine по рефайну R1..R5. Числа взяты из справочника движков, а
+   не подогнаны формулой: у Sol Exuvia прибавка вообще не растёт с рефайном, у
+   Serpentine Seeker шаг неравномерный. Где у движка два независимых источника
+   крита (Deep Sea Visitor, Zanshin Herb Case), в таблице стоит их сумма —
+   лучший расклад, как и договаривались. */
+const ZONE_WENGINE_CRIT = {
+  'serpentine-seeker':         { r: [25, 28.8, 32.5, 36.3, 40], cond: 'безусловно' },
+  'deep-sea-visitor':          { r: [20, 25, 30, 35, 40], cond: 'Basic + Dash по льду, оба стака' },
+  'zanshin-herb-case':         { r: [20, 23, 26, 29, 32], cond: 'безусловная часть + аномалия/стан от союзника' },
+  'bellicose-blaze':           { r: [20, 23, 26, 29, 32], cond: 'безусловно' },
+  'qingming-birdcage':         { r: [20, 23, 26, 29, 32], cond: 'безусловно' },
+  'wrathful-vajra':            { r: [20, 23, 26, 29, 32], cond: 'безусловно' },
+  'starlight-rider-faceplate': { r: [20, 23, 26, 29, 32], cond: 'безусловно' },
+  'krakens-cradle':            { r: [20, 23, 26, 29, 32], cond: 'HP ≤ 50%' },
+  'riot-suppressor-mark-vi':   { r: [15, 18.8, 22.6, 26.4, 30], cond: 'безусловно' },
+  'grill-owisp':               { r: [15, 17.25, 19.5, 21.75, 24], cond: 'при потере HP' },
+  'cordis-germina':            { r: [15, 17, 19, 21, 23], cond: 'безусловно' },
+  'sol-exuvia':                { r: [20, 20, 20, 20, 20], cond: 'безусловно, от рефайна не растёт' },
+  'unfettered-game-ball':      { r: [12, 13.5, 15.5, 17.5, 20], cond: 'по врагу после Attribute Counter' },
+  'cauldron-of-clarity':       { r: [6.5, 7.5, 8.5, 9.4, 10.4], cond: '3 стака' },
+};
+
+/* Условные бонусы 4-Pc. Безусловные 2-Pc сюда не входят намеренно — см.
+   шапку блока. */
+const ZONE_SET_CRIT = {
+  'Inferno Metal':       { value: 28, cond: 'по горящему врагу' },
+  'Branch & Blade Song': { value: 12, cond: 'на Freeze или Shatter от любого союзника' },
+  'Shadow Harmony':      { value: 12, cond: '3 стака по 4%' },
+  'Yunkui Tales':        { value: 12, cond: '3 стака по 4%' },
+  'White Water Ballad':  { value: 10, attackBonus: 10, cond: 'в Ether Veil; ещё +10% сверху, если агент класса Attack' },
+  'Thorned Rose':        { defGate: [[1800, 16], [1000, 8]], cond: 'от начальной DEF: ≥1000 → 8%, ≥1800 → 16%' },
+};
+
+/* Собственные заливки агента. v — либо одно число, либо таблица по рангу Core
+   Skill 0..6; m — минимальный эйдос, ниже которого заливки нет. Отбирались
+   вручную по всем источникам: кор пассив всех рангов, доп способность, шесть
+   эйдосов и описания всех кнопок. Кнопки тут не для полноты: заливка Сокаку
+   и Циссии живёт только там. */
+const ZONE_AGENT_CRIT = {
+  'sigrid':           [{ v: [33, 39, 44, 50, 55, 61, 66], src: 'Core Passive', cond: 'на активации Deadly Assault' }],
+  'ye shunguang':     [{ v: [15, 17.5, 20, 22.5, 25, 27.5, 30], src: 'Core Passive', cond: 'Unity при выходе на поле' }],
+  'evelyn':           [{ v: [12.5, 14.6, 16.7, 18.8, 20.8, 23, 25], src: 'Core Passive', cond: 'в Binding Seal' }],
+  'orphie-and-magus': [{ v: [12.5, 14.6, 16.7, 18.8, 20.8, 22.9, 25], src: 'Core Passive', cond: 'в Zeroed In' }],
+  'hugo':             [{ v: 12, src: 'Core Passive' }],
+  'manato':           [{ v: 10, src: 'Core Passive', cond: 'в Molten Edge' }],
+  'soldier 0':        [{ v: 10, src: 'Additional Ability', cond: 'в отряде есть Stun или Support' },
+                       { v: 12, src: 'M2', m: 2 }],
+  'burnice':          [{ v: 30, src: 'M4', m: 4, cond: 'на попадание EX или Assist' }],
+  'miyabi':           [{ v: 15, src: 'M2', m: 2, cond: 'при выходе на поле' }],
+  'ju fufu':          [{ v: 12, src: 'M1', m: 1, cond: 'при входе в бой' }],
+  'jane-doe':         [{ v: 20, src: 'M6', m: 6, cond: 'в Passion' }],
+  'nekomata':         [{ v: 14, src: 'M4', m: 4, cond: '2 стака по 7% на EX' }],
+  'pulchra':          [{ v: 10, src: 'M1', m: 1, cond: 'по врагу в Binding Trap' }],
+  'pyrois':           [{ v: 8,  src: 'M1', m: 1 }],
+  'yixuan':           [{ v: 10, src: 'M1', m: 1, cond: 'при входе в бой' }],
+  'anton':            [{ v: 10, src: 'M4', m: 4, cond: 'на Chain или Ultimate' }],
+  'soukaku':          [{ v: 15, src: 'Ultimate: Jumbo Pudding Slash', cond: 'в Masked' }],
+  'cissia':           [{ v: 18, src: 'Basic: Corrode Bone', cond: '3 стака по 6%' }],
+};
+
+function zoneStatRow(m, fam) {
+  const row = (m.sheet || []).find(s => s.fam === fam);
+  if (row) return row;
+  /* Стата может не быть в листе вовсе — PEN Ratio у сборки без пробива в
+     мейнах туда просто не попадает. Ноль здесь не выдумка, а именно то
+     значение, которое стоит в игре, и для Рины это важнее всего. */
+  const meta = ENKA_STAT_FAMILY_META[fam];
+  if (!meta) return null;
+  return { fam, label: meta.label, isPercent: meta.isPercent, total: 0 };
+}
+
+function zoneCritFills(m) {
+  const list = [];
+  const core = Math.max(0, Math.min(6, m.coreRank || 0));
+  const mind = m.mindscape || 0;
+
+  (ZONE_AGENT_CRIT[m.agentKey] || []).forEach(f => {
+    if (f.m && mind < f.m) return;
+    const v = Array.isArray(f.v) ? f.v[core] : f.v;
+    if (!v) return;
+    list.push({ value: v, label: f.src, cond: f.cond || '' });
+  });
+
+  Object.entries(m.setCounts || {}).forEach(([name, count]) => {
+    if (count < 4) return;
+    const s = ZONE_SET_CRIT[name];
+    if (!s) return;
+    let v = s.value || 0;
+    if (s.attackBonus && getAgentClasses(m.agentKey).includes('Attack')) v += s.attackBonus;
+    if (s.defGate) {
+      const def = (zoneStatRow(m, '131') || {}).total || 0;
+      v = 0;
+      for (const [need, val] of s.defGate) { if (def >= need) { v = val; break; } }
+    }
+    if (v) list.push({ value: v, label: name + ' 4-Pc', cond: s.cond || '' });
+  });
+
+  const w = m.wengine;
+  if (w && ZONE_WENGINE_CRIT[w.key]) {
+    const t = ZONE_WENGINE_CRIT[w.key];
+    const r = Math.max(1, Math.min(5, w.rank || 1));
+    const v = t.r[r - 1];
+    if (v) list.push({ value: v, label: `${w.name} R${r}`, cond: t.cond || '' });
+  }
+
+  const total = list.reduce((a, b) => a + b.value, 0);
+  return { total: Math.round(total * 100) / 100, list };
+}
+
+/* Астра: кор пассив льёт 35% от начальной атаки с потолком 1200 → 3429. М2
+   поднимает и долю, и потолок (54% при 1600), и порог падает до 2963. Ширина
+   жёлтой сохраняется той же, что у базовой ветки, — 29 единиц. */
+function zoneAstraAtk(m) {
+  if ((m.mindscape || 0) >= 2) {
+    return { green: [2963, Infinity], yellow: [2934, Infinity],
+      why: 'M2: доля растёт до 35+19=54%, потолок до 1200+400=1600 → 1600/0.54 = 2963.' };
+  }
+  return { green: [3429, Infinity], yellow: [3400, Infinity],
+    why: 'Кор пассив: +35% от начальной ATK входящему союзнику, потолок 1200 → 1200/0.35 = 3429.' };
+}
+
+/* Рина: 72% сходятся двумя независимыми путями, и это редкий случай, когда
+   порог можно считать доказанным.
+   Первый: Awakened Potential «Perfect Service» даёт отряду 8 ATK и 6.5 DEF за
+   каждый 1% пробива Рины с потолком 576 ATK и 468 DEF — 576/8 = 72 и
+   468/6.5 = 72, оба потолка добиваются ровно там.
+   Второй: кор пассив раздаёт отряду 25% её пробива плюс фиксированную добавку
+   с потолком 30%; добавка растёт с рангом Core Skill, и на F нужно те же 72%.
+   Поэтому зелёная стоит на 72 и от ранга НЕ зависит: пробуждение упирается в
+   72 при любом ранге. На младших рангах кор пассив требует больше, и это
+   печатается отдельной фразой — но целью остаётся 72, а не 96. */
+const ZONE_RINA_FLAT = [6, 8, 9, 10, 11, 11, 12];
+function zoneRinaPen(m) {
+  const core = Math.max(0, Math.min(6, m.coreRank || 0));
+  const flat = ZONE_RINA_FLAT[core];
+  const corePassiveNeed = Math.round(((30 - flat) / 0.25) * 10) / 10;
+  const tail = corePassiveNeed > 72
+    ? ` Кор пассив на ранге Core Skill ${core} упёрся бы в 30% только на ${corePassiveNeed}% — на F это те же 72%.`
+    : ' Столько же требует и потолок кор пассива на этом ранге.';
+  /* Арифметический потолок — 72%, но зелёная начинается с 70: последние два
+     процента упираются в то, что пробив собирается крупными кусками (24%
+     мейн, 24% движок, 8% сет), и стоят дороже, чем дают. Порог практический,
+     задан игроком; ровное значение 72 остаётся в пояснении. */
+  return { green: [70, Infinity], yellow: [67, Infinity],
+    why: 'Awakened Potential «Perfect Service»: отряду +8 ATK и +6.5 DEF за каждый 1% пробива Рины, '
+       + 'потолок 576 ATK и 468 DEF → 576/8 = 468/6.5 = 72% ровно. Зелёная начинается с 70%: '
+       + 'добор последних процентов стоит дороже, чем даёт.' + tail };
+}
+
+/* Обязательные капы. Проверены игроком на практике; именно они красятся. */
+const ZONE_CAPS = {
+  'remielle':  [{ fam: '121', green: [4000, 4100], yellow: [3900, 4199],
+    why: 'Доп способность: отряду +40% от начальной ATK, потолок +1600 → добивается на 4000. Выше капа проки уходят мимо ЗА, а аномалику она нужнее.' }],
+  'sunna':     [{ fam: '121', green: [3500, Infinity], yellow: [3450, Infinity],
+    why: 'Кор пассив: отряду +30% от начальной ATK, потолок 1050 → 1050/0.30 = 3500.' }],
+  'lucia':     [{ fam: '111', green: [24000, Infinity], yellow: [23600, Infinity],
+    why: 'Кнопка EX Special Attack: Symphony of the Reaper - Daybreak — бонус выходит на максимум при 24 000 начального HP.' }],
+  'yuzuha':    [{ fam: '121', green: [3000, 3075], yellow: [2950, 3150],
+    why: 'Кор пассив: Tanuki Wish даёт +40% от начальной ATK с потолком +1200 → 3000, и с 3000 бонус раздаётся всему отряду целиком.' },
+                { fam: '314', green: [171, Infinity], yellow: [171, Infinity],
+    why: 'Доп способность масштабируется от АМ, по тексту полный бафф на 200. 171 — максимум, который сейчас реально собрать с саппорт-движками, поэтому порог стоит здесь.' }],
+  'ju fufu':   [{ fam: '121', green: [3400, Infinity], yellow: [3300, Infinity],
+    why: "Кор пассив Tiger's Roar: с 2 800 начальной ATK каждые +100 дают отряду ещё +5% CRIT DMG, максимум +30% → добивается ровно на 3 400." }],
+  'zhao':      [{ fam: '111', green: [27000, Infinity], yellow: [26500, Infinity],
+    why: 'Доп способность: с 15 000 HP каждые +400 дают отряду +1% урона, максимум +40% → добивается на 27 000.' }],
+  'astra-yao': [{ fam: '121', dyn: zoneAstraAtk }],
+  /* Два потолка на одном стате, и зелёная стоит по верхнему. 375 ЗА закрывают
+     крит Assault (кор пассив), 420 — конверсию ЗА в атаку (кнопка Basic:
+     Passion). Между ними жёлтая: крит уже стопроцентный, но атака ещё
+     недобрана, и очки ЗА продолжают окупаться. */
+  'jane-doe':  [{ fam: '312', green: [420, Infinity], yellow: [380, Infinity],
+    why: 'Кнопка Basic: Passion — выше 120 ЗА каждое очко даёт +2 ATK, потолок +600 → добивается на 420. '
+       + 'Ниже, на 375, закрывается другой потолок: кор пассив даёт Assault базовые 40% крита плюс 0.16% за очко ЗА, '
+       + 'то есть ровно 100% на 375. Поэтому с 380 жёлтая, а зелёная — с 420.' }],
+  'rina':      [{ fam: '231', dyn: zoneRinaPen }],
+  'pan yinhu': [{ fam: '121', green: [3000, Infinity], yellow: [3000, Infinity],
+    why: 'Кор пассив: Sheer Force = 18% от начальной ATK, и следующей фразой потолок 540 → 540/0.18 = 3000.' }],
+  'soukaku':   [{ fam: '121', green: [2500, Infinity], yellow: [2500, Infinity],
+    why: 'Кор пассив: +20% от начальной ATK с потолком 500 → 2500. Удвоение с Vortex (40% при потолке 1000) добивается там же.' }],
+};
+
+/* Справочные пороги: выведены из текста кита арифметикой, практикой не
+   заверены. Печатаются без цвета — см. шапку блока. */
+const ZONE_REF_CAPS = {
+  'norma':            [{ fam: '201', at: 100, why: 'Кор пассив: выше 50% КШ каждый 1% даёт +1.7% куронa, потолок +85% → добивается на 100%.' }],
+  'dialyn':           [{ fam: '201', at: 100, why: 'Кор пассив: выше 50% КШ каждый 1% даёт +2 Impact, потолок +100 → добивается на 100%.' }],
+  'trigger':          [{ fam: '201', at: 90,  why: 'Доп способность: выше 40% КШ каждый 1% даёт +1.5% дейза Aftershock, потолок +75% → добивается на 90%.' }],
+  'miyabi':           [{ fam: '201', at: 80,  why: 'Кор пассив: скорость набора Frost растёт на 100% от КШ, потолок +80%. Это не цель сборки — сам крит работает и выше, зона у Мияби считается по классовому правилу.' }],
+  'burnice':          [{ fam: '305', at: 2.8,  why: 'Awakened Potential «Boiling Point Party»: с 1.8 ЭР каждые +0.1 дают +2.5 АМ и +2% урона, потолок +25 АМ и +20% → добивается на 2.8.' }],
+  'velina':           [{ fam: '305', at: 2.88, why: 'Кор пассив: выше 1.2 ЭР каждые 0.01 дают +0.21% урона (потолок 35%) и +0.5 АМ (потолок 84) → АМ-часть добивается на 2.88.' }],
+  'cissia':           [{ fam: '305', at: 3.68, why: 'Кор пассив: выше 1.4 ЭР каждые 0.12 добавляют 1% игнора DEF, потолок 25%.' }],
+  'orphie-and-magus': [{ fam: '305', at: 3.7,  why: 'Кор пассив: с 1.6 ЭР каждые 0.1 дают +20 ATK, суммарный потолок 700.' }],
+  'seth':             [{ fam: '121', at: 3750, why: 'Кор пассив: щит = 80% от начальной ATK, потолок 3000.' }],
+  'lighter':          [{ fam: '122', at: 170,  why: 'Доп способность: с 170 Impact каждые +10 усиливают каждый стак Elation.' }],
+  'alice':            [{ fam: '314', at: 140,  why: 'Доп способность: выше 140 АМ каждое очко даёт +1.6 ЗА. Потолка нет — чем больше, тем лучше.' }],
+  'promeia':          [{ fam: '314', at: 150,  why: 'Кор пассив: выше 150 АМ каждое очко даёт +1.5 ЗА и +0.35% Abloom отряду. Потолка нет.' }],
+  'nangong yu':       [{ fam: '314', at: 110,  why: 'Кор пассив: выше 110 АМ каждое очко даёт +1 Impact. Потолка нет.' }],
+  'aria':             [{ fam: '314', at: 100,  why: 'M1: выше 100 АМ каждое очко добавляет +0.5% КШ эффекту эйдоса.' }],
+  'yuzuha':           [{ fam: '314', at: 200,  why: 'Доп способность по тексту раздаёт полный бафф на 200 АМ. Обязательный порог стоит на 171 — это то, что реально собирается сейчас.' }],
+};
+
+function zoneVerdict(value, band) {
+  if (value >= band.green[0] && value <= band.green[1]) return 'green';
+  if (value >= band.yellow[0] && value <= band.yellow[1]) return 'yellow';
+  return 'red';
+}
+
+function zoneBandText(band, row) {
+  const f = v => (v === Infinity ? '∞' : formatEnkaStatValue(v, row.isPercent, row.fam));
+  const g = band.green[1] === Infinity ? `от ${f(band.green[0])}` : `${f(band.green[0])}–${f(band.green[1])}`;
+  if (band.yellow[0] === band.green[0] && band.yellow[1] === band.green[1]) return `зелёная ${g}, ниже сразу красная`;
+  const lo = `${f(band.yellow[0])}–${f(band.green[0])}`;
+  const hi = band.green[1] === band.yellow[1] ? '' : `, ${f(band.green[1])}–${f(band.yellow[1])}`;
+  return `зелёная ${g} · жёлтая ${lo}${hi}`;
+}
+
+/* Собирает все маркеры для агента: сначала крит по классовому правилу, потом
+   обязательные капы, потом справочные. Порядок не косметический — он
+   расставляет их по убыванию того, насколько на них стоит смотреть. */
+function zoneMarkers(m) {
+  if (!m.agentKey || !m.sheet || !m.sheet.length) return [];
+  const out = [];
+
+  if (zoneWantsFullCrit(m.agentKey)) {
+    const row = zoneStatRow(m, '201');
+    if (row) {
+      const fills = zoneCritFills(m);
+      const menu = row.total;
+      const combat = Math.round((menu + fills.total) * 100) / 100;
+      const band = ZONE_CRIT_BAND;
+      const targetLo = Math.round((band.green[0] - fills.total) * 10) / 10;
+      const targetHi = Math.round((band.green[1] - fills.total) * 10) / 10;
+      out.push({
+        tier: 'crit', row, band,
+        value: combat, menu, fills,
+        verdict: zoneVerdict(combat, band),
+        why: 'Классовое правило: атакерам, Sheer Force-агентам и Мияби нужен ровно 100% крита в бою. '
+           + 'Выше 102.3% проки крита выбрасываются впустую, поэтому сверху сразу красная.',
+        target: fills.total > 0
+          ? `Цель по меню при этой сборке: ${formatEnkaStatValue(targetLo, true, '201')}–${formatEnkaStatValue(targetHi, true, '201')}`
+          : null,
+      });
+    }
+  }
+
+  (ZONE_CAPS[m.agentKey] || []).forEach(cap => {
+    const row = zoneStatRow(m, cap.fam);
+    if (!row) return;
+    const band = cap.dyn ? cap.dyn(m) : cap;
+    out.push({ tier: 'cap', row, band, value: row.total,
+      verdict: zoneVerdict(row.total, band), why: band.why || cap.why || '' });
+  });
+
+  (ZONE_REF_CAPS[m.agentKey] || []).forEach(ref => {
+    const row = zoneStatRow(m, ref.fam);
+    if (!row) return;
+    out.push({ tier: 'ref', row, at: ref.at, value: row.total, why: ref.why || '' });
+  });
+
+  return out;
+}
+
+function pdZonesHtml(m) {
+  const marks = zoneMarkers(m);
+  if (!marks.length) return '';
+
+  const cell = mk => {
+    const val = formatEnkaStatValue(mk.value, mk.row.isPercent, mk.row.fam);
+
+    if (mk.tier === 'ref') {
+      const at = formatEnkaStatValue(mk.at, mk.row.isPercent, mk.row.fam);
+      return `<div class="pd-zone pd-zone-ref">
+        <div class="pd-zone-head">
+          <span class="pd-zone-label">${escapeHtml(mk.row.label)}</span>
+          <span class="pd-zone-val">${val}</span>
+          <span class="pd-zone-band">справочно · порог ${at}</span>
+        </div>
+        <div class="pd-zone-why">${escapeHtml(mk.why)}</div>
+      </div>`;
+    }
+
+    const word = { green: 'зелёная', yellow: 'жёлтая', red: 'красная' }[mk.verdict];
+    let extra = '';
+    if (mk.tier === 'crit') {
+      const menu = formatEnkaStatValue(mk.menu, true, '201');
+      const fillTotal = formatEnkaStatValue(mk.fills.total, true, '201');
+      const lines = mk.fills.list.length
+        ? mk.fills.list.map(f => `<div class="pd-zone-fill">
+             <span class="pd-zone-fill-src">${escapeHtml(f.label)}${f.cond ? `<span class="pd-bd-note">${escapeHtml(f.cond)}</span>` : ''}</span>
+             <span class="pd-bd-val">+${formatEnkaStatValue(f.value, true, '201')}</span>
+           </div>`).join('')
+        : `<div class="pd-zone-fill"><span class="pd-zone-fill-src">заливок нет — в бою столько же, сколько в меню</span></div>`;
+      extra = `<div class="pd-zone-fills">
+          <div class="pd-zone-fill pd-zone-fill-head">
+            <span class="pd-zone-fill-src">в меню ${menu} · заливки +${fillTotal} · в бою ${val}</span>
+          </div>
+          ${lines}
+        </div>
+        ${mk.target ? `<div class="pd-zone-target">${escapeHtml(mk.target)}</div>` : ''}`;
+    }
+
+    return `<div class="pd-zone pd-zone-${mk.verdict}">
+      <div class="pd-zone-head">
+        <span class="pd-zone-dot"></span>
+        <span class="pd-zone-label">${escapeHtml(mk.row.label)}</span>
+        <span class="pd-zone-val">${val}</span>
+        <span class="pd-zone-verdict">${word}</span>
+        <span class="pd-zone-band">${escapeHtml(zoneBandText(mk.band, mk.row))}</span>
+      </div>
+      <div class="pd-zone-why">${escapeHtml(mk.why)}</div>
+      ${extra}
+    </div>`;
+  };
+
+  return `<div class="pd-section-title">Stat Zones</div>
+    <div class="pd-zones">${marks.map(cell).join('')}</div>`;
+}
+
+function pdStatBreakdownHtml(m) {
+  if (!m.sheet || !m.sheet.length) return '';
+  /* Строки без слагаемых означают лист, собранный старым движком (например,
+     из кэша страницы, открытой до обновления) — тогда разбивки просто нет, а
+     остальная панель работает как обычно. */
+  const rows = m.sheet.filter(s => s.parts && s.parts.length);
+  if (!rows.length) return '';
+  return `<div class="pd-section-title">Stat Breakdown</div>
+    <div class="pd-bd">${rows.map(r => pdBreakdownRowHtml(r, m.level)).join('')}</div>`;
+}
+
+/* ── КАЧЕСТВО ДИСКОВ ──
+   Строка «сколько полезных проков из возможных» уже стоит под каждой карточкой
+   диска, но там она рассыпана по шести местам и сравнить слоты между собой
+   глазами нельзя. Здесь те же самые числа выстроены в столбик — и сразу видно,
+   какой слот тянет сборку вниз.
+
+   Новой арифметики тут нет вообще: countUsefulProcs() уже возвращает perDisc,
+   и обе площадки берут числа из него. Иначе сводка и карточки могли бы
+   разойтись, а расходятся такие вещи всегда в худший момент.
+
+   Секции нет вовсе, когда правила полезности для агента неизвестны (свежий
+   патч, агента ещё нет в таблицах): знаменателя тогда не существует, и рисовать
+   «0 из 0» — значит утверждать, что диски плохие, хотя мы просто не знаем. */
+function pdDiscQualityHtml(m) {
+  const per = m.procCounts && m.procCounts.perDisc;
+  if (!per || !per.length || !m.useful || !m.useful.rule) return '';
+  const t = m.procCounts.total;
+  if (!t.max) return '';
+
+  const rows = (m.discs || []).map((d, i) => {
+    const r = per[i] || { main: 0, flat: 0, pen: 0, sum: 0, max: 0 };
+    const w = k => (r.max ? (r[k] / r.max) * 100 : 0);
+    /* Слабое звено отмечается по доле, а не по абсолютному числу: у дисков
+       разные потолки (мейн-стат съедает один тип сабстата), и «4 прока» на
+       диске с потолком 5 — это хорошо, а с потолком 9 — плохо. */
+    const ratio = r.max ? r.sum / r.max : 0;
+    return `<div class="pd-dq-row${ratio < 0.5 ? ' pd-dq-weak' : ''}">
+      <span class="pd-dq-slot">${d.slot ?? i + 1}</span>
+      <span class="pd-dq-set">${escapeHtml(d.setName || 'Unknown Set')}</span>
+      <span class="pd-dq-bar" title="${escapeHtml(usefulSetsTitle(m.useful))}">
+        <span class="pd-dq-seg up-main-bg" style="width:${w('main').toFixed(2)}%"></span>
+        <span class="pd-dq-seg up-flat-bg" style="width:${w('flat').toFixed(2)}%"></span>
+        <span class="pd-dq-seg up-pen-bg" style="width:${w('pen').toFixed(2)}%"></span>
+      </span>
+      <span class="pd-dq-num">${r.sum}<span class="pd-dq-max"> / ${r.max}</span></span>
+    </div>`;
+  }).join('');
+
+  return `<div class="pd-section-title">Build Analysis</div>
+    <div class="pd-dq">
+      <div class="pd-dq-hd">Useful sub-stat procs by slot</div>
+      ${rows}
+      <div class="pd-dq-total">
+        <span>Across all discs</span>
+        <span class="pd-dq-num">${t.sum}<span class="pd-dq-max"> / ${t.max}</span>
+          <span class="pd-dq-pct">${Math.round((t.sum / t.max) * 100)}%</span></span>
+      </div>
+    </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   КИТ И ЭЙДОСЫ
+
+   Тексты длинные — у иного агента одни эйдосы это семь тысяч знаков, — поэтому
+   блоки свёрнуты. Свёрнуты нативным <details>, а не своим тумблером: браузер
+   сам помнит состояние на время жизни узла, работает с клавиатуры и находится
+   поиском по странице (Ctrl+F раскрывает содержимое), а всё это пришлось бы
+   писать руками и всё равно хуже.
+
+   ЗАГОЛОВКИ. У эйдосов есть настоящие названия — cinemaTitles, — и они
+   печатаются как есть. А вот у Core Passive и Additional Ability названия
+   вплавлены в начало самого текста без разделителя («Core Passive: Temporal
+   Patterns - Stilled Colors Remielle's Refringe Coefficient is equal to…»), и
+   вытащить их можно только угадыванием, где кончается имя и начинается
+   описание. Угадывать не будем: заголовок остаётся родовым, а рядом идёт
+   обрезанное начало текста — оно и подсказывает, о чём блок, ничего не
+   выдумывая. Единственное, что срезается, — повтор самого слова «Core Passive:»
+   в начале, потому что оно уже написано в заголовке.
+   ══════════════════════════════════════════════════════════════════════════ */
+function pdStripKitPrefix(text, label) {
+  return String(text || '').replace(new RegExp('^\\s*' + label + '\\s*:?\\s*', 'i'), '');
+}
+
+function pdKitBlockHtml(label, text, terms) {
+  if (!text) return '';
+  /* Срезать повтор заголовка нужно только встроенным текстам: там имя пассивки
+     вплавлено в начало описания. У выверенных данных имя лежит отдельным полем,
+     и в тексте его нет — резать нечего. */
+  const body = terms ? String(text) : pdStripKitPrefix(text, label);
+  const plain = body.replace(/<[^>]*>/g, '');
+  const peek = plain.length > 90 ? plain.slice(0, 90).replace(/\s+\S*$/, '') + '…' : plain;
+  return `<details class="pd-kit">
+    <summary><span class="pd-kit-label">${escapeHtml(label)}</span><span class="pd-kit-peek">${escapeHtml(peek)}</span></summary>
+    <div class="pd-kit-body">${terms ? pdGameText(body, terms) : escapeHtml(body)}</div>
+  </details>`;
+}
+
+/* ── ОПИСАНИЯ НАВЫКОВ ─────────────────────────────────────────────────────
+   Пятый и последний блок, которого во встроенных данных не было вовсе: что
+   именно делают Basic, Dodge, Special, Chain и Assist. Файл с ними отдельный и
+   тянется ТОЛЬКО когда секцию разворачивают: он весит четыреста килобайт, а
+   заглядывают в него заметно реже, чем в статы.
+
+   Загрузка висит на ontoggle, а не на клике: <details> открывается и с
+   клавиатуры, и поиском по странице, и оба случая обязаны дотянуть текст.
+   Флаг data-loaded не даёт перезапрашивать при каждом закрытии-открытии. */
+const PD_SKILL_BLOCK_LABEL = {
+  Basic: 'Basic Attack', Dodge: 'Dodge', Special: 'Special Attack',
+  Chain: 'Chain Attack', Assist: 'Assist',
+};
+const PD_SKILL_BLOCK_ORDER = ['Basic', 'Dodge', 'Special', 'Chain', 'Assist'];
+
+async function pdLoadSkillDetails(el) {
+  if (el.dataset.loaded || !el.open) return;
+  el.dataset.loaded = '1';
+  const body = el.querySelector('.pd-kit-body');
+  const key = el.dataset.agent;
+  const file = await getAgentSkillsFile();
+  const blocks = file && file.agents && file.agents[key];
+  if (!blocks) {
+    body.innerHTML = '<span class="pd-sub">Skill descriptions are unavailable — zzz-skills.json could not be loaded.</span>';
+    return;
+  }
+  const terms = (agentDataFile && agentDataFile.terms) || null;
+  /* Часть записей — служебные ступени («Converging Spear 1st Stage») без
+     всякого текста. Заголовок, под которым пусто, читается как поломка
+     вёрстки, поэтому такие записи не рисуем вовсе. */
+  const filled = b => (blocks[b] || []).filter(s => String(s.desc || '').trim());
+  const parts = PD_SKILL_BLOCK_ORDER.filter(b => filled(b).length).map(b => `
+    <div class="pd-skl-group">
+      <div class="pd-skl-group-hd">${escapeHtml(PD_SKILL_BLOCK_LABEL[b] || b)}</div>
+      ${filled(b).map(s => `
+        <div class="pd-skl-item">
+          <div class="pd-skl-name">${escapeHtml(s.name || '')}</div>
+          <div class="pd-skl-desc">${pdGameText(s.desc, terms)}</div>
+        </div>`).join('')}
+    </div>`).join('');
+  body.innerHTML = parts || '<span class="pd-sub">No skill descriptions for this agent.</span>';
+}
+
+function pdSkillTextHtml(m) {
+  /* Секция рисуется, только когда агент известен и основной файл данных уже
+     подтвердил, что он в нём есть: иначе мы предложили бы развернуть блок,
+     который заведомо окажется пустым. */
+  if (!m.agentKey || !m.ext) return '';
+  return `<div class="pd-section-title">Skill Descriptions</div>
+    <details class="pd-kit" data-agent="${escapeHtml(m.agentKey)}" ontoggle="pdLoadSkillDetails(this)">
+      <summary>
+        <span class="pd-kit-label">All skills</span>
+        <span class="pd-kit-peek">Basic · Dodge · Special · Chain · Assist</span>
+      </summary>
+      <div class="pd-kit-body pd-skl-body"><span class="pd-sub">Loading…</span></div>
+    </details>`;
+}
+
+function pdKitHtml(m) {
+  const ranks = m.ext && m.ext.kit && m.ext.kit.ranks;
+  if (ranks && ranks.length) {
+    /* Числа в пассивке зависят от ранга Core Skill Enhancement — у Zhu Yuan это
+       20% против 40%, у Ellen 50% против 100%. Встроенный AGENT_PROFILE хранил
+       один замороженный вариант, здесь берётся текст под тот ранг, который у
+       агента стоит на самом деле. */
+    const idx = Math.max(0, Math.min(ranks.length - 1, m.coreRank || 0));
+    const r = ranks[idx];
+    const letter = enkaCoreSkillLetter(idx);
+    const blocks = pdKitBlockHtml(m.ext.kit.coreName || 'Core Passive', r.core, m.terms)
+                 + pdKitBlockHtml(m.ext.kit.abilityName || 'Additional Ability', r.ability, m.terms);
+    if (!blocks) return '';
+    return `<div class="pd-section-title">Kit${letter ? ` · Core Skill ${letter}` : ''}</div>
+      <div class="pd-kit-note">Numbers below are for ${letter ? `Core Skill Enhancement ${letter}` : 'an unenhanced Core Skill'} — they change with every rank.</div>
+      ${blocks}`;
+  }
+  const p = m.profile;
+  if (!p) return '';
+  const blocks = pdKitBlockHtml('Core Passive', p.corePassive)
+               + pdKitBlockHtml('Additional Ability', p.additionalAbility);
+  return blocks ? `<div class="pd-section-title">Kit</div>${blocks}` : '';
+}
+
+/* ── ПРОБУЖДЁННЫЙ ПОТЕНЦИАЛ ──
+   Этой системы нет в справочнике, из которого собран zzz-agents.json: слова
+   «Awakened» там не встречается ни разу. Тексты внесены вручную и живут
+   отдельной таблицей, а не подмешаны к киту, — чтобы при следующем обновлении
+   справочника было сразу видно, что здесь ручной ввод, и чтобы обновление его
+   не затёрло.
+
+   Здесь ровно то, что даёт узел V6. Промежуточные узлы дерева дают обычные
+   прибавки к статам и в этой таблице их нет: они и так приходят в лист
+   статов вместе со всем остальным.
+
+   Два числа отсюда работают не только как текст: потолок Рины (576/8 = 72%
+   пробива) и порог Бурнис (2.8 ЭР) стоят в таблицах зон выше. Ни один узел не
+   даёт КРИТ ШАНС — только крит. урон, — поэтому на модель заливок крита
+   пробуждения не влияют вообще. */
+const AGENT_AWAKENED = {
+  'soldier 0':    { name: 'Electropulse',
+    text: "During Additional Ability: Voltage Surge, all squad members' Aftershock DMG against enemies marked with Silver Star is increased to 50%." },
+  'jane-doe':     { name: 'Lethal Dance',
+    text: 'When Jane triggers Assault, the CRIT DMG of that instance of Assault is additionally increased by 30%.' },
+  'rina':         { name: 'Perfect Service',
+    text: "PEN Ratio increases by 1.6%. While the buff gained from Core Passive: Mini Destruction Partner is active, for every 1% of Rina's PEN Ratio, all squad members gain 8 ATK and 6.5 DEF, up to a maximum of 576 ATK and 468 DEF." },
+  'harumasa':     { name: 'Focus',
+    text: "When activating an EX Special Attack, Chain Attack, or Ultimate, increases ATK by 12%. Dash Attack: Hiten no Tsuru - Slash and Chasing Thunder ignore 15% of the target's Electric RES for 12s. Repeated triggers reset the duration. Extends the duration of Core Passive's Gleaming Edge to 10s." },
+  'ellen':        { name: 'Permafrost Zone',
+    text: "Ellen's Additional Ability: Rising Storm CRIT DMG increases by 4.8% per stack. At 10 stacks, the attack ignores 10% of the target's Ice RES." },
+  'lycaon':       { name: 'Glacial Rush',
+    text: 'While Encircle Prey is active, when Lycaon performs a Basic Attack, Dash Attack, or Dodge Counter as a non-active Agent, his Impact is increased by 15%.' },
+  'soldier 11':   { name: 'Infernal Blaze',
+    text: "In Additional Ability: Fields of Fire, Soldier 11's CRIT DMG is increased by 48%." },
+  'nekomata':     { name: 'Nightborne Instinct',
+    text: 'While Nekomata is in the Pawpad Ambush state, her CRIT DMG increases by 60%.' },
+  'grace-howard': { name: 'Overclocked Engineering Engine',
+    text: 'When consuming Zap, gain Enhanced Zap, increasing Electric DMG by 30% for 25s. Repeated triggers reset the duration.' },
+  'burnice':      { name: 'Boiling Point Party',
+    text: "When Burnice's initial Energy Regen is greater than or equal to 1.8, every extra 0.1 points of initial Energy Regen increases Anomaly Mastery by 2.5 and DMG by 2%, up to a maximum increase of 25 Anomaly Mastery and 20% DMG. Core Passive: Nitro-Fuel Cocktail's Afterburn interval is reduced to 1.35s." },
+};
+
+function pdAwakenedHtml(m) {
+  const a = m.agentKey && AGENT_AWAKENED[m.agentKey];
+  if (!a) return '';
+  return `<div class="pd-section-title">Awakened Potential</div>
+    <details class="pd-kit pd-awk" open>
+      <summary>
+        <span class="pd-mind-n">V6</span>
+        <span class="pd-kit-label">${escapeHtml(a.name)}</span>
+      </summary>
+      <div class="pd-kit-body pd-awk-body">${pdGameText(a.text, m.terms)}</div>
+    </details>`;
+}
+
+function pdMindscapeHtml(m) {
+  const p = m.profile;
+  /* Выверенные эйдосы содержат ТОЛЬКО механику. Во встроенных к ней приклеен
+     художественный текст, отчего они в среднем в 2.4 раза длиннее (у Lucia — в
+     4.2), и найти в них правило было тяжело. Если файл не загрузился, остаётся
+     старый путь: длинно, но лучше, чем пусто. */
+  const ext = m.ext && m.ext.mindscape;
+  if (!ext && (!p || !p.cinema)) return '';
+  const owned = m.mindscape || 0;
+  const rows = [1, 2, 3, 4, 5, 6].map(n => {
+    const e = ext && (ext[n] || ext[String(n)]);
+    const text = e ? e.desc : (p && p.cinema && (p.cinema[n] || p.cinema[String(n)]));
+    if (!text) return '';
+    const title = e ? (e.name || '')
+                    : ((p.cinemaTitles && (p.cinemaTitles[n] || p.cinemaTitles[String(n)])) || '');
+    /* Взятые эйдосы показаны в полную силу, невзятые приглушены — но НЕ скрыты:
+       чаще всего смотрят как раз на то, что даст следующий уровень. */
+    const on = n <= owned;
+    return `<details class="pd-kit pd-mind${on ? ' pd-mind-on' : ''}">
+      <summary>
+        <span class="pd-mind-n">M${n}</span>
+        <span class="pd-kit-label">${escapeHtml(title || 'Mindscape ' + n)}</span>
+        <span class="pd-mind-state">${on ? '●' : '○'}</span>
+      </summary>
+      <div class="pd-kit-body">${e ? pdGameText(text, m.terms) : escapeHtml(text)}</div>
+    </details>`;
+  }).join('');
+  if (!rows) return '';
+  /* Оговорка нужна там, где уровень эйдосов взят не у владельца сборки: у
+     пресетов и чужих публикаций он приходит из ТВОЕЙ Agent Library (это уже
+     сказано в баннере publicNote), и подсветка «взято/не взято» относится к
+     тебе, а не к автору билда. Молча показывать чужую сборку со своими
+     эйдосами — значит показывать сборку, которой не существует. */
+  const note = m.mindscapeFromOwnLibrary
+    ? `<div class="pd-kit-note">Mindscape level comes from your own Agent Library, not from this build's owner.</div>`
+    : '';
+  return `<div class="pd-section-title">Mindscape · M${owned}</div>${note}${rows}`;
+}
+
+function fullViewHtml(m, extra = {}) {
+  const { wrapClass = '', nameSuffix = '', bannersHtml = '', actionsHtml = '' } = extra;
+
+  const statsHtml = statSheetRowsHtml(m.sheet, m.useful);
+
+  /* Секция навыков появляется и от одной буквы Core Skill — но только там, где
+     эта буква вообще есть чем подтверждена. У пресета без снимка навыков
+     corePillLetter приходит пустым, и секции не будет, как и раньше. */
+  const skillPills = (m.skillList || [])
+    .map(s => `<div class="pd-skill-pill">${escapeHtml(s.label)} <b>Lv.${s.level}</b></div>`).join('');
+  const corePill = m.corePillLetter
+    ? `<div class="pd-skill-pill">Core Skill Enhancement <b>${m.corePillLetter}</b></div>` : '';
+  const skillsHtml = (profileDisplayOptions.skills && ((m.skillList || []).length || m.corePillLetter))
+    ? `<div class="pd-section-title">Skills</div>
+       <div class="pd-skills">${skillPills}${corePill}</div>`
+    : '';
+
+  const w = m.wengine;
+  const wengineBlock = w
+    ? `<div class="pd-wengine">
+        <img src="${wengineUrl(w.key || '')}" onerror="this.style.opacity=.2">
+        <div>
+          <div style="font-weight:700">${escapeHtml(w.name)}</div>
+          <div class="pd-sub">Lv.${w.level} · ${w.rankPrefix}${w.rank}${w.hasInfo ? ` · ${escapeHtml(w.rarity || '')}-Rank ${escapeHtml(w.specialty || '')}` : ''}</div>
+          ${w.hasInfo ? `<div class="pd-sub">Base ATK ${w.baseATK} · ${escapeHtml(w.secName || '')} ${escapeHtml(w.secValue || '')}</div>` : ''}
+        </div>
+      </div>`
+    : '<div class="pd-sub">No W-Engine equipped.</div>';
+  const wengineHtml = profileDisplayOptions.wengine
+    ? `<div class="pd-section-title">W-Engine</div>${wengineBlock}`
+    : '';
+
+  const setsHtml = profileDisplayOptions.sets
+    ? `<div class="pd-section-title">Drive Disc Sets</div>
+       <div class="pd-sets-list">${Object.entries(m.setCounts || {}).map(([n, c]) => `<span class="pd-badge">${escapeHtml(n)} ×${c}</span>`).join('') || '<span class="pd-sub">—</span>'}</div>`
+    : '';
+
+  const discsHtml = (m.discs || []).length
+    ? (profileDisplayOptions.discs
+        ? `<div class="pd-discs-grid">${m.discs.map(d => `<div class="pd-disc-card">${discDetailBlockHtml(d, { useful: m.useful })}</div>`).join('')}</div>`
+        : `<div class="pd-discs-compact">${m.discs.map(discCompactCardHtml).join('')}</div>`)
+    : '<div class="pd-sub">No Drive Discs equipped.</div>';
+
+  const totalsHtml = profileDisplayOptions.totals
+    ? `<div class="pd-section-title">Sub-Stat Totals (all equipped discs)</div>
+       ${usefulProcsSummaryHtml(m.procCounts, m.useful)}
+       <div class="pd-agg-row">${substatTotalsRowHtml(m.agg, m.useful)}</div>`
+    : '';
+
+  /* Потолок уровня печатается только там, где он известен. У пресета его нет:
+     уровень берётся из Agent Library, а прокачка там не хранится — печатать
+     «/60» значило бы выдумать её. */
+  const levelBadge = `<span class="pd-badge">Lv.${m.level}${m.levelMax ? `/${m.levelMax}` : ''}</span>`;
+  const mindBadge = `<span class="pd-badge"${m.mindscapeTitle ? ` title="${escapeHtml(m.mindscapeTitle)}"` : ''}>Mindscape M${m.mindscape || 0}</span>`;
+  const coreBadge = m.coreBadgeLetter ? `<span class="pd-badge">Core Skill ${m.coreBadgeLetter}</span>` : '';
+
+  const body = `
+    ${pdBannerHtml(m.agentKey, m.skin)}
+    <div class="pd-head">
+      <div>
+        <div class="pd-name">${escapeHtml(m.displayName)}${nameSuffix}</div>
+        ${pdPassportHtml(m)}
+        <div class="pd-badges">
+          ${levelBadge}
+          ${mindBadge}
+          ${coreBadge}
+        </div>
+      </div>
+    </div>
+
+    ${bannersHtml}
+
+    <div class="pd-section-title">Stats</div>
+    <div class="pd-cols">${statsHtml}</div>
+
+    ${pdZonesHtml(m)}
+    ${pdStatBreakdownHtml(m)}
+    ${pdDiscQualityHtml(m)}
+
+    ${skillsHtml}
+    ${wengineHtml}
+    ${setsHtml}
+    ${totalsHtml}
+
+    <div class="pd-section-title">Drive Discs</div>
+    ${discsHtml}
+
+    ${pdKitHtml(m)}
+    ${pdSkillTextHtml(m)}
+    ${pdMindscapeHtml(m)}
+    ${pdAwakenedHtml(m)}
+    ${actionsHtml}
+  `;
+  return wrapClass ? `<div class="${wrapClass}">${body}</div>` : body;
+}
+
 async function presetDetailHtml(agentKey, preset, opts = {}) {
   const { readOnly = false, ownerLabel = null, ownerUid = null, hideActions = false } = opts;
-  const sheet = await buildManualAgentStatSheet(agentKey, preset.wengine, preset.discs).catch(() => null);
   const profile = AGENT_PROFILE[agentKey];
   const libEntry = getAgentLibEntry(agentKey);
   const wengineInfo = preset.wengine ? WENGINE_INFO[preset.wengine] : null;
-  const wengineLibLevel = preset.wengine ? (getWengineLibEntry(preset.wengine).level || 60) : 60;
-  const coreLetter = libEntry.coreSkillEnhancement ? enkaCoreSkillLetter(libEntry.coreSkillEnhancement) : null;
+
+  /* ── ОТКУДА БЕРУТСЯ УРОВНИ И РАНГ ──
+     Считается ОДИН раз и до всего остального, потому что этими же числами
+     обязаны пользоваться и лист статов, и бейджи в шапке, и подпись движка.
+     Раньше они брались порознь, и экран противоречил сам себе: бейдж показывал
+     снятый со стенда ранг Core Skill, а числа под ним были посчитаны по твоей
+     библиотеке.
+
+     Снято со стенда — берём снятое, иначе твою Agent Library. null значит «не
+     снимали»: у ручных сборок и у всех пресетов, сохранённых до появления
+     снимка, полей просто нет, и они продолжают считаться по библиотеке, как
+     считались всегда.
+
+     Ранг Core Skill — единственное поле, которое лежало в пресете и раньше,
+     поэтому у него сохранена прежняя цепочка отката: сначала снимок, потом
+     собственное поле пресета, потом библиотека. */
+  /* Значения бывают закреплены за пресетом двумя путями: сняты со стенда или
+     выбраны человеком в форме. Для чтения разницы нет — важно лишь то, что они
+     принадлежат сборке, а не смотрящему. Отсюда «pinned», а не «stand».
+     buildPinned проставляет форма; presetIsStandSnapshot покрывает снимки,
+     сохранённые до появления флага. */
+  const buildPinned = preset.buildPinned === true || presetIsStandSnapshot(preset);
+  const pinnedLevel = Number.isFinite(preset.level) ? preset.level : null;
+  const pinnedPromotion = Number.isFinite(preset.promotionLevel) ? preset.promotionLevel : null;
+  const pinnedWLevel = Number.isFinite(preset.wengineLevel) ? preset.wengineLevel : null;
+  const pinnedWBreak = Number.isFinite(preset.wengineBreakLevel) ? preset.wengineBreakLevel : null;
+  /* Ноль у ранга Core Skill — законный выбор «навык не прокачан», и отличить
+     его от незаполненного поля можно только по buildPinned. Без флага работает
+     прежняя цепочка отката, ради пресетов старого формата. */
+  const coreRankShown = (buildPinned && Number.isFinite(preset.coreSkillEnhancement))
+    ? preset.coreSkillEnhancement
+    : (preset.coreSkillEnhancement || libEntry.coreSkillEnhancement || 0);
+  const coreLetter = coreRankShown ? enkaCoreSkillLetter(coreRankShown) : null;
+  const wengineLibLevel = preset.wengine
+    ? (pinnedWLevel ?? (getWengineLibEntry(preset.wengine).level || 60))
+    : 60;
+
+  const sheet = await buildManualAgentStatSheet(agentKey, preset.wengine, preset.discs, {
+    level: pinnedLevel ?? undefined,
+    promotionLevel: pinnedPromotion ?? undefined,
+    coreSkillEnhancement: coreRankShown,
+    wengineLevel: pinnedWLevel ?? undefined,
+    wengineBreakLevel: pinnedWBreak ?? undefined,
+  }).catch(() => null);
+  const extFile = await getAgentDataFile();
   const cat = presetCategory(preset);
   const isExternal = presetIsExternalSnapshot(preset);
   const { missing } = isExternal ? { missing: [] } : evaluatePresetApplicability(preset, null);
@@ -11418,8 +13235,14 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
         ? `<div class="pd-preset-warn pd-preset-note">ℹ Verified build — a frozen snapshot pulled from your own confirmed stand${preset.source?.uid ? ` (UID ${escapeHtml(preset.source.uid)})` : ''}. Not tied to your current Drive Disc Library, so it can't be applied directly to a team — save it again from the Profile tab to refresh the snapshot.</div>`
         : `<div class="pd-preset-warn pd-preset-note">ℹ Imported build${preset.source?.nickname ? ` — from ${escapeHtml(preset.source.nickname)}'s showcase` : ''}${preset.source?.uid ? ` (UID ${escapeHtml(preset.source.uid)})` : ''}. This is a reference snapshot straight off that account's stand, not tied to your own Drive Disc Library, so it can't be applied directly to a team.</div>`)
     : '';
+  /* Баннер раздваивается по тому, есть ли в публикации снимок сборки. Раньше
+     он утверждал безусловно, что уровень и ранг взяты из твоей библиотеки —
+     после того как публикация научилась нести их с собой, это стало бы враньём
+     в обратную сторону. */
   const publicNote = (readOnly && profileDisplayOptions.notes)
-    ? `<div class="pd-preset-warn pd-preset-note">ℹ Shared build${ownerLabel ? ` by ${escapeHtml(ownerLabel)}` : ''}. The Level/Core Skill Enhancement shown use <em>your own</em> Agent Library settings for ${escapeHtml(cardName(agentKey))} — only the W-Engine and discs are actually part of what was published.</div>`
+    ? (buildPinned
+        ? `<div class="pd-preset-warn pd-preset-note">ℹ Shared build${ownerLabel ? ` by ${escapeHtml(ownerLabel)}` : ''}. Level, Core Skill Enhancement, Mindscape and skill levels are the ones this build was published with — not your own Agent Library settings.</div>`
+        : `<div class="pd-preset-warn pd-preset-note">ℹ Shared build${ownerLabel ? ` by ${escapeHtml(ownerLabel)}` : ''}. This one was published before builds carried their own settings, so the Level/Core Skill Enhancement shown use <em>your own</em> Agent Library settings for ${escapeHtml(cardName(agentKey))} — only the W-Engine and discs are part of what was published.</div>`)
     : '';
 
   // discEntries и useful нужны раньше, чем строятся строки листа статов:
@@ -11437,41 +13260,13 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
   const useful = resolveUsefulSubstats(profileProcsOn() ? agentKey : null, discEntries);
   const procCounts = countUsefulProcs(discEntries, useful);
 
-  const statsHtml = statSheetRowsHtml(sheet, useful);
-
   // Only presets saved off a live stand (verified/imported, via
   // saveCurrentShowcaseBuildAsPreset) carry a skills snapshot — manual builder
   // presets, and any showcase preset saved before this field existed, simply
   // have preset.skills === null, so the row is omitted rather than shown empty.
-  const snapshotCoreLetter = preset.coreSkillEnhancement ? enkaCoreSkillLetter(preset.coreSkillEnhancement) : null;
-  const skillsHtml = (profileDisplayOptions.skills && preset.skills && preset.skills.length)
-    ? `<div class="pd-section-title">Skills</div>
-       <div class="pd-skills">${preset.skills.map(s => `<div class="pd-skill-pill">${escapeHtml(s.label)} <b>Lv.${skillLevelShown(s.index, s.level, libEntry.mindscape)}</b></div>`).join('')}${snapshotCoreLetter ? `<div class="pd-skill-pill">Core Skill Enhancement <b>${snapshotCoreLetter}</b></div>` : ''}</div>`
-    : '';
+  const snapshotCoreLetter = coreLetter;   // одно значение на бейдж, плашку и лист статов
+  const hasSkillSnapshot = !!(preset.skills && preset.skills.length);
 
-  const wengineBlock = preset.wengine
-    ? `<div class="pd-wengine">
-        <img src="${wengineUrl(preset.wengine)}" onerror="this.style.opacity=.2">
-        <div>
-          <div style="font-weight:700">${escapeHtml(prettyName(preset.wengine))}</div>
-          <div class="pd-sub">Lv.${wengineLibLevel} · R${preset.wrank || 1}${wengineInfo ? ` · ${escapeHtml(wengineInfo.rarity)}-Rank ${escapeHtml(wengineInfo.specialty)}` : ''}</div>
-          ${wengineInfo ? `<div class="pd-sub">Base ATK ${wengineInfo.baseATK} · ${escapeHtml(wengineInfo.secondaryStat?.name || '')} ${escapeHtml(wengineInfo.secondaryStat?.value || '')}</div>` : ''}
-        </div>
-      </div>`
-    : '<div class="pd-sub">No W-Engine equipped.</div>';
-  const wengineHtml = profileDisplayOptions.wengine
-    ? `<div class="pd-section-title">W-Engine</div>${wengineBlock}`
-    : '';
-
-  const setsHtml = profileDisplayOptions.sets
-    ? `<div class="pd-section-title">Drive Disc Sets</div>
-       <div class="pd-sets-list">${Object.entries(setCounts).map(([n, c]) => `<span class="pd-badge">${escapeHtml(n)} ×${c}</span>`).join('') || '<span class="pd-sub">—</span>'}</div>`
-    : '';
-  const discsHtml = discEntries.length
-    ? (profileDisplayOptions.discs
-        ? `<div class="pd-discs-grid">${discEntries.map(d => `<div class="pd-disc-card">${discDetailBlockHtml(d, { useful })}</div>`).join('')}</div>`
-        : `<div class="pd-discs-compact">${discEntries.map(discCompactCardHtml).join('')}</div>`)
-    : '<div class="pd-sub">No Drive Discs equipped.</div>';
   const agg = aggregateProfileDiscSubstats(discEntries);
 
   /* Подпись владельца в шапке карточки. Ник и UID берутся ПАРОЙ из одного
@@ -11496,87 +13291,93 @@ async function presetDetailHtml(agentKey, preset, opts = {}) {
      решает category, которую сюда кладут оба места чтения строки. */
   const manualBadge = !presetIsStandSnapshot(preset);
 
-  /* Компактный вид. Уровень и Core Skill Enhancement у пресета берутся из
-     Agent Library (как и в развёрнутом виде — см. publicNote), а снимок
-     навыков есть только у пресетов, сохранённых со стенда: у остальных
-     preset.skills === null, и карточка рисует иконки навыков без уровней. */
-  if (profileViewMode === 'compact') {
-    const skillMap = {};
-    (preset.skills || []).forEach(sk => { skillMap[sk.index] = skillLevelShown(sk.index, sk.level, libEntry.mindscape); });
-    return compactCardShellHtml(ccMakeModel({
-      agentKey,
-      displayName: cardName(agentKey),
-      subLine: profile ? [profile.fullName, profile.gender, profile.stature].filter(Boolean).join(' · ') : '',
-      level: libEntry.level, levelMax: null,
-      /* skin здесь всегда пуст: пресет собирается из библиотеки, а наряд —
-         это состояние витрины Enka, в пресете его попросту неоткуда взять.
-         Такая карточка рисуется базовым артом и базовым цветом агента. */
-      skin: null,
-      mindscape: libEntry.mindscape || 0,
-      coreRank: preset.coreSkillEnhancement || libEntry.coreSkillEnhancement || 0,
-      skills: (preset.skills && preset.skills.length) ? skillMap : null,
-      sheet, useful, procCounts, agg,
-      discs: discEntries, setCounts,
-      wengine: preset.wengine ? {
-        key: preset.wengine,
-        name: prettyName(preset.wengine),
-        level: wengineLibLevel,
-        rank: preset.wrank || 1,
-        rarity: wengineInfo?.rarity || null,
-        specialty: wengineInfo?.specialty || null,
-        baseATK: wengineInfo?.baseATK || null,
-        secName: wengineInfo?.secondaryStat?.name || null,
-        secValue: wengineInfo?.secondaryStat?.value || null,
-      } : null,
-      owner: cardOwner,
-      showOwner: profileDisplayOptions.owner,
+  /* ОДНА модель на оба вида — и на компактную карточку, и на развёрнутый вид.
+     Ветка режима стоит НИЖЕ модели, а не выше: всё, что нужно любому из видов,
+     считается одинаково, и переключение тумблера не должно менять ничего,
+     кроме способа показать одни и те же числа.
+     Уровень и Core Skill Enhancement у пресета берутся из Agent Library (как и
+     раньше — см. publicNote), а снимок навыков есть только у пресетов,
+     сохранённых со стенда: у остальных preset.skills === null, и секция
+     навыков не рисуется вовсе.
+     skin здесь всегда пуст: пресет собирается из библиотеки, а наряд — это
+     состояние витрины Enka, в пресете его попросту неоткуда взять. Такая
+     карточка рисуется базовым артом и базовым цветом агента. */
+  /* Эйдосы: снятые со стенда, если снимок есть, иначе твои из библиотеки.
+     Одно значение на всю карточку — от него зависят и подсветка взятых
+     эйдосов, и уровни навыков (M3/M5 дают +2), и точки на компактной
+     карточке. Разные источники в разных местах развели бы одну и ту же
+     сборку сама с собой. */
+  const snapshotMindscape = Number.isFinite(preset.mindscape) ? preset.mindscape : null;
+  const shownMindscape = snapshotMindscape !== null ? snapshotMindscape : (libEntry.mindscape || 0);
+
+  const skillMap = {};
+  (preset.skills || []).forEach(sk => { skillMap[sk.index] = skillLevelShown(sk.index, sk.level, shownMindscape); });
+  const model = {
+    agentKey,
+    displayName: cardName(agentKey),
+    subLine: profile ? [profile.fullName, profile.gender, profile.stature].filter(Boolean).join(' · ') : '',
+    profile,
+    /* Расширенные данные из zzz-agents.json. null, если файл не загрузился —
+       все потребители ниже обязаны это переживать и откатываться на
+       встроенный AGENT_PROFILE. */
+    ext: extFile ? (extFile.agents[agentKey] || null) : null,
+    terms: extFile ? extFile.terms : null,
+    /* Потолок уровня печатается только у снятых со стенда: прокачка там
+       известна. У библиотечной сборки её нет, и «/60» было бы выдумкой. */
+    level: pinnedLevel ?? libEntry.level,
+    levelMax: pinnedPromotion ? pinnedPromotion * 10 : null,
+    skin: null,
+    mindscape: shownMindscape,
+    coreRank: coreRankShown,
+    skills: hasSkillSnapshot ? skillMap : null,
+    skillList: hasSkillSnapshot
+      ? preset.skills.map(s => ({ index: s.index, label: s.label, level: skillLevelShown(s.index, s.level, shownMindscape) }))
+      : [],
+    corePillLetter: hasSkillSnapshot ? snapshotCoreLetter : null,
+    coreBadgeLetter: coreLetter,
+    mindscapeTitle: snapshotMindscape === null
+      ? "Mindscape isn't modeled in this calc, same as skill levels — set from the Agent Library, shown here for context only"
+      : (presetIsStandSnapshot(preset)
+          ? "Captured from the stand this build was saved from — not from your Agent Library"
+          : "Set on this preset — not from your Agent Library"),
+    /* Оговорка в секции Mindscape нужна ровно там, где число НЕ принадлежит
+       владельцу сборки. У снятых со стенда оно теперь его собственное, и
+       предупреждать не о чем. */
+    mindscapeFromOwnLibrary: snapshotMindscape === null,
+    sheet, useful, procCounts, agg,
+    discs: discEntries, setCounts,
+    wengine: preset.wengine ? {
+      key: preset.wengine,
+      name: prettyName(preset.wengine),
+      level: wengineLibLevel,
+      rank: preset.wrank || 1,
+      rankPrefix: 'R',
+      hasInfo: !!wengineInfo,
+      rarity: wengineInfo?.rarity || null,
+      specialty: wengineInfo?.specialty || null,
+      baseATK: wengineInfo?.baseATK || null,
+      secName: wengineInfo?.secondaryStat?.name || null,
+      secValue: wengineInfo?.secondaryStat?.value || null,
+    } : null,
+    owner: cardOwner,
+    showOwner: profileDisplayOptions.owner,
       /* presetName остаётся в модели даже когда на баннер вместо него уйдёт
          предупреждение: от него зависит имя скачиваемого файла, см.
          ccMakeModel(). Что именно рисовать, решает ccBannerAbove. */
-      presetName: preset.name || null,
-      presetManual: manualBadge,
-    }));
-  }
+    presetName: preset.name || null,
+    presetManual: manualBadge,
+  };
 
-  const totalsHtml = profileDisplayOptions.totals
-    ? `<div class="pd-section-title">Sub-Stat Totals (all equipped discs)</div>
-       ${usefulProcsSummaryHtml(procCounts, useful)}
-       <div class="pd-agg-row">${substatTotalsRowHtml(agg, useful)}</div>`
-    : '';
+  if (profileViewMode === 'compact') return compactCardShellHtml(ccMakeModel(model));
 
-  return `
-    <div class="pd-preset-detail">
-      ${pdBannerHtml(agentKey)}
-      <div class="pd-head">
-        <div>
-          <div class="pd-name">${escapeHtml(cardName(agentKey))} <span style="color:var(--text-mid);font-weight:500">· ${escapeHtml(preset.name)}</span></div>
-          <div class="pd-sub">${profile ? `${escapeHtml(profile.fullName || '')} · ${escapeHtml(profile.gender || '')} · ${escapeHtml(profile.stature || '')}` : ''}</div>
-          <div class="pd-badges">
-            <span class="pd-badge">Lv.${libEntry.level}</span>
-            <span class="pd-badge" title="Mindscape isn't modeled in this calc, same as skill levels — set from the Agent Library, shown here for context only">Mindscape M${libEntry.mindscape || 0}</span>
-            ${coreLetter ? `<span class="pd-badge">Core Skill ${coreLetter}</span>` : ''}
-          </div>
-        </div>
-      </div>
-
-      ${missingBanner}
+  return fullViewHtml(model, {
+    wrapClass: 'pd-preset-detail',
+    nameSuffix: ` <span style="color:var(--text-mid);font-weight:500">· ${escapeHtml(preset.name)}</span>`,
+    bannersHtml: `${missingBanner}
       ${importedNote}
-      ${publicNote}
-
-      <div class="pd-section-title">Stats</div>
-      <div class="pd-cols">${statsHtml}</div>
-
-      ${skillsHtml}
-      ${wengineHtml}
-      ${setsHtml}
-      ${totalsHtml}
-
-      <div class="pd-section-title">Drive Discs</div>
-      ${discsHtml}
-
-      ${hideActions ? '' : `<div class="pd-preset-actions">${presetActionsHtml(agentKey, preset, opts)}</div>`}
-    </div>
-  `;
+      ${publicNote}`,
+    actionsHtml: hideActions ? '' : `<div class="pd-preset-actions">${presetActionsHtml(agentKey, preset, opts)}</div>`,
+  });
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -14110,6 +15911,7 @@ async function renderProfileDetail(i) {
 
   const itemsRef = await getEnkaEquipmentItems().catch(() => ({}));
   const sheet = await buildEnkaAgentStatSheet(a).catch(() => null);
+  const extFile = await getAgentDataFile();
   const profile = slug ? AGENT_PROFILE[slug] : null;
 
   const discEntries = (a.EquippedList || [])
@@ -14131,7 +15933,17 @@ async function renderProfileDetail(i) {
   // renderProfileDetail shows below (they simply never captured the data).
   profileCurrentLiveBuild = slug
     ? { agentKey: slug, wengine: wengineSlug, wrank: a.Weapon ? Math.max(1, a.Weapon.UpgradeLevel || 1) : 0, discEntries,
-        skills: skillLevels, coreSkillEnhancement: a.CoreSkillEnhancement || 0 }
+        skills: skillLevels, coreSkillEnhancement: a.CoreSkillEnhancement || 0,
+        /* Эйдосы стенда. Раньше не запоминались, и пресет со стенда показывал
+           ЧУЖУЮ сборку с ТВОИМИ эйдосами из Agent Library. Врало это не только
+           подсветкой взятых эйдосов: от их числа зависят и уровни навыков
+           (M3 и M5 дают +2), так что расходился весь блок Skills. */
+        mindscape: a.TalentLevel || 0,
+        /* Уровень и прокачка — свои у агента и у движка. Без них лист статов
+           пресета считался по твоей библиотеке, каким бы чужим ни был билд. */
+        level: a.Level, promotionLevel: a.PromotionLevel || 1,
+        wengineLevel: a.Weapon ? a.Weapon.Level : null,
+        wengineBreakLevel: a.Weapon ? (a.Weapon.BreakLevel ?? null) : null }
     : null;
 
   // "Save current build" moved to the toolbar (slot B, #tbSaveBuild) — it
@@ -14146,118 +15958,77 @@ async function renderProfileDetail(i) {
   const useful = resolveUsefulSubstats(profileProcsOn() ? slug : null, discEntries);
   const procCounts = countUsefulProcs(discEntries, useful);
 
-  const statsHtml = statSheetRowsHtml(sheet, useful);
-
-  const skillsInner = skillLevels.map(s => `<div class="pd-skill-pill">${escapeHtml(s.label)} <b>Lv.${skillLevelShown(s.index, s.level, a.TalentLevel)}</b></div>`).join('')
-    + (coreLetter ? `<div class="pd-skill-pill">Core Skill Enhancement <b>${coreLetter}</b></div>` : '');
-  const skillsHtml = (profileDisplayOptions.skills && (skillLevels.length || coreLetter))
-    ? `<div class="pd-section-title">Skills</div><div class="pd-skills">${skillsInner}</div>`
-    : '';
-
-  const wengineBlock = a.Weapon
-    ? `<div class="pd-wengine">
-        <img src="${wengineUrl(wengineSlug || '')}" onerror="this.style.opacity=.2">
-        <div>
-          <div style="font-weight:700">${wengineSlug ? escapeHtml(prettyName(wengineSlug)) : `Unknown (Id ${a.Weapon.Id})`}</div>
-          <div class="pd-sub">Lv.${a.Weapon.Level} · P${a.Weapon.UpgradeLevel || 1}${wengineInfo ? ` · ${escapeHtml(wengineInfo.rarity)}-Rank ${escapeHtml(wengineInfo.specialty)}` : ''}</div>
-          ${wengineInfo ? `<div class="pd-sub">Base ATK ${wengineInfo.baseATK} · ${escapeHtml(wengineInfo.secondaryStat?.name || '')} ${escapeHtml(wengineInfo.secondaryStat?.value || '')}</div>` : ''}
-        </div>
-      </div>`
-    : '<div class="pd-sub">No W-Engine equipped.</div>';
-  const wengineHtml = profileDisplayOptions.wengine
-    ? `<div class="pd-section-title">W-Engine</div>${wengineBlock}`
-    : '';
-
-  const discsHtml = discEntries.length
-    ? (profileDisplayOptions.discs
-        ? `<div class="pd-discs-grid">${discEntries.map(d => `<div class="pd-disc-card">${discDetailBlockHtml(d, { useful })}</div>`).join('')}</div>`
-        : `<div class="pd-discs-compact">${discEntries.map(discCompactCardHtml).join('')}</div>`)
-    : '<div class="pd-sub">No Drive Discs equipped.</div>';
-
-  const setsHtml = profileDisplayOptions.sets
-    ? `<div class="pd-section-title">Drive Disc Sets</div>
-       <div class="pd-sets-list">${Object.entries(setCounts).map(([n, c]) => `<span class="pd-badge">${escapeHtml(n)} ×${c}</span>`).join('') || '<span class="pd-sub">—</span>'}</div>`
-    : '';
-
   const agg = aggregateProfileDiscSubstats(discEntries);
 
-  /* Компактный вид — одна картинка вместо всей разметки ниже. Ветка стоит
-     здесь, а не в начале функции, намеренно: всё, что карточке нужно (лист
-     статов, диски, зачёты проков, снимок сборки для «сохранить»), уже
-     посчитано выше и считается одинаково для обоих видов. Переключение режима
-     не должно менять НИЧЕГО, кроме способа показать одни и те же числа. */
-  if (profileViewMode === 'compact') {
-    const skillMap = {};
-    skillLevels.forEach(sk => { skillMap[sk.index] = skillLevelShown(sk.index, sk.level, a.TalentLevel); });
-    panel.innerHTML = compactCardShellHtml(ccMakeModel({
-      agentKey: slug,
-      displayName: slug ? cardName(slug) : `Unknown (Id ${a.Id})`,
-      subLine: profile ? [profile.fullName, profile.gender, profile.stature].filter(Boolean).join(' · ') : '',
-      level: a.Level, levelMax: (a.PromotionLevel || 1) * 10,
-      /* Скин, в котором агент стоит на витрине. SkinId — это внутренний id
+  /* ОДНА модель на оба вида. Ветка режима стоит НИЖЕ неё, а не в начале
+     функции, намеренно: всё, что нужно любому из видов (лист статов, диски,
+     зачёты проков, снимок сборки для «сохранить»), уже посчитано выше и
+     считается одинаково. Переключение режима не должно менять НИЧЕГО, кроме
+     способа показать одни и те же числа. */
+  const skillMap = {};
+  skillLevels.forEach(sk => { skillMap[sk.index] = skillLevelShown(sk.index, sk.level, a.TalentLevel); });
+  const model = {
+    agentKey: slug,
+    displayName: slug ? cardName(slug) : `Unknown (Id ${a.Id})`,
+    subLine: profile ? [profile.fullName, profile.gender, profile.stature].filter(Boolean).join(' · ') : '',
+    profile,
+    /* Расширенные данные из zzz-agents.json. null, если файл не загрузился —
+       все потребители ниже обязаны это переживать и откатываться на
+       встроенный AGENT_PROFILE. */
+    ext: extFile ? (extFile.agents[slug] || null) : null,
+    terms: extFile ? extFile.terms : null,
+    level: a.Level, levelMax: (a.PromotionLevel || 1) * 10,
+    /* Скин, в котором агент стоит на витрине. SkinId — это внутренний id
          наряда, суффикс файла из него не выводится арифметикой: см. таблицу
          ENKA_SKIN_SUFFIX и объяснение над ней. */
-      skin: ccSkinSuffix(a.SkinId),
-      mindscape: a.TalentLevel || 0,
-      coreRank: a.CoreSkillEnhancement || 0,
-      skills: skillLevels.length ? skillMap : null,
-      sheet, useful, procCounts, agg,
-      discs: discEntries, setCounts,
-      wengine: a.Weapon ? {
-        key: wengineSlug,
-        name: wengineSlug ? prettyName(wengineSlug) : `Unknown (Id ${a.Weapon.Id})`,
-        level: a.Weapon.Level,
+    skin: ccSkinSuffix(a.SkinId),
+    mindscape: a.TalentLevel || 0,
+    coreRank: a.CoreSkillEnhancement || 0,
+    skills: skillLevels.length ? skillMap : null,
+    skillList: skillLevels.map(s => ({ index: s.index, label: s.label, level: skillLevelShown(s.index, s.level, a.TalentLevel) })),
+    corePillLetter: coreLetter,
+    /* У стенда ранга Core Skill в бейджах шапки нет — буква и так стоит
+       отдельной плашкой в секции Skills, дублировать её незачем. */
+    coreBadgeLetter: null,
+    mindscapeTitle: null,
+    sheet, useful, procCounts, agg,
+    discs: discEntries, setCounts,
+    wengine: a.Weapon ? {
+      key: wengineSlug,
+      name: wengineSlug ? prettyName(wengineSlug) : `Unknown (Id ${a.Weapon.Id})`,
+      level: a.Weapon.Level,
         /* Потолок уровня движка — то же самое, что у агента строкой выше, только
            считается от BreakLevel. BreakLevel у оружия нумеруется с нуля (см.
            levelToBreakLevel), у агента PromotionLevel — с единицы, отсюда +1.
            Если Enka поле не прислала, восстанавливаем прокачку по самому
            уровню — это догадка (на Lv.50 движок может быть и на 4-й, и на 5-й
            прокачке), но лучше показать «/50», чем не показать ничего. */
-        levelMax: ((a.Weapon.BreakLevel ?? levelToBreakLevel(a.Weapon.Level)) + 1) * 10,
-        rank: a.Weapon.UpgradeLevel || 1,
-        rarity: wengineInfo?.rarity || null,
-        specialty: wengineInfo?.specialty || null,
-        baseATK: wengineInfo?.baseATK || null,
-        secName: wengineInfo?.secondaryStat?.name || null,
-        secValue: wengineInfo?.secondaryStat?.value || null,
-      } : null,
-      owner: { nickname: profileCurrentNickname, uid: profileCurrentUid },
-      showOwner: profileDisplayOptions.owner,
-      presetName: null,
-    }));
+      levelMax: ((a.Weapon.BreakLevel ?? levelToBreakLevel(a.Weapon.Level)) + 1) * 10,
+      /* Weapon.UpgradeLevel — это рефайнмент движка, тот же самый, что в
+         конструкторе пресета подписан «Refinement» и хранится как wrank.
+         Раньше стенд печатал его как «P», а пресет как «R»: одно число, две
+         буквы. Приведено к R — так это поле называется во всём остальном
+         интерфейсе (библиотека W-Engine, форма пресета). */
+      rank: a.Weapon.UpgradeLevel || 1,
+      rankPrefix: 'R',
+      hasInfo: !!wengineInfo,
+      rarity: wengineInfo?.rarity || null,
+      specialty: wengineInfo?.specialty || null,
+      baseATK: wengineInfo?.baseATK || null,
+      secName: wengineInfo?.secondaryStat?.name || null,
+      secValue: wengineInfo?.secondaryStat?.value || null,
+    } : null,
+    owner: { nickname: profileCurrentNickname, uid: profileCurrentUid },
+    showOwner: profileDisplayOptions.owner,
+    presetName: null,
+  };
+
+  if (profileViewMode === 'compact') {
+    panel.innerHTML = compactCardShellHtml(ccMakeModel(model));
     return;
   }
 
-  const totalsHtml = profileDisplayOptions.totals
-    ? `<div class="pd-section-title">Sub-Stat Totals (all equipped discs)</div>
-       ${usefulProcsSummaryHtml(procCounts, useful)}
-       <div class="pd-agg-row">${substatTotalsRowHtml(agg, useful)}</div>`
-    : '';
-
-  panel.innerHTML = `
-    ${pdBannerHtml(slug, ccSkinSuffix(a.SkinId))}
-    <div class="pd-head">
-      <div>
-        <div class="pd-name">${slug ? escapeHtml(cardName(slug)) : `Unknown (Id ${a.Id})`}</div>
-        <div class="pd-sub">${profile ? `${escapeHtml(profile.fullName || '')} · ${escapeHtml(profile.gender || '')} · ${escapeHtml(profile.stature || '')}` : ''}</div>
-        <div class="pd-badges">
-          <span class="pd-badge">Lv.${a.Level}/${(a.PromotionLevel || 1) * 10}</span>
-          <span class="pd-badge">Mindscape M${a.TalentLevel || 0}</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="pd-section-title">Stats</div>
-    <div class="pd-cols">${statsHtml}</div>
-
-    ${skillsHtml}
-    ${wengineHtml}
-    ${setsHtml}
-    ${totalsHtml}
-
-    <div class="pd-section-title">Drive Discs</div>
-    ${discsHtml}
-  `;
+  panel.innerHTML = fullViewHtml(model);
 }
 // Sub-stats that are inherently percent-valued get a "%" suffix in the
 // aggregate row; everything else (HP/ATK/DEF flat, Anomaly Proficiency, PEN)
@@ -14656,6 +16427,13 @@ const bangbooUrl= k => `${BASE}/bangboo/${assetSlug(k)}.webp`;
 const iconUrl    = k => `${BASE}/stats/${assetSlug(k)}.webp`;
 const attributeUrl = k => `${BASE}/attributes/${assetSlug(k)}.webp`;
 const specialtyUrl = k => `${BASE}/specialties/${assetSlug(k)}.webp`;
+/* Иконки фракций может не оказаться в наборе ассетов: AGENT_FACTION лежал в
+   файле неиспользованным с пометкой «reserved for future display», и что за
+   картинки к нему прилагаются — вопрос к репозиторию ассетов, а не к коду.
+   Поэтому подпись фракции ВСЕГДА текстовая, а иконка — необязательное
+   украшение: не загрузилась, onerror убирает её, и строка читается дальше.
+   Так же устроены все остальные картинки на этой панели. */
+const factionUrl = k => `${BASE}/factions/${assetSlug(k)}.webp`;
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 function prettyName(k) {
   return k.replace(/_image$/,'').replace(/[-_]/g,' ')
@@ -16253,8 +18031,18 @@ function setBooMindscape(n){ currentTeam.booMindscape=n; renderBangboo(); }
     else if (action === 'boomindscape') setBooMindscape(val);
     else if (action === 'lib-mindscape') setLibMindscape(track.dataset.key, val);
     else if (action === 'lib-coreskill') setLibCoreSkill(track.dataset.key, val);
+    else if (action === 'lib-skill') { setLibSkill(track.dataset.key, +track.dataset.idx, val); renderAgentLibraryGrid(); }
     else if (action === 'lib-refinement') setLibRefinement(track.dataset.key, val);
     else if (action === 'preset-wrank') { presetDraft.wrank = Math.max(1, val); renderPresetDraftEditor(); }
+    else if (action === 'preset-mindscape') { presetDraft.mindscape = val; renderPresetDraftEditor(); }
+    else if (action === 'preset-coreskill') { presetDraft.coreSkillEnhancement = val; renderPresetDraftEditor(); }
+    else if (action === 'preset-skill') {
+      /* Минимум 1: нулевого уровня у кнопки не бывает, а дорожка умеет
+         доводить до нуля — data-min её ограничивает только при перетаскивании. */
+      const i = +track.dataset.idx;
+      if (presetDraft.skills && presetDraft.skills[i]) presetDraft.skills[i].level = Math.max(1, val);
+      renderPresetDraftEditor();
+    }
     else if (action === 'lib-boomindscape') setLibBangbooMindscape(track.dataset.key, val);
     else if (action === 'sub-proc') onManualSubProcsChange(+track.dataset.row, val);
   }
@@ -16347,6 +18135,14 @@ function agentRarityRank(key) {
   if (AGENT_RARITY.A.includes(key)) return 1;
   return 2;
 }
+/* Буква редкости. Ранг выше существует ради сортировки и возвращает 2 для
+   агента, которого ещё нет в таблицах (свежий патч) — буквы у такого нет, и
+   выдумывать её нельзя: «S» у неизвестного агента — это утверждение, а не
+   отсутствие данных. */
+function agentRarityLetter(key) {
+  return ['S', 'A', null][agentRarityRank(key)];
+}
+
 function sortAgentsByRarity(list) {
   return [...list].sort((a,b) => agentRarityRank(a) - agentRarityRank(b));
 }
@@ -16557,6 +18353,11 @@ function pickItem(key) {
     const s = presetDraft.wengine === key;
     presetDraft.wengine = s ? null : key;
     if (presetDraft.wengine && !presetDraft.wrank) presetDraft.wrank = 1;
+    /* Уровень движка подтягивается из W-Engine Library при КАЖДОЙ смене движка,
+       а не только при первой: уровень принадлежит конкретному движку, и
+       оставлять от предыдущего значило бы приписать новому чужую прокачку.
+       Менять его тут же в форме по-прежнему можно. */
+    presetDraft.wengineLevel = presetDraft.wengine ? (getWengineLibEntry(presetDraft.wengine).level || 60) : null;
   }
   else if(type==='preset-agent') { /* nothing to toggle — just browsing to this agent's presets, handled below */ }
   else if(type==='disc')    { const s=currentTeam.agents[agentIdx].discs[discIdx]===key; currentTeam.agents[agentIdx].discs[discIdx]=s?null:key; }
