@@ -1,0 +1,1699 @@
+{
+ "_meta": {
+  "version": 8,
+  "generatedAt": "2026-08-29",
+  "status": "draft",
+  "what": "Машиночитаемая механика синергий: кто что даёт отряду и при каких условиях. Дополняет эмпирику из zzz-meta.json — та говорит ЧТО играют, эта объясняет ПОЧЕМУ.",
+  "coverage": "Все 15 агентов топа по доле использования из zzz-meta.json.",
+  "conf": {
+   "text": "взято из текста кита дословно",
+   "derived": "вывод Claude из текста, не проверен",
+   "verified": "проверено Артёмом"
+  },
+  "fields": {
+   "role": "функция в отряде, НЕ класс: Astra по классу Support, но по функции баффер",
+   "needs": "список объектов {what, strength, note}. strength: 'required' — без этого кит не работает; 'usually' — так играют, но есть рабочие исключения; 'nice' — приятно, не более. Отсеивать состав вправе только 'required'.",
+   "gives": "чем он закрывает потребности других",
+   "provides": "механики, за которые цепляются другие агенты (например ether-veil)",
+   "buffs[].src": "core | ability | m1..m6 | awaken",
+   "buffs[].target": "squad (весь отряд, включая себя) | others | self | enemy",
+   "buffs[].basis": "flat | pct | selfInitialAtk | selfInitialHp | selfAnomalyMastery",
+   "buffs[].selfGate": "порог СВОЕГО стата, с которого бонус выходит на максимум; то же число обычно стоит в ZONE_CAPS в index.html",
+   "buffs[].cond": "формат как в AGENT_ADDITIONAL_ABILITY + новые типы: anomaly-count, same-faction, same-attribute, state, in-ether-veil",
+   "mechanics": "синергии, которые не выражаются баффом стата: окна аномалий, работа из кармана, жёсткие ротации. Для подбора важны не меньше цифр.",
+   "altRoles": "роли, которые агент может играть в разных составах. У каждой — when (когда она включается), needs (требования именно этой роли) и note. Требования из altRoles ЗАМЕЩАЮТ общий needs, а не добавляются к нему. Поле test — машинное условие: noOtherAnomalyDps / hasOtherAnomalyDps. Первая подошедшая роль и берётся; если ни одна не подошла, работает общий needs.",
+   "needsVocabulary": "Перевод требований в машинную проверку. classInTeam — в отряде есть агент одного из классов; classCount — их не меньше min; agentInTeam — есть кто-то из поимённого списка; provides — кто-то из отряда объявляет эту механику в provides. Проверяется по СОКОМАНДНИКАМ, сам агент себе требование не закрывает.",
+   "teamConstraints": "запреты уровня отряда: состав, нарушивший такой, не «хуже», а невозможен — подбор его не предлагает."
+  },
+  "gameRules": {
+   "disorder": {
+    "what": "Аномальные команды играют от Disorder — это когда на враге сходятся несколько аномалий разных элементов. После того как круг аномалии закрылся, она висит на враге и от неё можно сделать Disorder, успев закрыть другую аномалию — другого элемента.",
+    "window": 10,
+    "windowNote": "Обычное окно — 10 секунд после закрытия круга.",
+    "exception": {
+     "attribute": "Wind",
+     "window": 30,
+     "note": "Ветряная аномалия — исключение: держится 30 секунд. Сделано намеренно, чтобы напарник мог долго стоять на поле и всё равно успеть закрыть Disorder."
+    },
+    "conf": "verified"
+   },
+   "defenseIsDead": {
+    "what": "Вектор защиты в игре сейчас пустой: ни один ДД от защиты не скейлится, и способность агента раздавать DEF ничего не даёт. Разработчик собирается взяться за этот вектор, но пока бонусы к защите в подборе весят НОЛЬ.",
+    "note": "Это про сам стат и способности его раздавать, а не про агентов класса Defense — те могут быть отличными по другим причинам (Чжао раздаёт атаку и урон).",
+    "recheck": "Пересмотреть, когда разработчик доберётся до этого вектора.",
+    "conf": "verified"
+   },
+   "mindscapeChangesNeeds": {
+    "what": "Эйдосы меняют не только числа, но и то, что агенту нужно от отряда. Многие ДД на высоких эйдосах хотят проводить на поле больше времени в одиночку, чтобы реализовать расширенный кит, — и требования к напарникам у них ослабевают.",
+    "example": "Ye Shunguang на пробуждениях может играть вообще без союзников, включающих Ether Veil, хотя на M0 её доп способность именно этого и требует.",
+    "howToUse": "Поэтому needs — не жёсткий фильтр. Строгим требованием считается только strength:'required'; всё остальное двигает состав в рейтинге, но не отсеивает.",
+    "conf": "verified"
+   },
+   "roleDependsOnTeam": {
+    "what": "Один и тот же агент играет разные роли в разных составах, и требования к отряду меняются вместе с ролью. Их нельзя записывать как свойство агента вообще.",
+    "example": "Ария сольным аномальным ДД (ария + нангон юй + санна, или ликаон + санна) обязана иметь Ether Veil — то есть напарника вроде Санны. А в составе с Ремиэль её задача просто копить круги аномалии, и завеса ей особо не нужна — да и обеспечить её там всё равно некому.",
+    "howToUse": "Поэтому у агента может быть блок altRoles: несколько ролей, у каждой своё условие «когда эта роль» и свой список needs. Подбор сначала определяет, какую роль агент играет в ЭТОМ составе, и только потом проверяет требования.",
+    "conf": "verified"
+   },
+   "etherVeilProviders": {
+    "what": "Ether Veil включают пятеро, но источником для союзника годятся трое, и даже они не взаимозаменяемы: важно, умеет ли агент прокать завесу ПОВТОРНО.",
+    "providers": {
+     "sunna": {
+      "veil": "Delusion Reprise",
+      "cadence": "repeatable",
+      "role": "Support",
+      "note": "Рабочий источник для кого угодно."
+     },
+     "zhao": {
+      "veil": "Wellspring",
+      "cadence": "repeatable",
+      "role": "Defense по классу, баффер по функции",
+      "note": "Рабочий источник для кого угодно."
+     },
+     "lucia": {
+      "veil": "Wellspring",
+      "cadence": "once-until-expiry",
+      "role": "Support под шиир-форсеров",
+      "note": "Обновлять завесу НЕ умеет: только прокнуть, и следующую — лишь когда предыдущая пропадёт. Поэтому не годится тем, кому нужны повторные активации, и с Ye Shunguang не играется. Её ниша — команды на Sheer Force."
+     },
+     "yidhari": {
+      "veil": "Wellspring",
+      "cadence": "ultimate-gated",
+      "role": "Sheer-ДД",
+      "note": "Источником не годится: сама ДД, завесу прокает только накопив ульту, и два не-аномальных ДД в отряде не уживаются."
+     },
+     "ye shunguang": {
+      "veil": "Verdict",
+      "cadence": "self-only",
+      "role": "Attack-ДД",
+      "note": "Включает себе, но себе не засчитывается: её доп способность требует завесу от СОКОМАНДНИКА."
+     }
+    },
+    "closes": {
+     "ether-veil": "sunna, zhao, lucia",
+     "ether-veil-repeatable": "sunna, zhao"
+    },
+    "evidence": "Подтверждено клирами: Ye Shunguang стоит с Санной (91%), Чжао (90%), Диалин (67%) и Астрой (6%) — с Люсией НИ РАЗУ. Люсия же стоит с Иксуань (32%), Диалин (24%), Джу Фуфу (11%) и Старлайт Билли — то есть с шиир-форсерами.",
+    "howToUse": "При новом агенте проверять три вещи: включает ли завесу, годится ли источником по роли, и умеет ли прокать повторно.",
+    "conf": "verified"
+   },
+   "lowShareIsSubstitution": {
+    "what": "Малодольные варианты ходового состава — это обычно замена персонажа, которого у игрока нет, а не отдельная рабочая идея.",
+    "example": "aria + nangong yu + sunna играют 13.3%, а тот же состав с Yuzuha вместо Sunna — 2.9%. Завесу Yuzuha не включает, то есть у Арии там не работает доп способность. Это не опровержение требования, а состав для тех, у кого нет Санны.",
+    "howToUse": "Проверять модель по клирам стоит на составах от 5% и выше. Ниже — шум от доступности персонажей, а не сигнал о механике.",
+    "conf": "derived-from-data"
+   },
+   "dpsStacking": {
+    "what": "Два аномальных ДД спокойно уживаются в одном отряде, а два любых других ДД — нет.",
+    "why": "Аномальщики кормят друг друга: чужая аномалия — это Disorder, доп урон и ресурс, и работать они умеют из кармана. Остальные ДД дерутся за время на поле, а поле одно.",
+    "howToUse": "В подборе: больше одного НЕ-аномального ДД в тройке — запрет, а не штраф. Два и три аномальных ДД — законный состав (ремиэль + аномальщик + велина именно так и устроен).",
+    "conf": "verified"
+   }
+  },
+  "openQuestions": [],
+  "needsVocabulary": {
+   "anomaly": {
+    "type": "classInTeam",
+    "value": [
+     "Anomaly"
+    ]
+   },
+   "anomaly-x2": {
+    "type": "classCount",
+    "value": "Anomaly",
+    "min": 2
+   },
+   "ether-veil": {
+    "type": "agentInTeam",
+    "value": [
+     "sunna",
+     "zhao",
+     "lucia"
+    ]
+   },
+   "ether-veil-repeatable": {
+    "type": "agentInTeam",
+    "value": [
+     "sunna",
+     "zhao"
+    ]
+   },
+   "long-anomaly-window": {
+    "type": "provides",
+    "value": "wind-anomaly-30s"
+   },
+   "ultimate-source": {
+    "type": "provides",
+    "value": "chain-to-ultimate"
+   },
+   "disorder-partner": {
+    "type": "classInTeam",
+    "value": [
+     "Anomaly"
+    ]
+   },
+   "attack-or-rupture": {
+    "type": "classInTeam",
+    "value": [
+     "Attack",
+     "Rupture"
+    ]
+   },
+   "attack-or-anomaly": {
+    "type": "classInTeam",
+    "value": [
+     "Attack",
+     "Anomaly"
+    ]
+   },
+   "rupture-or-stun": {
+    "type": "classInTeam",
+    "value": [
+     "Rupture",
+     "Stun"
+    ]
+   },
+   "support-or-anomaly": {
+    "type": "classInTeam",
+    "value": [
+     "Support",
+     "Anomaly"
+    ]
+   },
+   "stun-support-or-defense": {
+    "type": "classInTeam",
+    "value": [
+     "Stun",
+     "Support",
+     "Defense"
+    ]
+   },
+   "stun-support-or-anomaly": {
+    "type": "classInTeam",
+    "value": [
+     "Stun",
+     "Support",
+     "Anomaly"
+    ]
+   },
+   "attack-anomaly-or-support": {
+    "type": "classInTeam",
+    "value": [
+     "Attack",
+     "Anomaly",
+     "Support"
+    ]
+   },
+   "attack-anomaly-or-rupture": {
+    "type": "classInTeam",
+    "value": [
+     "Attack",
+     "Anomaly",
+     "Rupture"
+    ]
+   }
+  },
+  "teamConstraints": [
+   {
+    "id": "one-non-anomaly-dps",
+    "type": "maxCount",
+    "max": 1,
+    "what": "агенты с ролью dps>=3, у которых класс НЕ Anomaly",
+    "why": "Два аномальных ДД кормят друг друга через Disorder и работают из кармана, а остальные ДД дерутся за время на поле, а поле одно. См. gameRules.dpsStacking.",
+    "conf": "verified"
+   }
+  ]
+ },
+ "ye shunguang": {
+  "role": {
+   "dps": 3,
+   "buff": 0,
+   "stun": 1
+  },
+  "needs": [
+   {
+    "what": "ether-veil-repeatable",
+    "strength": "usually",
+    "note": "Ей нужны ПОВТОРНЫЕ активации завесы — каждая даёт 3 очка Qingming Sword Force. Поэтому годятся Санна и Чжао, а Люсия нет: она прокает завесу один раз и ждёт, пока та пропадёт. На практике с ней ставят Чжао плюс станера, либо сильного саппорта вроде Астры, либо Диалин, которая умеет выдавать ульту. Встречаются даже пачки Чжао + Николь. На высоких эйдосах может обходиться и без поставщика завесы вовсе."
+   }
+  ],
+  "gives": [
+   "stun-bypass"
+  ],
+  "provides": [
+   "ether-veil"
+  ],
+  "note": "Станер ей не обязателен: Veil Vulnerability подменяет собой множитель стан-урона, потолок 110%. Но и не запрещён — составы со станером существуют и зависят от эйдосов и того, как человеку удобнее играть. Требовать станера рядом с ней подбор не должен, а отсеивать за него — тем более. Свою завесу Verdict она включает сама, но себе это не засчитывается: доп способность требует, чтобы Ether Veil включил именно сокомандник.",
+  "buffs": [
+   {
+    "src": "core",
+    "target": "self",
+    "stat": "critRate",
+    "value": 30,
+    "basis": "pct",
+    "cond": {
+     "type": "state",
+     "value": "Unity"
+    },
+    "conf": "text"
+   },
+   {
+    "src": "core",
+    "target": "self",
+    "stat": "dmg",
+    "value": 25,
+    "basis": "pct",
+    "cond": {
+     "type": "state",
+     "value": "Unity"
+    },
+    "conf": "text"
+   },
+   {
+    "src": "core",
+    "target": "enemy",
+    "stat": "stunMultReplace",
+    "value": 110,
+    "basis": "pct",
+    "cond": {
+     "type": "state",
+     "value": "Ether Veil: Verdict"
+    },
+    "conf": "text",
+    "note": "Не бафф отряду, а подмена механики: множитель стан-урона врага игнорируется и заменяется на Veil Vulnerability, потолок 110%."
+   }
+  ],
+  "condAbility": {
+   "any": [
+    {
+     "type": "class",
+     "value": "Support"
+    },
+    {
+     "type": "class",
+     "value": "Defense"
+    }
+   ],
+   "extra": "и этот союзник должен включать Ether Veil"
+  }
+ },
+ "remielle": {
+  "role": {
+   "dps": 2,
+   "buff": 3,
+   "anomaly": 3
+  },
+  "needs": [
+   {
+    "what": "anomaly-x2",
+    "strength": "required",
+    "note": "6/12/40% от числа аномальщиков — ради 40% нужны двое"
+   },
+   {
+    "what": "long-anomaly-window",
+    "strength": "usually",
+    "note": "Без Велины Ремиэль играется ВСЕГДА хуже, но это не жёсткий запрет: её стаки копятся от взрывов аномалии, а Disorder — только приятный бонус, один халявный стак, если успеть его закрыть. Поэтому составы без длинного окна существуют, просто слабее."
+   }
+  ],
+  "gives": [
+   "atk",
+   "anomaly-buildup",
+   "anomaly-dmg",
+   "def-ignore"
+  ],
+  "provides": [
+   "prismatic"
+  ],
+  "buffs": [
+   {
+    "src": "ability",
+    "target": "squad",
+    "stat": "atk",
+    "value": [
+     6,
+     12,
+     40
+    ],
+    "basis": "selfInitialAtk",
+    "cap": 1600,
+    "selfGate": {
+     "fam": "121",
+     "at": 4000
+    },
+    "cond": {
+     "type": "anomaly-count",
+     "value": [
+      1,
+      2,
+      3
+     ]
+    },
+    "conf": "text",
+    "note": "6/12/40% при 1/2/3 аномальщиках в отряде. Порог 4000 ATK стоит в ZONE_CAPS."
+   },
+   {
+    "src": "ability",
+    "target": "squad",
+    "stat": "anomalyBuildup",
+    "value": 15,
+    "basis": "pct",
+    "cond": {
+     "type": "enemy-state",
+     "value": "Prismatic"
+    },
+    "dur": 8,
+    "conf": "text",
+    "note": "По врагам с Prismatic; держится ещё 8с после снятия эффекта."
+   },
+   {
+    "src": "m1",
+    "target": "others",
+    "stat": "anomalyDmg",
+    "value": 10,
+    "basis": "pct",
+    "m": 1,
+    "cond": {
+     "type": "state",
+     "value": "Phase Flow"
+    },
+    "conf": "verified",
+    "note": "Состояние называется Phase Flow — уточнил Артём."
+   },
+   {
+    "src": "m2",
+    "target": "others",
+    "stat": "defIgnore",
+    "value": 15,
+    "basis": "pct",
+    "m": 2,
+    "cond": {
+     "type": "and",
+     "value": [
+      {
+       "type": "class",
+       "value": "Anomaly"
+      },
+      {
+       "type": "enemy-state",
+       "value": "Prismatic"
+      }
+     ]
+    },
+    "conf": "text",
+    "note": "Только аномальщикам отряда и только по врагам с Prismatic. Её собственное состояние здесь тоже Phase Flow."
+   }
+  ],
+  "condAbility": {
+   "any": [
+    {
+     "type": "class",
+     "value": "Anomaly"
+    },
+    {
+     "type": "same-faction"
+    }
+   ]
+  },
+  "mechanics": [
+   {
+    "id": "three-stacks",
+    "what": "Сидит «в кармане» и копит 3 стака, прежде чем выйти на поле. Вся её механика крутится вокруг трёх стаков.",
+    "why": "Стаки копятся от ВЗРЫВОВ аномалии. Disorder — не основной источник, а бонус: один халявный стак, если успеть его закрыть.",
+    "conf": "verified"
+   },
+   {
+    "id": "fixed-rotation",
+    "what": "Ротацию менять нельзя: последовательность действий предопределена её китом.",
+    "why": "Отсюда и жёсткое требование к напарнику по длине окна — подстроиться под него она не может.",
+    "conf": "verified"
+   },
+   {
+    "id": "long-field-time",
+    "what": "Находится на поле дольше 10 секунд подряд.",
+    "why": "Обычная аномалия за это время истечёт, и союзники не успеют закрыть Disorder — то есть Ремиэль теряет бонусный стак. Не смертельно, но заметно: с Велиной она всегда сильнее.",
+    "conf": "verified"
+   }
+  ]
+ },
+ "velina": {
+  "role": {
+   "dps": 3,
+   "anomaly": 3,
+   "buff": 2
+  },
+  "needs": [],
+  "gives": [
+   "long-anomaly-window",
+   "off-field-anomaly",
+   "anomaly-res-shred"
+  ],
+  "provides": [
+   "wind-anomaly-30s"
+  ],
+  "note": "Главное, что она даёт отряду, — НЕ статы, а окно. Ветряная аномалия висит на враге 30 секунд вместо обычных десяти, и именно это позволяет напарнику долго стоять на поле и всё равно закрыть Disorder. Плюс копит аномалию из кармана.",
+  "buffs": [
+   {
+    "src": "core",
+    "target": "self",
+    "stat": "dmg",
+    "value": 35,
+    "basis": "pct",
+    "selfGate": {
+     "fam": "305",
+     "at": 2.88
+    },
+    "conf": "text",
+    "note": "0.21% урона за каждые 0.01 реген энергии выше 1.2, потолок 35%."
+   },
+   {
+    "src": "core",
+    "target": "self",
+    "stat": "anomalyMastery",
+    "value": 84,
+    "basis": "flat",
+    "selfGate": {
+     "fam": "305",
+     "at": 2.88
+    },
+    "conf": "text",
+    "note": "0.5 АМ за 0.01 регена выше 1.2, потолок 84. Оба потолка на 2.88 — есть в ZONE_REF_CAPS."
+   },
+   {
+    "src": "core",
+    "target": "enemy",
+    "stat": "anomalyBuildupRes",
+    "value": -7,
+    "basis": "pct",
+    "dur": 35,
+    "conf": "text",
+    "note": "Sweeping Cyclone режет сопротивление накоплению Wind-аномалии; при Chromatic Tint — ещё и соответствующего атрибута. Помогает союзнику того же атрибута."
+   }
+  ],
+  "condAbility": {
+   "any": [
+    {
+     "type": "class",
+     "value": "Anomaly"
+    },
+    {
+     "type": "same-attribute"
+    }
+   ]
+  },
+  "mechanics": [
+   {
+    "id": "wind-window-30s",
+    "what": "Её ветряная аномалия держится на враге 30 секунд после закрытия круга вместо обычных десяти.",
+    "why": "Это исключение в игре, и сделано оно под связку с Ремиэль: та стоит на поле дольше 10 секунд, и с обычной аномалией Disorder бы не закрылся.",
+    "conf": "verified"
+   },
+   {
+    "id": "off-field-buildup",
+    "what": "Накапливает аномалию, не находясь на поле.",
+    "why": "Не отнимает время у главного ДД.",
+    "conf": "verified"
+   }
+  ]
+ },
+ "sunna": {
+  "role": {
+   "dps": 0,
+   "buff": 3,
+   "heal": 0,
+   "support": 3
+  },
+  "needs": [
+   {
+    "what": "attack-or-anomaly",
+    "strength": "usually",
+    "note": "Cat's Gaze срабатывает только от атак Attack или Anomaly союзника — без них теряется заметная часть её вклада."
+   }
+  ],
+  "gives": [
+   "atk",
+   "stun-mult",
+   "cats-gaze",
+   "ether-veil"
+  ],
+  "provides": [
+   "ether-veil"
+  ],
+  "note": "Один из двух поставщиков Ether Veil в топ-составе с Ye Shunguang — вот механическая причина, почему эта тройка первая по частоте.",
+  "buffs": [
+   {
+    "src": "core",
+    "target": "squad",
+    "stat": "atk",
+    "value": 30,
+    "basis": "selfInitialAtk",
+    "cap": 1050,
+    "selfGate": {
+     "fam": "121",
+     "at": 3500
+    },
+    "cond": {
+     "type": "state",
+     "value": "Angelic Chord-ination"
+    },
+    "conf": "text",
+    "note": "Порог 3500 ATK стоит в ZONE_CAPS."
+   },
+   {
+    "src": "core",
+    "target": "others",
+    "stat": "catsGaze",
+    "value": [
+     300,
+     480
+    ],
+    "basis": "pct",
+    "conf": "text",
+    "note": "Cat's Gaze срабатывает от атак Attack (300% ATK) или Anomaly (480% ATK) союзника. Урон засчитывается ЕМУ, гарантированный крит, крит-урон +150%. Ради этого в отряде и нужен атакер или аномальщик."
+   },
+   {
+    "src": "ability",
+    "target": "enemy",
+    "stat": "stunMult",
+    "value": 30,
+    "basis": "pct",
+    "dur": 40,
+    "cond": {
+     "type": "in-ether-veil",
+     "value": "Delusion Reprise"
+    },
+    "conf": "text"
+   },
+   {
+    "src": "m2",
+    "target": "squad",
+    "stat": "atkPct",
+    "value": 10,
+    "basis": "pct",
+    "m": 2,
+    "cond": {
+     "type": "in-ether-veil"
+    },
+    "conf": "text"
+   },
+   {
+    "src": "m4",
+    "target": "squad",
+    "stat": "dmg",
+    "value": 18,
+    "basis": "pct",
+    "m": 4,
+    "dur": 60,
+    "conf": "text"
+   }
+  ],
+  "condAbility": {
+   "any": [
+    {
+     "type": "class",
+     "value": "Attack"
+    },
+    {
+     "type": "same-faction"
+    }
+   ]
+  }
+ },
+ "dialyn": {
+  "role": {
+   "dps": 1,
+   "buff": 3,
+   "stun": 3
+  },
+  "needs": [
+   {
+    "what": "attack-or-rupture",
+    "strength": "required",
+    "note": "Доп способность вообще не включится, а с ней и Overwhelmingly Positive — её главный вклад."
+   }
+  ],
+  "gives": [
+   "dmg",
+   "stun-mult",
+   "ultimate-upgrade",
+   "res-ignore"
+  ],
+  "provides": [
+   "chain-to-ultimate"
+  ],
+  "note": "Станер, который вдобавок сильнейший баффер урона в игре через Overwhelmingly Positive. И апгрейд Chain Attack союзника до Ultimate — это не бафф статов, а лишний ульт за бой.",
+  "buffs": [
+   {
+    "src": "core",
+    "target": "self",
+    "stat": "impact",
+    "value": 100,
+    "basis": "flat",
+    "selfGate": {
+     "fam": "201",
+     "at": 100
+    },
+    "conf": "text",
+    "note": "+2 Impact за каждый 1% КШ выше 50%, потолок +100. Порог есть в ZONE_REF_CAPS."
+   },
+   {
+    "src": "core",
+    "target": "enemy",
+    "stat": "stunMult",
+    "value": 30,
+    "basis": "pct",
+    "conf": "text",
+    "note": "Malicious Complaint: длительность стана +2с и множитель стан-урона +30%."
+   },
+   {
+    "src": "core",
+    "target": "others",
+    "stat": "ultimateUpgrade",
+    "value": 1,
+    "basis": "flat",
+    "conf": "text",
+    "note": "При 90+ Positive Reviews следующий вошедший союзник получает Chain Attack, повышенный до Ultimate. Стоит 60 очков. Для Иксуань это прямая подпитка: её доп способность кормится ульты союзников, так что Диалин буквально производит ей ресурс."
+   },
+   {
+    "src": "ability",
+    "target": "squad",
+    "stat": "dmg",
+    "value": 40,
+    "basis": "pct",
+    "dur": 15,
+    "conf": "text",
+    "note": "Overwhelmingly Positive на EX или ульте. Продлевается до 35с при повторных EX."
+   },
+   {
+    "src": "ability",
+    "target": "self",
+    "stat": "critDmg",
+    "value": 50,
+    "basis": "pct",
+    "conf": "text"
+   },
+   {
+    "src": "m1",
+    "target": "squad",
+    "stat": "resIgnore",
+    "value": 15,
+    "basis": "pct",
+    "m": 1,
+    "cond": {
+     "type": "state",
+     "value": "Overwhelmingly Positive"
+    },
+    "conf": "verified",
+    "note": "Полный текст уточнил Артём: пока висит Overwhelmingly Positive, персонажи игнорируют 15% сопротивления врага ко ВСЕМ атрибутам. А раз Overwhelmingly Positive Диалин вешает на весь отряд, игнор достаётся всем."
+   },
+   {
+    "src": "m2",
+    "target": "squad",
+    "stat": "dmg",
+    "value": 15,
+    "basis": "pct",
+    "m": 2,
+    "cond": {
+     "type": "enemy-state",
+     "value": "Malicious Complaint"
+    },
+    "conf": "text"
+   }
+  ],
+  "condAbility": {
+   "any": [
+    {
+     "type": "class",
+     "value": "Attack"
+    },
+    {
+     "type": "class",
+     "value": "Rupture"
+    }
+   ]
+  }
+ },
+ "yuzuha": {
+  "role": {
+   "dps": 0,
+   "buff": 3,
+   "heal": 2,
+   "support": 3
+  },
+  "needs": [
+   {
+    "what": "anomaly",
+    "strength": "usually",
+    "note": "Доп способность требует аномальщика или сокланщика; без неё остаётся только Tanuki Wish."
+   }
+  ],
+  "gives": [
+   "atk",
+   "dmg",
+   "anomaly-buildup",
+   "anomaly-dmg",
+   "disorder-dmg",
+   "heal"
+  ],
+  "provides": [
+   "tanuki-wish"
+  ],
+  "buffs": [
+   {
+    "src": "core",
+    "target": "squad",
+    "stat": "atk",
+    "value": 40,
+    "basis": "selfInitialAtk",
+    "cap": 1200,
+    "dur": 40,
+    "selfGate": {
+     "fam": "121",
+     "at": 3000
+    },
+    "conf": "text",
+    "note": "Tanuki Wish с EX или ульта. Порог 3000 ATK стоит в ZONE_CAPS."
+   },
+   {
+    "src": "core",
+    "target": "squad",
+    "stat": "dmg",
+    "value": 15,
+    "basis": "pct",
+    "dur": 40,
+    "conf": "text",
+    "note": "Та же Tanuki Wish."
+   },
+   {
+    "src": "ability",
+    "target": "squad",
+    "stat": "anomalyBuildup",
+    "value": 20,
+    "basis": "selfAnomalyMastery",
+    "selfGate": {
+     "fam": "314",
+     "at": 200
+    },
+    "conf": "text",
+    "note": "0.2% за каждое очко АМ выше 100, потолок 20%, полный эффект на 200 АМ. В ZONE_CAPS стоит практический порог 171 — столько реально собирается."
+   },
+   {
+    "src": "ability",
+    "target": "squad",
+    "stat": "anomalyDmg",
+    "value": 20,
+    "basis": "selfAnomalyMastery",
+    "selfGate": {
+     "fam": "314",
+     "at": 200
+    },
+    "conf": "text",
+    "note": "То же и для Disorder DMG."
+   },
+   {
+    "src": "m2",
+    "target": "squad",
+    "stat": "dmg",
+    "value": 15,
+    "basis": "pct",
+    "m": 2,
+    "dur": 40,
+    "conf": "text"
+   },
+   {
+    "src": "m2",
+    "target": "squad",
+    "stat": "anomalyBuildup",
+    "value": 15,
+    "basis": "pct",
+    "m": 2,
+    "dur": 40,
+    "conf": "text"
+   },
+   {
+    "src": "m6",
+    "target": "squad",
+    "stat": "disorderDmg",
+    "value": 105,
+    "basis": "pct",
+    "m": 6,
+    "dur": 40,
+    "stacks": 3,
+    "conf": "text"
+   }
+  ],
+  "condAbility": {
+   "any": [
+    {
+     "type": "class",
+     "value": "Anomaly"
+    },
+    {
+     "type": "same-faction"
+    }
+   ]
+  }
+ },
+ "zhao": {
+  "role": {
+   "dps": 0,
+   "buff": 3,
+   "heal": 2
+  },
+  "needs": [
+   {
+    "what": "attack-anomaly-or-support",
+    "strength": "required",
+    "note": "Без этого не работает доп способность — то есть весь его бонус к урону отряда."
+   }
+  ],
+  "gives": [
+   "atk",
+   "dmg",
+   "res-ignore",
+   "ether-veil"
+  ],
+  "provides": [
+   "ether-veil"
+  ],
+  "note": "Класс Defense, но по функции чистый баффер: раздаёт атаку, урон и игнор сопротивления. Его +5% максимального HP отряду — не защита в смысле выживания, а просто мелкий стат. Второй поставщик Ether Veil в мете.",
+  "buffs": [
+   {
+    "src": "core",
+    "target": "self",
+    "stat": "critRate",
+    "value": 1.4,
+    "basis": "selfInitialHp",
+    "conf": "text",
+    "note": "1.4% КШ за каждые 1000 начального макс. HP."
+   },
+   {
+    "src": "core",
+    "target": "squad",
+    "stat": "atk",
+    "value": 1000,
+    "basis": "flat",
+    "dur": 50,
+    "conf": "text",
+    "note": "Плоская тысяча атаки всему отряду на активации Ether Veil: Wellspring."
+   },
+   {
+    "src": "core",
+    "target": "squad",
+    "stat": "hpPct",
+    "value": 5,
+    "basis": "pct",
+    "dur": 40,
+    "cond": {
+     "type": "in-ether-veil",
+     "value": "Wellspring"
+    },
+    "conf": "text"
+   },
+   {
+    "src": "ability",
+    "target": "squad",
+    "stat": "dmg",
+    "value": 40,
+    "basis": "pct",
+    "selfGate": {
+     "fam": "111",
+     "at": 27000
+    },
+    "cond": {
+     "type": "in-ether-veil"
+    },
+    "conf": "text",
+    "note": "Базовые 10%, плюс 1% за каждые 400 HP выше 15000, потолок 40% на 27000 HP. Порог стоит в ZONE_CAPS."
+   },
+   {
+    "src": "m1",
+    "target": "squad",
+    "stat": "resIgnore",
+    "value": 15,
+    "basis": "pct",
+    "m": 1,
+    "dur": 50,
+    "conf": "text",
+    "note": "Срабатывает, когда Zhao уходит с поля."
+   },
+   {
+    "src": "m2",
+    "target": "others",
+    "stat": "atkPct",
+    "value": 15,
+    "basis": "pct",
+    "m": 2,
+    "dur": 50,
+    "conf": "text",
+    "note": "При лечении: себе +20%, остальным +15%."
+   }
+  ],
+  "condAbility": {
+   "any": [
+    {
+     "type": "class",
+     "value": "Attack"
+    },
+    {
+     "type": "class",
+     "value": "Anomaly"
+    },
+    {
+     "type": "class",
+     "value": "Support"
+    }
+   ]
+  }
+ },
+ "miyabi": {
+  "role": {
+   "dps": 3,
+   "anomaly": 3,
+   "buff": 1
+  },
+  "note": "Её Frost копится в собственную шкалу и умеет делать Disorder даже с ледяной аномалией — остальным элементам это запрещено. Ради этого её и ставят в лёд.",
+  "needs": [
+   {
+    "what": "disorder-partner",
+    "strength": "usually",
+    "note": "Доп способность окупается, когда КТО-ТО из отряда прокает Disorder: за это она получает 2 Fallen Frost и игнор 30% ледяного сопротивления."
+   },
+   {
+    "what": "support-or-anomaly",
+    "strength": "required",
+    "note": "Условие самой доп способности: Support, Anomaly или сокланщик."
+   }
+  ],
+  "gives": [
+   "anomaly-buildup"
+  ],
+  "provides": [
+   "frostburn"
+  ],
+  "buffs": [
+   {
+    "src": "core",
+    "target": "self",
+    "stat": "anomalyBuildup",
+    "value": 80,
+    "basis": "pct",
+    "selfGate": {
+     "fam": "201",
+     "at": 80
+    },
+    "conf": "text",
+    "note": "Скорость набора Frost растёт на 100% от её КШ, потолок +80%. Порог в ZONE_REF_CAPS."
+   },
+   {
+    "src": "core",
+    "target": "squad",
+    "stat": "anomalyBuildup",
+    "value": 20,
+    "basis": "pct",
+    "cond": {
+     "type": "enemy-state",
+     "value": "Frostburn"
+    },
+    "conf": "text",
+    "note": "«All units» — то есть весь отряд, по врагам в состоянии Frostburn."
+   },
+   {
+    "src": "ability",
+    "target": "self",
+    "stat": "resIgnore",
+    "value": 30,
+    "basis": "pct",
+    "cond": {
+     "type": "squad-triggers",
+     "value": "Disorder"
+    },
+    "conf": "text",
+    "note": "Игнор ледяного сопротивления после того, как любой союзник прокнул Disorder."
+   },
+   {
+    "src": "m1",
+    "target": "squad",
+    "stat": "anomalyBuildup",
+    "value": 20,
+    "basis": "pct",
+    "m": 1,
+    "dur": 10,
+    "conf": "text"
+   }
+  ],
+  "mechanics": [
+   {
+    "id": "ice-disorder-with-ice",
+    "what": "Её Frost имеет отдельную шкалу накопления и делает Disorder даже с другой ЛЕДЯНОЙ аномалией, чего обычные аномалии не умеют.",
+    "why": "Поэтому рядом с ней работает второй ледяной аномальщик — обычно так нельзя.",
+    "conf": "text"
+   }
+  ],
+  "condAbility": {
+   "any": [
+    {
+     "type": "class",
+     "value": "Support"
+    },
+    {
+     "type": "class",
+     "value": "Anomaly"
+    },
+    {
+     "type": "same-faction"
+    }
+   ]
+  }
+ },
+ "nangong yu": {
+  "role": {
+   "stun": 3,
+   "buff": 3,
+   "anomaly": 2
+  },
+  "note": "Станер, который вдобавок раздаёт отряду +25% урона и превращает чужие аномалии в дополнительный урон через Vibrato. Работает только по застаненному врагу — то есть стан обязан быть, и ставит его он сам.",
+  "needs": [
+   {
+    "what": "anomaly",
+    "strength": "required",
+    "note": "И доп способность требует аномальщика, и весь Vibrato кормится чужими аномалиями."
+   }
+  ],
+  "gives": [
+   "dmg",
+   "anomaly-buildup",
+   "stun",
+   "disorder-enabler"
+  ],
+  "provides": [
+   "vibrato",
+   "polarity-disorder"
+  ],
+  "buffs": [
+   {
+    "src": "core",
+    "target": "self",
+    "stat": "anomalyProficiency",
+    "value": 120,
+    "basis": "flat",
+    "conf": "text"
+   },
+   {
+    "src": "core",
+    "target": "self",
+    "stat": "impact",
+    "value": 1,
+    "basis": "selfAnomalyMastery",
+    "selfGate": {
+     "fam": "314",
+     "at": 110
+    },
+    "conf": "text",
+    "note": "+1 Impact за каждое очко АМ выше 110. Порог в ZONE_REF_CAPS."
+   },
+   {
+    "src": "core",
+    "target": "squad",
+    "stat": "dmg",
+    "value": 25,
+    "basis": "pct",
+    "dur": 30,
+    "conf": "text",
+    "note": "С его basic или EX. Главный его вклад в урон отряда."
+   },
+   {
+    "src": "ability",
+    "target": "squad",
+    "stat": "anomalyBuildup",
+    "value": 30,
+    "basis": "pct",
+    "cond": {
+     "type": "enemy-state",
+     "value": "Stunned"
+    },
+    "conf": "text",
+    "note": "Ещё +30% сверху, если это Chain Attack."
+   },
+   {
+    "src": "ability",
+    "target": "squad",
+    "stat": "abloomProc",
+    "value": 1,
+    "basis": "flat",
+    "conf": "text",
+    "note": "Polarity Disorder: срабатывает по всем подходящим врагам разом."
+   }
+  ],
+  "mechanics": [
+   {
+    "id": "vibrato-converts-anomalies",
+    "what": "По застаненному врагу каждая аномалия, Abloom или Disorder от ЛЮБОГО персонажа копит Vibrato, до 4 стаков; при сбросе выдаёт дополнительный Abloom.",
+    "why": "То есть он монетизирует чужую аномалию — чем больше аномальщиков и чем дольше стан, тем больше его вклад.",
+    "conf": "text"
+   }
+  ],
+  "condAbility": {
+   "any": [
+    {
+     "type": "class",
+     "value": "Anomaly"
+    },
+    {
+     "type": "same-faction"
+    }
+   ]
+  }
+ },
+ "jane-doe": {
+  "role": {
+   "dps": 3,
+   "anomaly": 3
+  },
+  "note": "Её Assault — общий ресурс отряда: прокнуть его может любой, и крит по нему считается от ЕЁ мастерства аномалий. Поэтому она хороша даже когда не на поле.",
+  "needs": [
+   {
+    "what": "anomaly",
+    "strength": "required",
+    "note": "Условие доп способности: аномальщик или сокланщик."
+   }
+  ],
+  "gives": [
+   "assault-crit",
+   "def-ignore",
+   "anomaly-dmg"
+  ],
+  "provides": [
+   "gnawed",
+   "assault"
+  ],
+  "buffs": [
+   {
+    "src": "core",
+    "target": "squad",
+    "stat": "assaultCritRate",
+    "value": 40,
+    "basis": "pct",
+    "selfGate": {
+     "fam": "312",
+     "at": 420
+    },
+    "conf": "text",
+    "note": "Базовые 40% КШ и 50% крит-урона у Assault по врагу с Gnawed, плюс 0.16% КШ за каждое очко её мастерства аномалий. Пороги 375 и 420 стоят в ZONE_CAPS."
+   },
+   {
+    "src": "core",
+    "target": "squad",
+    "stat": "flinchDuration",
+    "value": 5,
+    "basis": "flat",
+    "cond": {
+     "type": "enemy-state",
+     "value": "Gnawed"
+    },
+    "conf": "text",
+    "note": "Если Assault прокнул ЛЮБОЙ союзник."
+   },
+   {
+    "src": "m2",
+    "target": "squad",
+    "stat": "defIgnore",
+    "value": 15,
+    "basis": "pct",
+    "m": 2,
+    "cond": {
+     "type": "enemy-state",
+     "value": "Gnawed"
+    },
+    "conf": "text"
+   },
+   {
+    "src": "m4",
+    "target": "squad",
+    "stat": "anomalyDmg",
+    "value": 18,
+    "basis": "pct",
+    "m": 4,
+    "dur": 15,
+    "cond": {
+     "type": "squad-triggers",
+     "value": "Assault или Disorder"
+    },
+    "conf": "text"
+   }
+  ],
+  "condAbility": {
+   "any": [
+    {
+     "type": "class",
+     "value": "Anomaly"
+    },
+    {
+     "type": "same-faction"
+    }
+   ]
+  }
+ },
+ "lucia": {
+  "role": {
+   "buff": 3,
+   "support": 3
+  },
+  "note": "Саппорт под шиир-форсеров — команды, где урон идёт через Sheer Force: Иксуань, Джу Фуфу, Старлайт Билли. Завесу обновлять НЕ умеет: прокает одну и ждёт, пока та пропадёт. Из-за этого не годится тем, кому нужны повторные активации, и с Ye Shunguang не играется вовсе.",
+  "needs": [
+   {
+    "what": "rupture-or-stun",
+    "strength": "required",
+    "note": "Без этого не включится доп способность с её +30% крит-урона."
+   }
+  ],
+  "gives": [
+   "dmg",
+   "crit-dmg",
+   "hp",
+   "ether-veil",
+   "sheer-support"
+  ],
+  "provides": [
+   "ether-veil-once",
+   "dreamers-nursery-rhyme"
+  ],
+  "buffs": [
+   {
+    "src": "core",
+    "target": "squad",
+    "stat": "hpPct",
+    "value": 5,
+    "basis": "pct",
+    "dur": 40,
+    "cond": {
+     "type": "in-ether-veil",
+     "value": "Wellspring"
+    },
+    "conf": "text",
+    "note": "Повторы продлевают, потолок 300с."
+   },
+   {
+    "src": "core",
+    "target": "squad",
+    "stat": "dmg",
+    "value": 20,
+    "basis": "pct",
+    "dur": 12,
+    "conf": "text",
+    "note": "Dreamer's Nursery Rhyme — с апгрейда навыка или Aftershock."
+   },
+   {
+    "src": "ability",
+    "target": "enemy",
+    "stat": "critDmg",
+    "value": 30,
+    "basis": "pct",
+    "conf": "text",
+    "note": "При наложении Darkbreaker."
+   },
+   {
+    "src": "m1",
+    "target": "squad",
+    "stat": "dmg",
+    "value": 20,
+    "basis": "pct",
+    "m": 1,
+    "dur": 12,
+    "conf": "text",
+    "note": "Перевешивает Dreamer's Nursery Rhyme заново, тратя стак Echo."
+   }
+  ],
+  "condAbility": {
+   "any": [
+    {
+     "type": "class",
+     "value": "Rupture"
+    },
+    {
+     "type": "class",
+     "value": "Stun"
+    }
+   ]
+  },
+  "mechanics": [
+   {
+    "id": "veil-no-refresh",
+    "what": "Ether Veil: Wellspring она может только прокнуть заново после того, как предыдущая пропала. Обновлять активную завесу не умеет.",
+    "why": "Отсюда её ниша: годится тем, кому важна длинная непрерывная завеса (шиир-форсеры), и не годится тем, кто кормится самим фактом активации, как Ye Shunguang.",
+    "conf": "verified"
+   }
+  ]
+ },
+ "astra-yao": {
+  "role": {
+   "buff": 3,
+   "support": 3,
+   "heal": 1
+  },
+  "note": "Класс Support, функция — чистый баффер атаки. Бонус приходит не сам, а на СМЕНЕ персонажа: через Quick Assist, Chain Attack или ассист. Составу, который редко переключается, она даёт меньше.",
+  "needs": [
+   {
+    "what": "attack-anomaly-or-rupture",
+    "strength": "required",
+    "note": "Условие доп способности."
+   }
+  ],
+  "gives": [
+   "atk"
+  ],
+  "provides": [
+   "idyllic-cadenza"
+  ],
+  "buffs": [
+   {
+    "src": "core",
+    "target": "squad",
+    "stat": "atk",
+    "value": 35,
+    "basis": "selfInitialAtk",
+    "cap": 1200,
+    "dur": 20,
+    "selfGate": {
+     "fam": "121",
+     "at": 3429
+    },
+    "conf": "text",
+    "note": "Себе и входящему персонажу. Держится 20с, повторами до 30с. Порог 3429 в ZONE_CAPS считается формулой (zoneAstraAtk)."
+   },
+   {
+    "src": "m1",
+    "target": "squad",
+    "stat": "songOfProtection",
+    "value": 1,
+    "basis": "flat",
+    "m": 1,
+    "dur": 60,
+    "conf": "text"
+   },
+   {
+    "src": "m4",
+    "target": "squad",
+    "stat": "bySpecialty",
+    "value": 50,
+    "basis": "pct",
+    "m": 4,
+    "conf": "text",
+    "note": "На входе через Quick Assist: атакеру — доп урон 300% от её атаки, аномальщику +50% накопления, станеру +50% дейза. Не чаще раза в 3с на весь отряд."
+   }
+  ],
+  "mechanics": [
+   {
+    "id": "buff-on-swap",
+    "what": "Бонус атаки выдаётся в момент, когда союзник ВХОДИТ на поле через Quick Assist, Chain Attack, Defensive или Evasive Assist.",
+    "why": "Составу с редкими переключениями достаётся меньше, чем составу, который тасует персонажей постоянно.",
+    "conf": "text"
+   }
+  ],
+  "condAbility": {
+   "any": [
+    {
+     "type": "class",
+     "value": "Attack"
+    },
+    {
+     "type": "class",
+     "value": "Anomaly"
+    },
+    {
+     "type": "class",
+     "value": "Rupture"
+    }
+   ]
+  }
+ },
+ "aria": {
+  "role": {
+   "dps": 3,
+   "anomaly": 3
+  },
+  "note": "Играет две разные роли, и требования у них разные. Сольным аномальным ДД ей обязательно нужна Ether Veil — её доп способность генерирует Fandom Power именно от завесы. А рядом с Ремиэль она просто копит круги аномалии, и завеса ей не нужна: там её и обеспечить-то некому.",
+  "needs": [
+   {
+    "what": "stun-support-or-anomaly",
+    "strength": "required",
+    "note": "Условие доп способности, оно общее для обеих ролей."
+   }
+  ],
+  "gives": [
+   "corruption-extend"
+  ],
+  "buffs": [
+   {
+    "src": "core",
+    "target": "self",
+    "stat": "anomalyProficiency",
+    "value": 90,
+    "basis": "flat",
+    "conf": "text"
+   },
+   {
+    "src": "core",
+    "target": "self",
+    "stat": "abloomRatio",
+    "value": 50,
+    "basis": "pct",
+    "cond": {
+     "type": "enemy-state",
+     "value": "Stunned"
+    },
+    "conf": "text",
+    "note": "Abloom масштабируется от её начальной Anomaly Mastery; по застаненному врагу коэффициент ещё +50%. Порог 100 АМ (для эйдоса M1) стоит в ZONE_REF_CAPS."
+   },
+   {
+    "src": "ability",
+    "target": "squad",
+    "stat": "corruptionDuration",
+    "value": 3,
+    "basis": "flat",
+    "conf": "text",
+    "note": "Продлевает Corruption, наложенную любым союзником."
+   }
+  ],
+  "condAbility": {
+   "any": [
+    {
+     "type": "class",
+     "value": "Stun"
+    },
+    {
+     "type": "class",
+     "value": "Support"
+    },
+    {
+     "type": "class",
+     "value": "Anomaly"
+    },
+    {
+     "type": "same-faction"
+    }
+   ]
+  },
+  "altRoles": [
+   {
+    "id": "solo-anomaly-dps",
+    "when": "она единственный аномальный ДД в отряде (например ария + нангон юй + санна, или с Ликаоном и Санной)",
+    "role": {
+     "dps": 3,
+     "anomaly": 3
+    },
+    "needs": [
+     {
+      "what": "ether-veil",
+      "strength": "required",
+      "note": "Fandom Power набирается от активации Ether Veil — без неё роль ДД не тянет. На практике это означает Санну в отряде."
+     },
+     {
+      "what": "stun-support-or-anomaly",
+      "strength": "required",
+      "note": "Условие доп способности."
+     }
+    ],
+    "conf": "verified",
+    "test": {
+     "type": "noOtherAnomalyDps"
+    }
+   },
+   {
+    "id": "anomaly-battery",
+    "when": "в отряде есть свой аномальный ДД — прежде всего Ремиэль",
+    "role": {
+     "dps": 1,
+     "anomaly": 3,
+     "buff": 1
+    },
+    "needs": [
+     {
+      "what": "stun-support-or-anomaly",
+      "strength": "required",
+      "note": "Условие доп способности."
+     }
+    ],
+    "note": "Задача — просто копить круги аномалии для главного ДД. Ether Veil не нужна.",
+    "conf": "verified",
+    "test": {
+     "type": "hasOtherAnomalyDps"
+    }
+   }
+  ]
+ },
+ "yixuan": {
+  "role": {
+   "dps": 3
+  },
+  "note": "Sheer-ДД: её урон идёт мимо защиты врага и считается от Sheer Force, который растёт от максимального HP. Ключевое для подбора — её доп способность кормится ЧУЖИМИ ультами, поэтому рядом с ней особенно хорош тот, кто ульты раздаёт.",
+  "needs": [
+   {
+    "what": "stun-support-or-defense",
+    "strength": "required",
+    "note": "Условие доп способности."
+   },
+   {
+    "what": "ultimate-source",
+    "strength": "usually",
+    "note": "Каждый ульт союзника даёт ей 2 Adrenaline в секунду на 10 секунд. Отсюда устойчивая связка с Диалин, которая повышает Chain Attack союзника до ульты."
+   }
+  ],
+  "gives": [
+   "def-bypass"
+  ],
+  "buffs": [
+   {
+    "src": "core",
+    "target": "self",
+    "stat": "sheerForce",
+    "value": 0.1,
+    "basis": "selfInitialHp",
+    "conf": "text",
+    "note": "0.1 Sheer Force за каждое очко максимального HP."
+   },
+   {
+    "src": "core",
+    "target": "self",
+    "stat": "dmg",
+    "value": 60,
+    "basis": "pct",
+    "conf": "text",
+    "note": "Общий бонус её basic, EX, ассистам, Chain и ульте."
+   },
+   {
+    "src": "ability",
+    "target": "self",
+    "stat": "critDmg",
+    "value": 40,
+    "basis": "pct",
+    "dur": 15,
+    "cond": {
+     "type": "state",
+     "value": "Meditation"
+    },
+    "conf": "text"
+   },
+   {
+    "src": "ability",
+    "target": "self",
+    "stat": "dmg",
+    "value": 30,
+    "basis": "pct",
+    "cond": {
+     "type": "enemy-state",
+     "value": "Stunned"
+    },
+    "conf": "text"
+   }
+  ],
+  "mechanics": [
+   {
+    "id": "feeds-on-squad-ultimates",
+    "what": "Пока союзник использует ульту, Yixuan непрерывно получает 2 Adrenaline в секунду на 10 секунд.",
+    "why": "Диалин повышает Chain Attack союзника до ульты — то есть буквально производит для неё лишние ульты за бой. Механическое объяснение связки yixuan + dialyn + lucia.",
+    "conf": "text"
+   },
+   {
+    "id": "ignores-def",
+    "what": "Весь урон Auric Ink — Sheer DMG: игнорирует защиту врага и считается по Sheer Force.",
+    "why": "Резист и защита врага ей почти безразличны, зато она любит врагов с большим HP.",
+    "conf": "text"
+   }
+  ],
+  "condAbility": {
+   "any": [
+    {
+     "type": "class",
+     "value": "Stun"
+    },
+    {
+     "type": "class",
+     "value": "Support"
+    },
+    {
+     "type": "class",
+     "value": "Defense"
+    }
+   ]
+  }
+ },
+ "vivian": {
+  "role": {
+   "dps": 3,
+   "anomaly": 3
+  },
+  "note": "Работает от чужих аномалий: каждый раз, когда СОЮЗНИК накладывает аномалию, она сама бьёт Featherbloom. Без аномальщика рядом её доп способность просто молчит.",
+  "needs": [
+   {
+    "what": "anomaly",
+    "strength": "required",
+    "note": "Доп способность срабатывает только на аномалию, наложенную другим членом отряда."
+   }
+  ],
+  "gives": [
+   "off-field-damage"
+  ],
+  "provides": [
+   "vivians-prophecy"
+  ],
+  "buffs": [
+   {
+    "src": "core",
+    "target": "self",
+    "stat": "abloomRatio",
+    "value": 1,
+    "basis": "flat",
+    "conf": "text",
+    "note": "Abloom масштабируется её мастерством аномалий, на 10 очков."
+   },
+   {
+    "src": "core",
+    "target": "enemy",
+    "stat": "prophecyDot",
+    "value": 55,
+    "basis": "pct",
+    "conf": "text",
+    "note": "Vivian's Prophecy: 55% от её атаки эфирного урона каждые 0.55с, пока на враге висит любая аномалия. Этот урон сам умеет прокать доп урон аномалий."
+   }
+  ],
+  "mechanics": [
+   {
+    "id": "reacts-to-ally-anomaly",
+    "what": "Когда любой союзник накладывает аномалию, Vivian тратит Guard Feather и сама бьёт Basic Attack: Featherbloom по этой цели.",
+    "why": "Даёт урон, не занимая поле, — как и Велина. Но в отличие от Велины ей нужен чужой источник аномалии, своего окна она не создаёт.",
+    "conf": "text"
+   }
+  ],
+  "condAbility": {
+   "any": [
+    {
+     "type": "class",
+     "value": "Anomaly"
+    },
+    {
+     "type": "same-attribute"
+    }
+   ]
+  }
+ }
+}

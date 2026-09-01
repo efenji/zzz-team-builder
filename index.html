@@ -1261,6 +1261,81 @@ select {
 /* ── PROFILE TAB (character showcase by UID) — functional layout for now,
    visual pass comes later. Reuses .disc-detail-row / lib-pill-btn etc. ── */
 
+/* ── ВКЛАДКА ПОДБОРА КОМАНД ──
+   Дизайна тут намеренно нет: техническая часть первой, оформление Артём
+   доводит на этапе 9. Задача разметки — чтобы разбор читался, а тройки
+   сравнивались глазами. Отсюда две вещи: скор набран моноширинным (числа в
+   столбик сравниваются, пропорциональным шрифтом — нет) и строки разбора
+   стоят по одной, а не абзацем. */
+.bd-room { max-width: 880px; margin: 0 auto 14px; background: var(--bg2); border: 1px solid var(--border);
+           border-radius: var(--r); padding: 12px 14px; }
+.bd-room.hidden { display: none; }
+.bd-room-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.bd-room-title { font-weight: 700; font-size: 14px; }
+.bd-room-zone { font-size: 12px; color: var(--accent); }
+.bd-room-sub { font-size: 12px; color: var(--text-mid); }
+.bd-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.bd-chip { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border2);
+           color: var(--text-mid); }
+.bd-chip.weak { color: var(--accent); border-color: var(--accent-30); background: var(--accent-d); }
+.bd-chip.res  { color: var(--red); border-color: rgba(239,68,68,.35); background: rgba(239,68,68,.10); }
+.bd-enemies { margin-top: 8px; font-size: 12px; color: var(--text-mid); display: flex; flex-direction: column; gap: 3px; }
+.bd-enemy-boss { color: var(--text); font-weight: 700; }
+
+.bd-pinned { max-width: 880px; margin: 0 auto 10px; display: flex; align-items: center; gap: 8px;
+             flex-wrap: wrap; font-size: 12px; color: var(--text-mid); }
+.bd-pinned.hidden { display: none; }
+.bd-pin { display: inline-flex; align-items: center; gap: 5px; padding: 3px 6px 3px 3px;
+          border: 1px solid var(--accent-30); background: var(--accent-d); border-radius: 999px; color: var(--text); }
+.bd-pin img { width: 22px; height: 22px; border-radius: 50%; }
+.bd-pin button { background: none; border: none; color: var(--text-mid); cursor: pointer; font-size: 13px; line-height: 1; padding: 0 2px; }
+.bd-pin button:hover { color: var(--red); }
+.bd-face { cursor: pointer; }
+.bd-face.pinned { outline: 2px solid var(--accent); outline-offset: 1px; }
+.bd-set-label { font-size: 12px; color: var(--accent); font-weight: 700; margin: 6px 0 2px; max-width: 880px; margin-left: auto; margin-right: auto; }
+.bd-save { margin-left: 8px; font-size: 11px; padding: 3px 9px; border-radius: var(--r-sm);
+           background: var(--bg3); border: 1px solid var(--border); color: var(--text-mid); cursor: pointer; }
+.bd-save:hover { border-color: var(--accent-30); color: var(--accent); }
+.bd-miss { color: var(--red); }
+.bd-results { display: flex; flex-direction: column; gap: 10px; max-width: 880px; margin: 0 auto; padding-bottom: 30px; }
+.bd-team { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 11px 13px; }
+.bd-team.meta { border-color: var(--accent-30); }
+.bd-team-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.bd-rank { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--text-mid); min-width: 22px; }
+.bd-faces { display: flex; gap: 5px; }
+/* Портрет гасится прозрачностью, а НЕ visibility/display. Не косметика: лицо —
+   это кнопка закрепления агента, и спрятанная картинка забирает вместе с собой
+   способ нажать. Не загрузилась — остаётся пустая плитка того же размера,
+   кликается по-прежнему, а имя агента и так стоит рядом. */
+.bd-face { width: 34px; height: 34px; border-radius: var(--r-sm); background: var(--bg3); object-fit: cover; }
+.bd-names { font-size: 13px; font-weight: 700; }
+.bd-score { margin-left: auto; font-family: 'Share Tech Mono', monospace; font-size: 16px; font-weight: 900; color: var(--accent); }
+.bd-score-max { font-size: 11px; color: var(--text-mid); font-weight: 400; }
+.bd-meta-flag { font-size: 11px; color: var(--accent); border: 1px solid var(--accent-30); border-radius: 999px; padding: 1px 8px; }
+.bd-why { margin-top: 9px; border-top: 1px solid var(--border); padding-top: 8px; display: flex;
+          flex-direction: column; gap: 3px; font-size: 12px; color: var(--text-mid); }
+.bd-why.hidden { display: none; }
+.bd-why-in { padding-left: 14px; color: var(--text-dim); }
+.bd-empty { text-align: center; color: var(--text-mid); font-size: 13px; padding: 40px 20px; line-height: 1.7; }
+.bd-note { max-width: 880px; margin: 0 auto 12px; font-size: 12px; color: var(--text-mid);
+           background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 8px 10px; }
+.bd-note.warn { border-color: var(--red); color: var(--text); }
+
+/* Панель снаряжения. Сетка на строку, а не flex: имя, селект и число обязаны
+   стоять в столбик у всех агентов — иначе взгляд не сравнивает числа, ради
+   которых панель и нужна. */
+.bd-gear { max-width: 880px; margin: 0 auto 12px; }
+.bd-gear-head { font-size: 12px; font-weight: 700; color: var(--text-mid); margin-bottom: 6px; }
+.bd-gear-rows { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.bd-gear-row { display: grid; grid-template-columns: 24px 1fr 220px 44px; align-items: center; gap: 8px;
+               background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 4px 8px; }
+.bd-gear-face { width: 24px; height: 24px; border-radius: var(--r-sm); background: var(--bg3); object-fit: cover; }
+.bd-gear-name { font-size: 12px; font-weight: 700; }
+.bd-gear-sel { font-size: 11px; padding: 2px 4px; background: var(--bg3); color: var(--text);
+               border: 1px solid var(--border); border-radius: var(--r-sm); max-width: 100%; }
+.bd-gear-score { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--accent); text-align: right; }
+.bd-gear-score.weak { color: var(--red); }
+
 .feed-list { display: flex; flex-direction: column; gap: 14px; max-width: 640px; margin: 0 auto; padding-bottom: 30px; }
 .feed-post { display: flex; gap: 10px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 12px; }
 .feed-post-vote { display: flex; flex-direction: column; align-items: center; gap: 2px; padding-top: 2px; flex-shrink: 0; }
@@ -2344,6 +2419,7 @@ select {
   <button class="page-nav-btn active" id="navTeamsBtn" onclick="showPage('teams')">Shiyu Defense</button>
   <button class="page-nav-btn" id="navDeadlyBtn" onclick="showPage('deadly')">Deadly Assault</button>
   <button class="page-nav-btn" id="navProfileBtn" onclick="showPage('profile')">Profile</button>
+  <button class="page-nav-btn" id="navBuilderBtn" onclick="showPage('builder')">Team Builder</button>
   <button class="page-nav-btn" id="navFeedBtn" onclick="showPage('feed')">Feed</button>
   <!-- Шестерёнка и аккаунт приехали сюда из удалённой верхней строки, см.
        комментарий на месте бывшего header в стилях. -->
@@ -2531,6 +2607,60 @@ select {
 <!-- ══ TOOLBAR · FEED ══
      No slot B: publishing is an action on a TEAM, so it stays as ⇪ on the
      Teams tab. Slot C is therefore the leftmost thing here — the sub-tabs. -->
+<!-- Порядок слева-направо повторяет порядок шагов подбора: что за режим →
+     какой сезон → какая комната → из кого выбирать. Тумблеры показа стоят
+     последними, как и на остальных вкладках. -->
+<div class="tb-page-group hidden" id="tbGroupBuilder">
+  <div class="tb-group">
+    <select id="tbBuilderMode" onchange="builderModeChanged()" title="Endgame mode">
+      <option value="shiyu">Shiyu Defense</option>
+      <option value="da">Deadly Assault</option>
+    </select>
+    <select id="tbBuilderPeriod" onchange="builderPeriodChanged()" title="Season / phase"></select>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-group" id="tbBuilderShiyuRoom">
+    <select id="tbBuilderFloor" onchange="builderFloorChanged()" title="Floor">
+      <option value="1">Floor 1</option><option value="2">Floor 2</option>
+      <option value="3">Floor 3</option><option value="4">Floor 4</option>
+      <option value="5" selected>Floor 5</option>
+    </select>
+    <select id="tbBuilderSide" onchange="builderRun()" title="Room"></select>
+  </div>
+  <div class="tb-group hidden" id="tbBuilderDaStage">
+    <select id="tbBuilderStage" onchange="builderRun()" title="Stage"></select>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-group">
+    <select id="tbBuilderTask" onchange="builderRun()" title="What to build">
+      <option value="room" selected>One room</option>
+      <option value="floor">Whole floor</option>
+      <option value="da">All stages</option>
+    </select>
+    <select id="tbBuilderSource" onchange="builderRun()" title="Which agents to pick from">
+      <option value="library">My agents</option>
+      <option value="all">All agents</option>
+    </select>
+    <select id="tbBuilderGear" onchange="builderGearSourceChanged()" title="Whether to weigh your own builds — only builds that are yours can be applied">
+      <option value="none" selected>Ignore gear</option>
+      <option value="presets">My presets</option>
+      <option value="stand">My showcase</option>
+      <option value="both">Presets + showcase</option>
+    </select>
+    <select id="tbBuilderTop" onchange="builderRun()" title="How many teams to show">
+      <option value="5">Top 5</option>
+      <option value="10" selected>Top 10</option>
+      <option value="20">Top 20</option>
+    </select>
+    <button class="tb-btn tb-btn-txt primary" id="tbBuilderRun" onclick="builderRun()" title="Find teams for this room">Find teams</button>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-group">
+    <button class="tb-toggle active" data-bkey="why" onclick="builderToggle('why', this)" title="Show the reasoning behind each team">Reasoning</button>
+    <button class="tb-toggle active" data-bkey="room" onclick="builderToggle('room', this)" title="Show the room summary">Room</button>
+  </div>
+</div>
+
 <div class="tb-page-group hidden" id="tbGroupFeed">
   <div class="tb-group">
     <button class="tb-toggle active" id="feedTabAll" onclick="showFeedTab('all')">Feed</button>
@@ -2614,6 +2744,14 @@ select {
       <div class="profile-detail" id="profileDetail"><div class="profile-detail-empty">Search for a UID in the toolbar and press Load.</div></div>
     </div>
   </div>
+</div>
+
+<div class="page hidden" id="pageBuilder">
+  <div id="builderPinned" class="bd-pinned hidden"></div>
+  <div id="builderRoomInfo" class="bd-room"></div>
+  <div id="builderMeta" class="bd-room"></div>
+  <div id="builderGear" class="bd-room hidden"></div>
+  <div id="builderResults" class="bd-results"></div>
 </div>
 
 <div class="page hidden" id="pageFeed">
@@ -3054,7 +3192,24 @@ select {
 <script>
 const SUPABASE_URL = 'https://kpzpbnixwsshwdjnzeal.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_L-qFfgHPufDs5fWZqWA2kg_BNPoNw3n';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+/* Клиент Supabase грузится с CDN, и его может не оказаться: адблокер,
+   корпоративная сеть, упавший CDN. Раньше здесь стоял голый вызов, и когда
+   библиотеки не было, `window.supabase.createClient` бросал исключение НА
+   ВЕРХНЕМ УРОВНЕ — а это убивает весь остальной скрипт разом. Сайт при этом
+   открывался, но не работало НИЧЕГО: ни вкладки, ни библиотеки, ни подбор,
+   потому что до их объявлений выполнение просто не доходило.
+
+   Теперь при отсутствии библиотеки sb остаётся null, и отваливается только то,
+   что без бэкенда и правда невозможно: вход, лента, облачная синхронизация.
+   Всё остальное живёт на localStorage и работает как обычно. Обращения к sb
+   сидят внутри функций (единственный вызов на верхнем уровне — initAuth(), и
+   он async), так что null здесь ничего не роняет, а места, куда человек может
+   нажать, прикрыты явно. */
+const sb = (window.supabase && typeof window.supabase.createClient === 'function')
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+const SB_OFFLINE = !sb;
+if (SB_OFFLINE) console.info('[zzz] Supabase client failed to load — account, feed and cloud sync are off; everything local keeps working.');
 
 const BASE = 'https://efenji.github.io/zzz-team-builder/assets';
 
@@ -9830,6 +9985,7 @@ function setToolbarPage(which) {
   document.getElementById('tbGroupDeadly').classList.toggle('hidden', which !== 'deadly');
   document.getElementById('tbGroupProfile').classList.toggle('hidden', which !== 'profile');
   document.getElementById('tbGroupFeed').classList.toggle('hidden', which !== 'feed');
+  document.getElementById('tbGroupBuilder').classList.toggle('hidden', which !== 'builder');
   closeProfileSearchResults();
 }
 
@@ -9848,11 +10004,13 @@ function showPage(which) {
   document.getElementById('pageDeadly').classList.toggle('hidden', which !== 'deadly');
   document.getElementById('pageProfile').classList.toggle('hidden', which !== 'profile');
   document.getElementById('pageFeed').classList.toggle('hidden', which !== 'feed');
+  document.getElementById('pageBuilder').classList.toggle('hidden', which !== 'builder');
   setToolbarPage(which);
   document.getElementById('navTeamsBtn').classList.toggle('active', which === 'teams');
   document.getElementById('navDeadlyBtn').classList.toggle('active', which === 'deadly');
   document.getElementById('navProfileBtn').classList.toggle('active', which === 'profile');
   document.getElementById('navFeedBtn').classList.toggle('active', which === 'feed');
+  document.getElementById('navBuilderBtn').classList.toggle('active', which === 'builder');
   // (No height re-measure needed on tab switch any more — the toolbar changing
   // height as its page group swaps is now just a reflow inside .topbar-stack.)
   if (which === 'profile') {
@@ -9870,6 +10028,11 @@ function showPage(which) {
   if (which === 'feed') {
     showFeedTab(feedActiveTab);
   }
+  /* Подбор запускается при первом открытии вкладки, а не при загрузке страницы:
+     он тянет четыре внешних файла, и платить за них тем, кто сюда не зайдёт,
+     незачем. Дальше вкладка сама себя не пересчитывает — только по кнопке и по
+     смене комнаты, иначе каждое переключение вкладок гоняло бы перебор заново. */
+  if (which === 'builder') builderOpened();
 }
 
 // ── UID ownership verification (Discord account ↔ in-game UID) ──
@@ -12139,6 +12302,574 @@ async function getAgentSkillsFile() {
   return agentSkillsPromise;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   МЕХАНИКА СИНЕРГИЙ (zzz-synergy.json)
+   ══════════════════════════════════════════════════════════════════════════
+   ЧТО ЭТО. Кто что даёт отряду, при каких условиях и чего требует взамен —
+   разобранное по строкам, а не английским текстом. Дополняет эмпирику из
+   zzz-meta.json: та говорит, ЧТО играют, эта объясняет ПОЧЕМУ. Без объяснения
+   подбор бесполезен — рекомендации, которой не веришь, никто не пользуется.
+
+   ЧТО В ФАЙЛЕ, КРОМЕ БАФФОВ.
+     · mechanics — синергии, которые баффом стата не выражаются: окна аномалий,
+       работа из кармана, жёсткие ротации. Для подбора они не менее важны цифр.
+       Велина даёт отряду не статы, а 30-секундное окно под Disorder.
+     · needs со степенью: required отсеивает состав, usually и nice только
+       двигают его в рейтинге. Разделение не косметическое: эйдосы ослабляют
+       требования, и жёсткий фильтр выбрасывал бы рабочие составы.
+     · altRoles — один агент играет разные роли в разных тройках, и требования
+       меняются вместе с ролью. Ария сольным ДД обязана иметь Ether Veil, а
+       рядом с Ремиэль просто копит круги, и завеса ей не нужна.
+     · gameRules — правила игры, без которых остальное не читается.
+     · needsVocabulary — перевод требований в машинную проверку. Лежит В ФАЙЛЕ,
+       а не здесь, намеренно: правило и данные не должны расходиться, а
+       расходятся они всегда, когда живут в разных местах.
+
+   ЖЁСТКИЙ ЗАПРЕТ РОВНО ОДИН: больше одного НЕ-аномального ДД в тройке.
+   Аномальщики кормят друг друга через Disorder и умеют работать из кармана,
+   остальные ДД дерутся за время на поле, а поле одно. Проверено по реальным
+   клирам: среди 28 составов с долей от 5% нарушений ноль.
+
+   ЧЕГО ЗДЕСЬ НЕТ. Симуляции урона. teamSynergy() не считает, кто сильнее, —
+   она проверяет, складывается ли состав и что он друг другу даёт. Числом
+   команды меряет билдер, и его число не претендует на DPS.
+
+   ЕСЛИ ФАЙЛ НЕ ЗАГРУЗИЛСЯ — подбор теряет объяснение и работает на эмпирике,
+   уязвимостях и капах.
+   ══════════════════════════════════════════════════════════════════════════ */
+const SYNERGY_DATA_URL = 'zzz-synergy.json';
+
+let synergyDataFile = null;
+let synergyDataPromise = null;
+async function getSynergyDataFile() {
+  if (synergyDataFile !== null) return synergyDataFile || null;
+  if (!synergyDataPromise) {
+    synergyDataPromise = (async () => {
+      try {
+        const res = await fetch(SYNERGY_DATA_URL);
+        if (!res.ok) throw new Error(res.status + ' ' + SYNERGY_DATA_URL);
+        const d = await res.json();
+        if (!d || !d._meta || !d._meta.needsVocabulary) throw new Error('unexpected shape');
+        synergyDataFile = d;
+        return d;
+      } catch (err) {
+        console.info('[zzz] synergy data unavailable, builder will run without explanations:', err.message);
+        synergyDataFile = false;
+        return null;
+      }
+    })();
+  }
+  return synergyDataPromise;
+}
+
+async function synergyRules() {
+  const d = await getSynergyDataFile();
+  return d ? d._meta.gameRules : null;
+}
+async function agentSynergy(key) {
+  const d = await getSynergyDataFile();
+  return (d && d[key]) || null;
+}
+
+/* Аномальный ли это ДД. Отдельной функцией, потому что от неё зависит и запрет
+   на двух ДД, и выбор роли у тех, у кого их несколько. */
+function isAnomalyDps(key, entry) {
+  const dps = (entry && entry.role && entry.role.dps) || 0;
+  return dps >= 3 && getAgentClasses(key).includes('Anomaly');
+}
+function isNonAnomalyDps(key, entry) {
+  const dps = (entry && entry.role && entry.role.dps) || 0;
+  return dps >= 3 && !getAgentClasses(key).includes('Anomaly');
+}
+
+/* Роль агента В ЭТОМ составе. Не свойство агента — свойство тройки: см. altRoles
+   в шапке. Возвращает и саму роль, и список требований именно этой роли, потому
+   что требования ходят за ролью, а не за агентом. */
+function resolveRole(key, entry, mates, data) {
+  const base = { id: 'default', role: entry.role || {}, needs: entry.needs || [], when: null };
+  if (!entry.altRoles || !entry.altRoles.length) return base;
+  const otherAnomalyDps = mates.some(m => isAnomalyDps(m, data[m]));
+  for (const ar of entry.altRoles) {
+    const t = ar.test && ar.test.type;
+    const hit = (t === 'hasOtherAnomalyDps' && otherAnomalyDps)
+             || (t === 'noOtherAnomalyDps' && !otherAnomalyDps);
+    if (hit) return { id: ar.id, role: ar.role || entry.role || {}, needs: ar.needs || [],
+                      when: ar.when || null, note: ar.note || null };
+  }
+  return base;
+}
+
+/* Закрыто ли требование СОКОМАНДНИКАМИ. Сам агент себе требование не закрывает —
+   отсюда и mates вместо всей тройки: у Ye Shunguang своя завеса не считается. */
+function needMet(what, mates, data, vocab) {
+  const rule = vocab[what];
+  if (!rule) return null;              // правила не знаем — врать «выполнено» нельзя
+  if (rule.type === 'agentInTeam') return mates.some(m => rule.value.includes(m));
+  if (rule.type === 'provides')
+    return mates.some(m => ((data[m] && data[m].provides) || []).includes(rule.value));
+  const classes = mates.flatMap(m => getAgentClasses(m));
+  if (rule.type === 'classInTeam') return rule.value.some(c => classes.includes(c));
+  if (rule.type === 'classCount')
+    return classes.filter(c => c === rule.value).length >= (rule.min || 1);
+  return null;
+}
+
+/* ── ГЛАВНАЯ ФУНКЦИЯ ──
+   Отвечает не «насколько сильна тройка», а «складывается ли она и что даёт».
+   Числом команду меряет билдер; здесь — разбор, на который он опирается и
+   который потом читает человек. */
+async function teamSynergy(agentKeys) {
+  return teamSynergyWith(await getSynergyDataFile(), agentKeys);
+}
+
+/* Синхронное ядро. Отделено от загрузки намеренно: билдер на этапе 4 гоняет
+   разбор по десяткам тысяч троек в переборе, и await на каждой стоил бы дороже
+   самого разбора. Файл он грузит один раз и дальше зовёт это. */
+function teamSynergyWith(d, agentKeys) {
+  const keys = (agentKeys || []).filter(Boolean);
+  const empty = { ok: true, blockers: [], roles: {}, buffs: [], met: [], unmet: [], mechanics: [],
+                  coverage: { described: 0, total: keys.length }, confidence: 'none' };
+  if (!d || !keys.length) return empty;
+
+  const vocab = d._meta.needsVocabulary;
+  const out = { ...empty, roles: {}, blockers: [], buffs: [], met: [], unmet: [], mechanics: [] };
+  const described = keys.filter(k => d[k]);
+  out.coverage = { described: described.length, total: keys.length };
+  out.confidence = described.length === keys.length ? 'full'
+                 : described.length ? 'partial' : 'none';
+
+  /* Запреты уровня отряда — раньше всего: состав, нарушивший такой, не «хуже»,
+     а невозможен, и разбирать его дальше незачем. */
+  for (const c of (d._meta.teamConstraints || [])) {
+    if (c.id !== 'one-non-anomaly-dps') continue;
+    const heavy = keys.filter(k => isNonAnomalyDps(k, d[k]));
+    if (heavy.length > (c.max || 1)) {
+      out.ok = false;
+      out.blockers.push({ kind: 'constraint', id: c.id, agents: heavy, why: c.why });
+    }
+  }
+
+  for (const key of keys) {
+    const e = d[key];
+    if (!e) continue;
+    const mates = keys.filter(k => k !== key);
+    const r = resolveRole(key, e, mates, d);
+    out.roles[key] = { id: r.id, role: r.role, when: r.when, note: r.note || e.note || null };
+
+    for (const n of r.needs) {
+      const met = needMet(n.what, mates, d, vocab);
+      if (met === true) {
+        /* Закрытые требования копим наравне с незакрытыми: именно они объясняют,
+           ПОЧЕМУ тройка работает, а разбор без этого молчит на удачных составах. */
+        const rule = vocab[n.what] || {};
+        const by = rule.type === 'agentInTeam' ? mates.filter(x => rule.value.includes(x))
+                 : rule.type === 'provides'
+                   ? mates.filter(x => ((d[x] && d[x].provides) || []).includes(rule.value))
+                   /* value у classCount — строка, у classInTeam — массив; приводим к массиву,
+                      иначе .some() падает на первом же требовании вида anomaly-x2. */
+                   : mates.filter(x => [].concat(rule.value || [])
+                       .some(c => getAgentClasses(x).includes(c)));
+        out.met.push({ agent: key, what: n.what, by, note: n.note || null });
+        continue;
+      }
+      const row = { agent: key, what: n.what, strength: n.strength,
+                    note: n.note || null, known: met !== null };
+      if (n.strength === 'required' && met === false) {
+        out.ok = false;
+        out.blockers.push({ kind: 'need', ...row });
+      } else {
+        out.unmet.push(row);
+      }
+    }
+
+    for (const b of (e.buffs || [])) {
+      if (b.target === 'self' || b.target === 'enemy') continue;
+      out.buffs.push({ from: key, ...b });
+    }
+    for (const m of (e.mechanics || [])) out.mechanics.push({ from: key, ...m });
+  }
+  return out;
+}
+
+/* Человеческий разбор тройки — то, что билдер покажет рядом с рекомендацией.
+   Без него подбору не поверят, поэтому он не украшение, а часть результата. */
+async function explainTeamSynergy(agentKeys) {
+  const s = await teamSynergy(agentKeys);
+  const lines = [];
+  if (!s.ok) {
+    for (const b of s.blockers) {
+      lines.push(b.kind === 'constraint'
+        ? `✕ ${b.agents.join(' и ')} — два не-аномальных ДД в одном отряде. ${b.why}`
+        : `✕ ${b.agent}: не закрыто обязательное «${b.what}».${b.note ? ' ' + b.note : ''}`);
+    }
+  }
+  for (const [k, r] of Object.entries(s.roles))
+    if (r.id !== 'default') lines.push(`· ${k} здесь работает как «${r.id}» — ${r.when}.`);
+  /* Что тройка друг другу закрывает — это и есть ответ на «почему она работает». */
+  for (const t of s.met)
+    if (t.by.length) lines.push(`✓ ${t.agent}: «${t.what}» закрывает ${t.by.join(', ')}.${t.note ? ' ' + t.note : ''}`);
+  /* Самые заметные баффы отряду: те, что идут всем, а не одному. */
+  const squad = s.buffs.filter(b => b.target === 'squad' && !b.m);
+  if (squad.length) {
+    const top = squad.slice(0, 6).map(b => `${b.from} → ${b.stat}`);
+    lines.push(`· отряду достаётся: ${top.join(', ')}${squad.length > 6 ? ` и ещё ${squad.length - 6}` : ''}.`);
+  }
+  for (const m of s.mechanics) lines.push(`· ${m.from}: ${m.what}${m.why ? ' ' + m.why : ''}`);
+  for (const u of s.unmet)
+    lines.push(`· ${u.agent}: не закрыто «${u.what}» (${u.strength === 'usually' ? 'обычно нужно' : 'необязательно'}).${u.note ? ' ' + u.note : ''}`);
+  if (s.confidence !== 'full')
+    lines.push(`· механика описана не для всех: ${s.coverage.described} из ${s.coverage.total}. По остальным вывод только по статистике клиров.`);
+  return { ok: s.ok, lines, data: s };
+}
+/* ══════════════════════════════════════════════════════════════════════════
+   ЭМПИРИКА: КАК ЭТО РЕАЛЬНО ПРОХОДЯТ (zzz-meta.json)
+   ══════════════════════════════════════════════════════════════════════════
+   ЧТО ЭТО. Статистика реальных клиров, собранная проектом ShiyuStats с
+   публичных профилей игроков (десятки тысяч человек на патч). Две вещи:
+     · comps — какими тройками проходят каждую комнату, с долей игроков и
+       средним очком;
+     · duo — кто с кем ходит: на агента до шести самых частых напарников,
+       тоже с долей и средним очком.
+
+   ЗАЧЕМ. Это готовый ответ на «кто с кем работает» по всем ходовым агентам
+   сразу, без единой строки ручной выверки, и обновляется он сам каждый патч.
+   Механику синергий (кто что кому даёт) руками всё равно писать придётся, но
+   только для верхушки меты — остальных закрывает вот это.
+
+   ЧТО ЭТО НЕ ЗНАЧИТ. «Так играют» — не то же самое, что «так правильно».
+   Верхние составы отражают ещё и то, у кого какие персонажи выпали, и кого
+   недавно продавали в баннере. Поэтому в разборе решения строку из эмпирики
+   надо подписывать числом людей за ней, а не подавать как истину.
+
+   ЧЕГО В ФАЙЛЕ НЕТ. Нижних этажей Shiyu: источник собирает только 5-й.
+   И агентов с приложением ниже 1% — у них в исходнике нулевое среднее очко и
+   случайные напарники, то есть шум, который выдавал бы себя за синергию.
+
+   ИНДЕКСЫ ВМЕСТО ИМЁН. Имена лежат один раз в names[], всё остальное ссылается
+   номерами: файл от этого втрое меньше. Ключи в names — УЖЕ НАШИ: перевод из
+   нотации источника сделан при сборке, карта расхождений сохранена в keyMap
+   для следующего обновления.
+
+   ИСТОЧНИК И ЛИЦЕНЗИЯ. ShiyuStats (LvlUrArti), MIT, автор просит упоминания.
+   Данные копируются к себе раз в патч, в рантайме к источнику не ходим —
+   быстрее, не зависим от его доступности и вежливее. Атрибуция живёт в шапке
+   самого JSON и одним пунктом в меню настроек; в основной интерфейс ссылки
+   не лезут.
+
+   ЕСЛИ ФАЙЛ НЕ ЗАГРУЗИЛСЯ — не ошибка: подбор теряет эмпирику и работает на
+   капах, уязвимостях и механике синергий.
+   ══════════════════════════════════════════════════════════════════════════ */
+const META_DATA_URL = 'zzz-meta.json';
+
+let metaDataFile = null;
+let metaDataPromise = null;
+async function getMetaDataFile() {
+  if (metaDataFile !== null) return metaDataFile || null;
+  if (!metaDataPromise) {
+    metaDataPromise = (async () => {
+      try {
+        const res = await fetch(META_DATA_URL);
+        if (!res.ok) throw new Error(res.status + ' ' + META_DATA_URL);
+        const d = await res.json();
+        if (!d || !d.names || !d.comps) throw new Error('unexpected shape');
+        /* Обратный индекс строим один раз здесь, а не при каждом запросе:
+           поиск по имени в массиве из 68 элементов сам по себе дёшев, но
+           подбор дёргает duo десятки тысяч раз за перебор троек. */
+        d._ix = Object.create(null);
+        d.names.forEach((n, i) => { if (n) d._ix[n] = i; });
+        metaDataFile = d;
+        return d;
+      } catch (err) {
+        console.info('[zzz] clear statistics unavailable, builder will run without them:', err.message);
+        metaDataFile = false;
+        return null;
+      }
+    })();
+  }
+  return metaDataPromise;
+}
+
+/* Патч, за который собраны данные, и размер отсечки. Нужны интерфейсу: цифру
+   без даты и без порога показывать нельзя — она читается как вечная истина. */
+async function metaInfo() {
+  const d = await getMetaDataFile();
+  if (!d) return null;
+  const f = d._meta.filters || {};
+  /* readThreshold — рекомендованный порог ЧТЕНИЯ (§4.27): в файле лежит всё,
+     что отдал источник, а отсекает шум потребитель. Откат на minAgentAppRate
+     нужен для старых файлов, где хранилась уже урезанная выборка. */
+  return { patch: d._meta.patch, generatedAt: d._meta.generatedAt,
+           minApp: f.readThreshold ?? f.minAgentAppRate ?? 0,
+           credit: d._meta.source.credit };
+}
+
+/* Составы, которыми реально проходят комнату. mode: 'shiyu' | 'da'.
+   Ключ комнаты тот же, что в zzz-rooms.json ('5-2' у Shiyu, '1'|'2'|'3'|'adv' у DA). */
+async function metaComps(mode, roomKey, minApp) {
+  const d = await getMetaDataFile();
+  if (!d) return [];
+  const box = d.comps[mode === 'da' ? 'da' : 'sd'];
+  let rows = box && box[String(roomKey)];
+  if (!rows) return [];
+  /* Хранится весь хвост до 0.01%, потому что «этой тройкой ходили» — тоже факт.
+     Но структурные выводы по нему делать нельзя: нарушения правил отряда сидят
+     ровно там (§4.39). Отсекает вызывающий, по умолчанию — рекомендованный
+     порог из файла. */
+  const cut = minApp ?? (d._meta.filters || {}).readThreshold ?? 0;
+  if (cut) rows = rows.filter(r => r[2] >= cut);
+  return rows.map(([trio, boo, app, score]) => ({
+    team: trio.map(i => d.names[i]),
+    bangboo: boo >= 0 ? d.names[boo] : null,
+    appRate: app,
+    avgScore: score || null,
+  }));
+}
+
+/* Напарники агента: с кем его ставят и что из этого выходит. */
+async function metaDuo(mode, agentKey) {
+  const d = await getMetaDataFile();
+  if (!d) return null;
+  const i = d._ix[agentKey];
+  if (i === undefined) return null;
+  const row = d.duo[mode === 'da' ? 'da' : 'sd'][String(i)];
+  if (!row) return null;
+  return {
+    appRate: row[0],
+    /* flat — сколько клиров стоит за парой. Доля без размера выборки — это не
+       число, а слух: 100% из двух человек и 40% из шести тысяч выглядят
+       одинаково, пока не написать, сколько их было. */
+    partners: row[1].map(([j, app, score, flat]) => ({
+      key: d.names[j], appRate: app, avgScore: score, clears: flat || 0 })),
+  };
+}
+
+/* Насколько пара ходит вместе. Смотрим с ОБЕИХ сторон и берём большее. Раньше
+   это было необходимостью — список напарников хранился обрезанным до шести. Со
+   полной матрицей обрезки нет, но двусторонний поиск остаётся правильным: доли
+   у сторон РАЗНЫЕ, потому что считаются от разных знаменателей. «Велина стоит с
+   Ремиэль в 85% своих забегов» и «Ремиэль стоит с Велиной в 40% своих» — это
+   одна пара и два честных числа, и брать надо большее с пометкой, чьё оно. */
+async function metaPair(mode, a, b) {
+  const [da, db] = await Promise.all([metaDuo(mode, a), metaDuo(mode, b)]);
+  const pick = (row, other) => row && row.partners.find(p => p.key === other);
+  const x = pick(da, b), y = pick(db, a);
+  if (!x && !y) return null;
+  const best = (!y || (x && x.appRate >= y.appRate)) ? x : y;
+  return { appRate: best.appRate, avgScore: best.avgScore, clears: best.clears,
+           seenFrom: best === x ? a : b };
+}
+/* ══════════════════════════════════════════════════════════════════════════
+   ДАННЫЕ КОМНАТ ЭНДГЕЙМА (zzz-rooms.json)
+   ══════════════════════════════════════════════════════════════════════════
+   ЧТО ЭТО. Враги комнаты, их статы и слабости, зонные баффы дословно, ранговые
+   пороги. Нужно билдеру команд: подобрать тройку под комнату нельзя, не зная,
+   кто в этой комнате стоит и что зона раздаёт.
+
+   ПОЧЕМУ ОТДЕЛЬНЫЙ ФАЙЛ, А НЕ ВНУТРЬ. Сезон Shiyu меняется раз в две недели,
+   фаза Deadly Assault тоже. Держать это в index.html значило бы
+   перевыкладывать всё приложение ради двух десятков чисел. Здесь же лежат
+   сырые выгрузки (data-src/) и процедура обновления (docs/rooms-update.md).
+
+   ДВА РАЗНЫХ УСТРОЙСТВА ЭТАЖА, И ПУТАТЬ ИХ НЕЛЬЗЯ. На этажах 1-4 зона, уровень
+   врагов и пороги общие на весь этаж, комнат две, а ранг ставится по ВРЕМЕНИ
+   прохождения (S: 300 секунд, A: 420, B: 600). На 5-м этаже комнат три, у
+   каждой своя зона и свои пороги, и ранг ставится по ОЧКАМ (S: 25 000). Это
+   разные величины с разным направлением «лучше»: время меньше — лучше, очков
+   больше — лучше. Поэтому у каждой комнаты стоит rankType ('time' | 'score'),
+   и всякий, кто рисует или сравнивает пороги, обязан его прочитать. Ошибка
+   здесь тихая: 300 и 25 000 оба выглядят числом.
+
+   СТАТИСТИКА ЕСТЬ ТОЛЬКО ПО 5-МУ ЭТАЖУ. Данные комнат покрывают все пять, но
+   ShiyuStats собирает клиры лишь по 5-му — на нижних этажах у билдера будет
+   контекст комнаты, но не будет эмпирики «как это проходят».
+
+   ЧТО ВАЖНЕЕ ПРИ ПОДБОРЕ: УЯЗВИМОСТИ, А НЕ ЗОНА. Правило игрока, и оно тут
+   главное. Игра гача: под выход баннера контент затачивают под конкретного
+   персонажа. Боссы из патча в патч повторяются, им раздувают HP, а зонные
+   баффы штурма для боссов меняются мало — заточка живёт не в баффе, а в КИТЕ
+   САМОГО ВРАГА, то есть в его weak/res. Поэтому связка «атрибуты состава
+   против уязвимостей и сопротивлений врага» весит БОЛЬШЕ зонного баффа, а
+   бафф лишь доуточняет выбор. Верно и для Shiyu, и для обычного штурма.
+   Отсюда roomAttributeFit() ниже — примитив, на который билдер обязан
+   опираться раньше, чем на теги зоны.
+
+   МАРКЕР «SUITABLE FOR» — САМЫЙ СИЛЬНЫЙ СИГНАЛ ПОСЛЕ УЯЗВИМОСТЕЙ. Источник у
+   части стадий пишет «Suitable for Agents with X specialty» (и дублирует
+   иконкой класса). Проверка на реальных клирах патча 3.1.2 показала, что этот
+   маркер предсказывает состав лучше всего: Anomaly → 99% аномальных составов,
+   Rupture → 83% рапчур, Stun → доля стана выросла вчетверо. Механический текст
+   баффа так НЕ работает: у Adversity он прямым текстом награждает Attack, а
+   играют её на 90% аномалой. Поэтому маркер живёт отдельным полем suitableFor,
+   а не тегом, и весит больше тегов зоны. null значит «маркера нет», то есть
+   стадия открыта любому вектору — и это тоже полезный сигнал, а не пропуск.
+
+   СТРОГИЕ И МЯГКИЕ ТЕГИ. tags — что зона поощряет; softTags — подмножество,
+   которое считается приятным бонусом, а не требованием. Разница не
+   косметическая: строгий тег вправе отсеять состав, мягкий может только
+   подвинуть его в рейтинге. Пример: в Adversity разработчики намеренно не
+   душат отдельные векторы, там играется практически всё, и почти все теги
+   мягкие — иначе подбор получил бы ложную уверенность.
+
+   ДВА УРОВНЯ ДОСТОВЕРНОСТИ, как в ZONE_CAPS / ZONE_REF_CAPS. Числа и тексты
+   баффов сняты с источника дословно — это verified. А вот `tags` (машинная
+   сводка того, что зона поощряет) расставлены вручную, и пока их не проверил
+   человек, у зоны стоит tagsConf:"draft". Билдер вправе на них опираться, но
+   в разборе решения такая строка должна быть помечена как непроверенная.
+
+   ЕСЛИ ФАЙЛ НЕ ЗАГРУЗИЛСЯ — не ошибка: билдер переходит в режим «без данных
+   комнаты» и подбирает по общей силе команды. Так будет при открытии с диска
+   двойным кликом (fetch по file:// запрещён) и просто без сети.
+   ══════════════════════════════════════════════════════════════════════════ */
+const ROOMS_DATA_URL = 'zzz-rooms.json';
+
+let roomsDataFile = null;
+let roomsDataPromise = null;
+async function getRoomsDataFile() {
+  if (roomsDataFile !== null) return roomsDataFile || null;
+  if (!roomsDataPromise) {
+    roomsDataPromise = (async () => {
+      try {
+        const res = await fetch(ROOMS_DATA_URL);
+        if (!res.ok) throw new Error(res.status + ' ' + ROOMS_DATA_URL);
+        const d = await res.json();
+        if (!d || (!d.shiyu && !d.da)) throw new Error('unexpected shape');
+        roomsDataFile = d;
+        return d;
+      } catch (err) {
+        /* Один раз в консоль и запомнить провал, чтобы не долбить сеть на
+           каждой перерисовке. false, а не null: null значит «ещё не пробовали». */
+        console.info('[zzz] room data unavailable, builder will run without room context:', err.message);
+        roomsDataFile = false;
+        return null;
+      }
+    })();
+  }
+  return roomsDataPromise;
+}
+
+/* Ключ комнаты — '<этаж>-<комната>', ровно как в данных ShiyuStats, чтобы обе
+   таблицы ложились друг на друга без переводчика. В модели команды комната
+   хранится буквой (side A/B/C) — исторически, потому что на этажах 1-4 их две,
+   а на 5-м три; здесь буква и превращается в номер. */
+const SHIYU_SIDE_TO_ROOM_NO = { A: 1, B: 2, C: 3 };
+function shiyuRoomKey(floor, side) {
+  const n = SHIYU_SIDE_TO_ROOM_NO[String(side || '').toUpperCase()];
+  return (floor && n) ? `${floor}-${n}` : null;
+}
+
+/* Все геттеры отдают null, если данных нет. Это законное состояние, а не сбой:
+   вызывающая сторона обязана уметь работать без комнаты (см. шапку блока). */
+async function getShiyuRoomData(season, floor, side) {
+  const d = await getRoomsDataFile();
+  const key = shiyuRoomKey(floor, side);
+  if (!d || !key) return null;
+  const s = d.shiyu && d.shiyu[String(season)];
+  return (s && s[key]) || null;
+}
+
+async function getDaStageData(phase, stage) {
+  const d = await getRoomsDataFile();
+  if (!d) return null;
+  const p = d.da && d.da[String(phase)];
+  return (p && p[String(stage)]) || null;
+}
+
+/* Комната для уже существующей команды — по её собственным полям, чтобы
+   вызывающему не приходилось знать, чем отличается модель Shiyu от модели DA. */
+async function getRoomDataForTeam(t) {
+  if (!t) return null;
+  return teamMode(t) === 'da'
+    ? getDaStageData(t.daPhase, t.daStage)
+    : getShiyuRoomData(t.shiyu, t.floor, t.side);
+}
+
+/* Теги зоны + признак, проверял ли их человек. Возвращает всегда объект, чтобы
+   вызывающему не приходилось городить проверки на null вокруг каждой ветки. */
+function roomZoneTags(room) {
+  const z = room && room.zone;
+  const tags = (z && z.tags) || [];
+  const soft = (z && z.softTags) || [];
+  return {
+    tags,
+    softTags: soft,
+    hardTags: tags.filter(t => !soft.includes(t)),
+    verified: !!(z && z.tagsConf === 'verified'),
+    name: (z && z.name) || '',
+    note: (z && z.note) || '',
+  };
+}
+
+/* Маркер «Suitable for Agents with X specialty», если источник его поставил.
+   Отдаём вместе с признаком open: отсутствие маркера — это не «данных нет», а
+   содержательное «сюда идёт что угодно», и подбор должен различать эти случаи. */
+function roomSuitableFor(room) {
+  const v = room && room.suitableFor;
+  return { specialty: v || null, open: !v };
+}
+
+/* Насколько атрибуты состава попадают в комнату. Главный сигнал подбора — см.
+   шапку блока: заточка контента живёт в ките врага, а не в зонном баффе.
+
+   Считаем по врагам, а не по общей строке комнаты: у комнаты она обобщена, а
+   бьём мы конкретных врагов, и вес врага — его доля в общем HP комнаты. Иначе
+   четыре мелких помойных бота перевесили бы босса, в котором сидит 90% здоровья
+   и всё время боя.
+
+   Возвращает hit ∈ [0..1] — сколько «веса комнаты» состав бьёт по уязвимости,
+   и miss — сколько по сопротивлению. Судить одним числом нельзя: состав может
+   и попадать в уязвимость одного врага, и упираться в резист другого. */
+function roomAttributeFit(room, attributes) {
+  const list = (room && room.enemies) || [];
+  const attrs = [...new Set(attributes || [])];
+  if (!list.length || !attrs.length) return { hit: 0, miss: 0, perEnemy: [] };
+  const total = list.reduce((n, e) => n + (e.hp || 0), 0) || list.length;
+  let hit = 0, miss = 0;
+  const perEnemy = list.map(e => {
+    const w = (e.hp || 0) / total;
+    const isHit  = attrs.some(a => (e.weak || []).includes(a));
+    const isMiss = attrs.some(a => (e.res  || []).includes(a));
+    if (isHit)  hit  += w;
+    if (isMiss) miss += w;
+    return { name: e.name, weight: w, hit: isHit, miss: isMiss };
+  });
+  return { hit, miss, perEnemy };
+}
+
+/* Слабости комнаты: сначала общая строка комнаты, если её нет — объединение
+   слабостей врагов. У DA комната одна и слабость у неё всегда указана, у Shiyu
+   бывает по-разному, поэтому фолбэк нужен. */
+function roomWeaknesses(room) {
+  if (!room) return [];
+  if (room.weakness && room.weakness.length) return room.weakness.slice();
+  const set = new Set();
+  (room.enemies || []).forEach(e => (e.weak || []).forEach(w => set.add(w)));
+  return [...set];
+}
+
+/* Сопротивления — только объединение по врагам: общей строки у комнаты нет. */
+function roomResistances(room) {
+  const set = new Set();
+  (room && room.enemies || []).forEach(e => (e.res || []).forEach(r => set.add(r)));
+  return [...set];
+}
+
+/* Пороги ранга вместе с их природой. Возвращает не голые числа, а ещё и то,
+   как их читать: better:'lower' у времени, 'higher' у очков. Без этого поля
+   вызывающий рано или поздно сравнит их не в ту сторону. */
+function roomRankInfo(room) {
+  if (!room || !room.ranks) return null;
+  const type = room.rankType || 'score';
+  return { type, ranks: room.ranks, better: type === 'time' ? 'lower' : 'higher' };
+}
+
+/* Главная цель комнаты: тот, у кого больше всего HP. Помеченный boss надёжнее,
+   но пометка ставится вручную и может отсутствовать у нового сезона. */
+function roomMainTarget(room) {
+  const list = (room && room.enemies) || [];
+  if (!list.length) return null;
+  return list.find(e => e.boss) || list.reduce((a, b) => ((b.hp || 0) > (a.hp || 0) ? b : a));
+}
+
 /* ── ИГРОВАЯ РАЗМЕТКА ─────────────────────────────────────────────────────
    В текстах игры живут ровно три тега: <color=#RRGGBB>…</color>, <IconMap:…>
    и <Term:id></Term>. Всё остальное — обычный текст.
@@ -12858,6 +13589,1130 @@ function pdDiscQualityHtml(m) {
           <span class="pd-dq-pct">${Math.round((t.sum / t.max) * 100)}%</span></span>
       </div>
     </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ЕДИНЫЙ СКОР СБОРКИ (zzz-buildscore.json)
+   ══════════════════════════════════════════════════════════════════════════
+   ЧТО ЭТО. Одно число и разбор к нему, которыми пользуются обе новые вкладки:
+   билдер команд взвешивает им кандидатов, лидерборд по нему ранжирует. Скор
+   отвечает на вопрос «насколько эта сборка близка к идеалу», а НЕ «сколько
+   она наносит урона»: симуляции урона в проекте нет и не планируется (§4.1).
+   Это надо писать и в интерфейсе, иначе число прочитают как DPS.
+
+   ПОЧЕМУ ОН БЕРЁТ ГОТОВУЮ МОДЕЛЬ КАРТОЧКИ. На вход идёт тот же самый объект
+   m, который уже собирают presetDetailHtml() и renderProfileDetail(): лист
+   статов, разрешённые наборы полезного, зачёты проков, диски, сеты, движок.
+   Ничего из этого скор не пересчитывает. Иначе в проекте появилась бы вторая
+   арифметика на те же числа, и однажды карточка и борд разошлись бы — а
+   расходятся такие вещи всегда в худший момент.
+
+   ПЯТЬ СОСТАВЛЯЮЩИХ, И КАЖДАЯ — ЧЕСТНАЯ ДОЛЯ ОТ СВОЕГО ИДЕАЛА.
+     · caps    — доля выполненных ВЫВЕРЕННЫХ порогов (ZONE_CAPS плюс классовое
+                 правило 100% крита с заливками). Зелёная 1, жёлтая 0.5,
+                 красная 0. Справочные ZONE_REF_CAPS не считаются вовсе: §4.16
+                 говорит, что выведенное не решает, а тут оно решало бы.
+     · procs   — countUsefulProcs().sum / .max, ровно то число, что уже стоит
+                 на карточке строкой «44 of 50 possible».
+     · mains   — мейн-статы слотов 4-6 против рекомендации САМОЙ ИГРЫ
+                 (recommend в zzz-agents.json). Слоты 1-3 не оцениваются: там
+                 мейн фиксирован, выбирать нечего.
+     · sets    — какой надет 4-Pc (по порядковому рейтингу Артёма) и что даёт
+                 оставшийся 2-Pc.
+     · wengine — подходит ли движок агенту, докачан ли, рефайн.
+
+   НИКАКИХ ПОДГОНОЧНЫХ КРИВЫХ. Каждая составляющая — настоящая доля от
+   определённого идеала, поэтому 1000 не наберёт никто, и это правильно:
+   число отвечает «насколько близко к идеалу», а не «сколько процентов от
+   лучшего живого игрока». Растягивать шкалу, чтобы средняя сборка выглядела
+   на 80, значило бы врать в обе стороны сразу.
+
+   ЧЕГО НЕТ ЗНАМЕНАТЕЛЯ — ТОГО НЕТ В ЧИСЛЕ. Составляющая без знаменателя
+   выбывает, её вес делится между остальными пропорционально. Выверенных капов
+   нет у 24 агентов из 58, и обнулять им 45% скора было бы не оценкой, а
+   штрафом за то, что до них не дошли руки. Тот же приём уже принят в проекте:
+   pdDiscQualityHtml() не рисует «0 из 0», когда правил полезности нет.
+   Следствие, которое надо помнить: скор сравним ВНУТРИ агента, а не между
+   агентами. Для борда этого достаточно — он и так по агентам (§4.4, §4.7).
+
+   ДВА ПРОФИЛЯ ВЕСОВ, И РАЗВОДИТ ИХ ДВИЖОК. §4.2 запрещает награждать за
+   сигнатурку, а описание этапа 3 требует её считать. Противоречие снял Артём:
+   речь о РАЗНЫХ вопросах. В лидерборде сборок по агенту движок не участвует
+   вовсе — борд меряет качество дисков, иначе это рейтинг кошельков. В подборе
+   команды наоборот: чем сильнее движок, тем лучше, приоритет сигнатурным,
+   рефайн тоже считается. Отсюда ctx.purpose: 'leaderboard' | 'builder'.
+
+   ЛОВУШКА В ДАННЫХ, КОТОРУЮ ЛЕГКО НЕ ЗАМЕТИТЬ. Поле recommend.mainBySlot в
+   zzz-agents.json ключами 4/5/6 ПОХОЖЕ на карту слотов, но ею НЕ является. У
+   35 агентов из 58 значение стоит в слоте, где такого мейн-стата в игре не
+   бывает: у Мияби CRIT DMG числится шестым слотом, у Ясюань — пятым, хотя
+   CRIT DMG есть только в четвёртом. Проверка перебором показала, что набор из
+   трёх значений раскладывается по слотам законно у 41 агента, и всегда
+   единственным способом, а у оставшихся 17 в наборе сразу И CRIT Rate, И
+   CRIT DMG — две опции одного четвёртого слота. Значит это не карта слотов, а
+   СПИСОК ИЗ ТРЁХ РЕКОМЕНДОВАННЫХ МЕЙН-СТАТОВ, пронумерованный 4/5/6 по
+   недоразумению источника. Поэтому mains сверяется с НАБОРОМ, а не с ключом,
+   и заодно бесплатно получает нужную гибкость: «в четвёртый слот крит шанс
+   ИЛИ крит урон» — ровно то, что и есть у реальных сборок.
+
+   СЕТЫ ХРАНЯТСЯ ПОРЯДКОМ, А НЕ ОЧКАМИ. Артём расписал по всем 58 агентам не
+   «хороший/плохой», а цепочку силы: «Dawns Bloom > Hormone Punk = Woodpecker
+   Electro > Puffer Electro = Astral Voice», где «>>» означает разрыв побольше.
+   Так это и лежит: тиры и операторы отдельно, величина шага отдельно. Выверено
+   у нас именно КТО СИЛЬНЕЕ КОГО — это знание; а сколько стоит один шаг —
+   предположение, которое подвинется на калибровке. Разделив их, мы двигаем
+   числа, не трогая знание.
+
+   СПИСКИ ПОЛНЫЕ, А НЕ «ЛУЧШЕЕ ИЗ», И ЭТО МЕНЯЕТ ПОВЕДЕНИЕ ПОДБОРА. Сет в
+   КОНЦЕ цепочки работает плохо, но работает — потому он в цепочке и стоит,
+   как худший из допустимых, когда лучших у человека нет. А сет за пределами
+   цепочки не работает вовсе, и кредит ему ноль. Подбору этого мало: он не
+   имеет права подставить вместо него другой мусорный сет, потому что это даёт
+   иллюзию работающего сета там, где его нет. Он обязан назвать лучший и
+   предложить нафармить, а до тех пор не носить никакого 4-Pc — три полезных
+   двухпредметных бонуса лучше мёртвого четырёхпредметного. Поэтому bsSets()
+   отдаёт наружу не только число, но и `offChain`, `best` и `workable`.
+
+   ЧТО НЕ СЧИТАЕТСЯ ОТДЕЛЬНО И ПОЧЕМУ. Двухпредметный бонус САМОГО носимого
+   4-Pc в `sets` не оценивается: он приходит в комплекте с выбором этого сета
+   и уже учтён тем, куда Артём поставил сет в цепочке. Считать его вторым
+   слагаемым значило бы засчитать одно и то же дважды. Не оценивается отдельно
+   и выбор между сетами, стоящими ВРОВЕНЬ: по словам Артёма его решают проки и
+   подгон капов — то есть ровно те составляющие, которые скор уже считает.
+   Равные сеты дают равный кредит в `sets`, а расходятся в `caps` и `procs`,
+   и модель отвечает на этот вопрос сама.
+
+   И СЕТ — СВОЙСТВО НЕ АГЕНТА, А СБОРКИ И ОТРЯДА. Ровно как роль в синергиях
+   (§4.26). Три источника переоценки, все в данных:
+     · отряд — с Диалин дорожает Puffer Electro (она производит ульты отряду),
+       это меняет цепочку у 13 агентов; с Мияби Соукаку уходит в аномальную
+       сборку и надевает Freedom Blues, которого в её базовой цепочке нет;
+       Бёрнис со станером в отряде играет вообще не аномаликом, а атакером
+       через крит — и надевает критовый Inferno Metal, которого в её базовой
+       цепочке нет. Условие бывает и по имени сокомандника, и по его КЛАССУ;
+     · эйдосы — механизм есть, данных под него сейчас нет. Он понадобится:
+       §4.25 говорит, что эйдосы меняют требования к отряду, а не только числа.
+       Проверяется раньше отряда: это свойство самого агента, а не окружения.
+
+   ДВА НЕЗАВИСИМЫХ РАССКАЗА ОБ ОДНОМ. Кроме рейтингов, Артём описал суть каждого
+   из 30 сетов — в том числе кто вообще может носить четыре куска. Это второй
+   независимый источник на те же факты, и тест сверяет их друг с другом. Сверка
+   уже окупилась: поймала, что Pyrois носит Dawns Bloom, которого не было в
+   поимённом списке носителей, и что Freedom Blues стоит у Nangong Yu и Soukaku,
+   хотя правило гласило «только аномалики» (речь про аномальную СБОРКУ, а не
+   класс).
+
+   ПРАВИЛО АРТЁМА ПРО ПЯТЫЙ СЛОТ. У атакеров, Ремиэль и Мияби бонус урона
+   атрибута и PEN Ratio в пятом слоте лучше, чем ATK%. Вровень ATK% встаёт
+   при DEF врага ниже 473, при Николь в отряде или при суммарном срезе защиты
+   от 40%. Порог 473 — не круглое число: это минимальная DEF среди всех 43
+   врагов сезона 55 и фазы 3.1.3, то есть на текущем контенте условие по DEF
+   не срабатывает никогда. Записано оно всё равно числом, а не выкинуто:
+   появится враг мягче — правило включится само, без правки кода.
+
+   ПОЧЕМУ ФУНКЦИЙ ДВЕ. buildScoreSync() чистая и синхронная — билдер на этапе
+   4 будет звать её десятки тысяч раз в переборе троек, и await на каждой
+   стоил бы дороже самого счёта. buildScore() — обёртка, которая сперва
+   дожидается файла. Файл не загрузился — caps и procs считаются всё равно, им
+   внешние данные не нужны, а mains/sets/wengine выбывают по общему правилу.
+   ══════════════════════════════════════════════════════════════════════════ */
+const BUILD_SCORE_VERSION = 1;
+const BUILDSCORE_DATA_URL = 'zzz-buildscore.json';
+
+let buildScoreDataFile = null;
+let buildScoreDataPromise = null;
+async function getBuildScoreFile() {
+  if (buildScoreDataFile !== null) return buildScoreDataFile || null;
+  if (!buildScoreDataPromise) {
+    buildScoreDataPromise = (async () => {
+      try {
+        const res = await fetch(BUILDSCORE_DATA_URL);
+        if (!res.ok) throw new Error(res.status + ' ' + BUILDSCORE_DATA_URL);
+        const d = await res.json();
+        if (!d || !d.weights || !d.sets) throw new Error('unexpected shape');
+        buildScoreDataFile = d;
+        return d;
+      } catch (err) {
+        console.info('[zzz] build score data unavailable, only caps/procs will count:', err.message);
+        buildScoreDataFile = false;
+        return null;
+      }
+    })();
+  }
+  return buildScoreDataPromise;
+}
+
+/* Мейн-стат диска → семейство строки листа статов. Нужен, чтобы спросить у
+   statSheetBucket(), полезен ли этот стат агенту, вместо того чтобы заводить
+   вторую копию правил полезности. Плоские и процентные имена ведут в одно
+   семейство: в листе статов они и так складываются в одну строку. */
+const BS_MAIN_STAT_FAM = {
+  'HP': '111', 'HP%': '111', 'ATK': '121', 'ATK%': '121', 'DEF': '131', 'DEF%': '131',
+  'Impact': '122', 'CRIT Rate': '201', 'CRIT DMG': '211', 'PEN Ratio': '231',
+  'Energy Regen': '305', 'Anomaly Proficiency': '312', 'Anomaly Mastery': '314',
+  'Physical DMG Bonus': '315', 'Fire DMG Bonus': '316', 'Ice DMG Bonus': '317',
+  'Electric DMG Bonus': '318', 'Ether DMG Bonus': '319', 'Wind DMG Bonus': '323',
+};
+/* Атрибут агента → семейство его бонуса урона. Lumiflux, Frost, Auric Ink и
+   прочие вторичные состояния сюда не входят намеренно: мейн-стата с таким
+   бонусом в игре нет, и у Ремиэль пятый слот честно решается общим правилом. */
+const BS_ATTR_FAM = {
+  Physical: '315', Fire: '316', Ice: '317', Electric: '318', Ether: '319', Wind: '323',
+};
+
+/* Имена в recommend приходят с неразрывным пробелом ('Ice DMG Bonus') —
+   сравнивать их с именами мейн-статов без нормализации нельзя. */
+function bsNorm(name) { return String(name || '').replace(/\u00a0/g, ' ').trim(); }
+function bsFam(name) { return BS_MAIN_STAT_FAM[bsNorm(name)] || null; }
+
+/* Полезен ли стат агенту — тем же правилом, что подсвечивает лист статов.
+   Отдельной таблицы полезных мейнов в проекте нет и не заводится: она бы
+   разошлась с подсветкой при первой же правке. */
+function bsStatUseful(fam, useful) {
+  if (!fam || !useful || !useful.rule) return false;
+  return !!statSheetBucket({ fam, label: (ENKA_STAT_FAMILY_META[fam] || {}).label || '' }, useful);
+}
+
+function bsClamp(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
+
+/* ── СОСТАВЛЯЮЩИЕ ─────────────────────────────────────────────────────────
+   Каждая возвращает { counted, value, ... }. counted:false означает «нечего
+   мерить», и тогда вес уходит остальным (см. шапку блока). */
+
+function bsCaps(m) {
+  const marks = (typeof zoneMarkers === 'function' ? zoneMarkers(m) : [])
+    .filter(mk => mk.tier === 'crit' || mk.tier === 'cap');
+  if (!marks.length) return { counted: false, value: null, n: 0, detail: [] };
+  const w = { green: 1, yellow: 0.5, red: 0 };
+  const detail = marks.map(mk => ({
+    label: mk.row.label, tier: mk.tier, verdict: mk.verdict, credit: w[mk.verdict] ?? 0,
+  }));
+  const value = detail.reduce((a, b) => a + b.credit, 0) / detail.length;
+  return { counted: true, value, n: detail.length, detail };
+}
+
+function bsProcs(m) {
+  const t = m.procCounts && m.procCounts.total;
+  /* Потолка нет, когда правил полезности для агента нет вовсе (свежий патч)
+     или тумблер Procs выключен. «0 из 0» тут было бы утверждением, что диски
+     плохие, хотя мы просто не знаем. */
+  if (!t || !t.max) return { counted: false, value: null, sum: 0, max: 0 };
+  return { counted: true, value: bsClamp(t.sum / t.max), sum: t.sum, max: t.max };
+}
+
+/* Условия, при которых ATK% в пятом слоте встаёт вровень с бонусом урона и
+   пробивом. Читаются из данных, а не зашиты здесь: правило игровое, и менять
+   его Артём должен без правки кода. */
+function bsAtkParity(rule, ctx) {
+  for (const c of (rule.parityWhen || [])) {
+    if (c.type === 'enemyDefBelow'
+      && Number.isFinite(ctx.enemyDef) && ctx.enemyDef < c.value) return c;
+    if (c.type === 'agentInTeam'
+      && (ctx.team || []).some(k => c.value.includes(k))) return c;
+    if (c.type === 'defShredAtLeast'
+      && Number.isFinite(ctx.defShred) && ctx.defShred >= c.value) return c;
+  }
+  return null;
+}
+
+/* Суммарный срез защиты, который отряд даёт всем. Читается из уже собранной
+   механики синергий, чтобы не заводить вторую таблицу. Файл не загружен —
+   ноль, и ветка паритета просто не включится: это осторожная сторона ошибки,
+   ATK% получит меньше, а не больше. */
+function bsTeamDefShred(keys) {
+  const d = (typeof synergyDataFile === 'object' && synergyDataFile) || null;
+  if (!d) return 0;
+  let sum = 0;
+  for (const k of (keys || [])) {
+    for (const b of ((d[k] && d[k].buffs) || [])) {
+      if (b.stat !== 'defIgnore') continue;
+      if (b.target !== 'squad' && b.target !== 'others') continue;
+      sum += b.value || 0;
+    }
+  }
+  return sum;
+}
+
+function bsMains(m, data, ctx) {
+  const rec = ctx.recommend;                       // { '4':..., '5':..., '6':... }
+  const conf = data && data.mains;
+  if (!rec || !conf || !m.useful || !m.useful.rule) {
+    return { counted: false, value: null, detail: [] };
+  }
+  /* Сверяемся с НАБОРОМ из трёх, а не с ключом слота — см. шапку блока. И
+     сверяемся по СЕМЕЙСТВУ, а не по имени: рекомендация пишет 'ATK', 'HP',
+     'DEF', а мейн-стат диска в слотах 4-6 называется 'ATK%', 'HP%', 'DEF%'.
+     Сравнение по строке не свело бы их никогда, и рекомендованная атака
+     молча считалась бы промахом. Заодно семейство снимает вопрос с
+     неразрывным пробелом. */
+  const wanted = new Set(Object.values(rec).map(bsFam).filter(Boolean));
+  /* Следствие той же ловушки: у 17 агентов вся рекомендованная тройка ложится
+     в четвёртый и пятый слоты, и для шестого рекомендации не остаётся вовсе —
+     у Мияби это CRIT Rate, CRIT DMG и Ice DMG. Планка «совпало с
+     рекомендацией» там недостижима в принципе, и мерить по ней значило бы
+     отнимать треть составляющей за данные, а не за сборку. Поэтому там, где
+     рекомендация слоту ничего не предлагает, полным зачётом идёт «стат агенту
+     полезен»: судим по лучшему достижимому, а не по несуществующему. */
+  const recCoversSlot = {};
+  [4, 5, 6].forEach(sl => {
+    recCoversSlot[sl] = discMainStatOptions(sl).some(o => wanted.has(bsFam(o.stat)));
+  });
+  const classes = getAgentClasses(m.agentKey);
+  const s5 = conf.slot5 || {};
+  /* Кому правило пятого слота вообще адресовано — берётся из данных, а не из
+     кода: список «атакеры, Ремиэль, Мияби» задал Артём, и расширять его он
+     должен правкой JSON. */
+  const applies = ((data._meta.gameRules || {})['atk-vs-elem-pen'] || {}).appliesTo || {};
+  const s5Applies = (applies.specialty || []).some(c => classes.includes(c))
+                 || (applies.agents || []).includes(m.agentKey);
+  const ownFam = BS_ATTR_FAM[(AGENT_ATTRIBUTE[m.agentKey] || {}).base] || null;
+  /* Реальные мейн-статы клирнувших. Заменяют рекомендацию игры там, где выборка
+     достаточна: рекомендация совпадает с реальностью лишь на 76% (§4.40). Доля —
+     не сила, поэтому она стоит НИЖЕ выверенных правил игры, а не выше. */
+  const rc = conf.realCredit || {};
+  const realAgent = (conf.real || {})[m.agentKey];
+  const realOk = !!(realAgent && realAgent.sample >= (rc.minSample || 0));
+  const realCredit = (slot, fam) => {
+    if (!realOk) return null;
+    const row = (realAgent[String(slot)] || []).find(x => bsFam(x[0]) === fam);
+    if (!row) return null;
+    const share = row[1];
+    return { credit: share >= rc.mainstreamAt ? rc.mainstream
+                   : share >= rc.minorAt ? rc.minor : rc.rare, share };
+  };
+
+  const detail = [];
+  for (const slot of [4, 5, 6]) {
+    const d = (m.discs || []).find(x => Number(x.slot) === slot);
+    if (!d) { detail.push({ slot, stat: null, credit: 0, why: 'слот пуст' }); continue; }
+    const stat = bsNorm(d.mainStat), fam = bsFam(stat);
+
+    /* Бонус урона ЧУЖОГО атрибута мёртв у КОГО УГОДНО, не только у атакеров,
+       поэтому проверка стоит выше правила пятого слота. Общее правило её не
+       ловит: statSheetBucket() считает полезным любое элементное семейство,
+       и не зря — в лист статов попадает ровно одна такая строка, атрибута
+       самого агента. А вот мейн-статом диска чужой элемент встать может, и
+       тогда он не даёт ничего. */
+    if (fam && ELEMENTAL_DMG_FAMS.has(fam) && fam !== ownFam) {
+      detail.push({ slot, stat, credit: 0, why: 'бонус урона ЧУЖОГО атрибута — мёртвый стат' });
+      continue;
+    }
+
+    /* Правило пятого слота применимо, только если своему атрибуту вообще есть
+       мейн-стат. Бонуса урона Lumiflux в игре нет, и у Ремиэль — которую правило
+       называет поимённо — понижать ATK% было бы ошибкой: его носят 99.8% из её
+       21 185 игроков, потому что альтернативы не существует. */
+    /* У части агентов правило пятого слота работает НАОБОРОТ: атака сильнее
+       бонуса атрибута и пробива. Это не поблажка, а отдельное правило Артёма,
+       и данные его подтверждают — у Орфеи с Магусом ATK% носят 57% против 42%
+       со своим атрибутом, единственный такой атакер. */
+    const inv = (s5.preferAtk && s5.preferAtk.agents.includes(m.agentKey)) ? s5.preferAtk : null;
+    if (slot === 5 && inv) {
+      if (fam === '121') {
+        detail.push({ slot, stat, credit: inv.atk, why: 'атака: у этого агента она в пятом слоте сильнее атрибута и пробива' });
+        continue;
+      }
+      if (fam === ownFam) {
+        detail.push({ slot, stat, credit: inv.ownElement, why: 'свой атрибут, но атака здесь сильнее' });
+        continue;
+      }
+      if (fam === '231') {
+        detail.push({ slot, stat, credit: inv.penRatio, why: 'пробив, но атака здесь сильнее' });
+        continue;
+      }
+    }
+
+    if (slot === 5 && s5Applies && !inv && ownFam) {
+      if (fam && fam === ownFam) {
+        detail.push({ slot, stat, credit: s5.ownElement, why: 'бонус урона своего атрибута' });
+        continue;
+      }
+      if (fam === '231') {
+        detail.push({ slot, stat, credit: s5.penRatio, why: 'пробив: по DEF врагов текущего контента не хуже бонуса атрибута' });
+        continue;
+      }
+      if (fam === '121') {
+        const par = bsAtkParity(s5, ctx);
+        detail.push({ slot, stat,
+          credit: par ? s5.atkParity : s5.atkNoParity,
+          why: par
+            ? `атака вровень с бонусом атрибута: ${par.type === 'agentInTeam' ? 'в отряде Николь'
+                : par.type === 'defShredAtLeast' ? `срез защиты ${ctx.defShred}%` : `DEF врага ${ctx.enemyDef}`}`
+            : 'атака в пятом слоте слабее бонуса атрибута и пробива' });
+        continue;
+      }
+    }
+
+    const real = realCredit(slot, fam);
+    if (real) {
+      detail.push({ slot, stat, credit: real.credit,
+        why: `так собирают ${real.share}% клирнувших (выборка ${realAgent.sample})` });
+    } else if (realOk && bsStatUseful(fam, m.useful)) {
+      /* Выборка есть, но этого стата в ней нет вовсе — значит так не собирают.
+         Полезность оставляет ему шанс, но не полный зачёт. */
+      detail.push({ slot, stat, credit: rc.rare,
+        why: 'в реальных сборках этого мейна нет, но агенту стат полезен' });
+    } else if (fam && wanted.has(fam)) {
+      detail.push({ slot, stat, credit: conf.credit.recommended,
+        why: realOk ? 'рекомендация игры' : 'рекомендация игры (реальных сборок мало)' });
+    } else if (bsStatUseful(fam, m.useful)) {
+      detail.push({ slot, stat,
+        credit: recCoversSlot[slot] ? conf.credit.useful : conf.credit.recommended,
+        why: recCoversSlot[slot]
+          ? 'не по рекомендации, но агенту полезен — вторая законная сборка'
+          : 'рекомендация этому слоту ничего не предлагает; стат агенту полезен — это и есть лучшее достижимое' });
+    } else {
+      detail.push({ slot, stat, credit: conf.credit.miss, why: 'агенту бесполезен' });
+    }
+  }
+  const value = detail.reduce((a, b) => a + (b.credit || 0), 0) / detail.length;
+  return { counted: true, value: bsClamp(value), detail };
+}
+
+/* Рейтинг сетов у Артёма ПОРЯДКОВЫЙ: «A > B > C» и «A >> B» — насколько один
+   сильнее другого, а не сколько он стоит в очках. Поэтому в данных лежат тиры
+   и операторы, а кредит считается от вершины вниз. Разделение принципиальное:
+   выверено у нас именно КТО СИЛЬНЕЕ КОГО, а величина шага — предположение,
+   которое подвинется на калибровке этапа 8. Так числа двигаются, не трогая
+   знание. Сета нет в рейтинге вовсе — значит для этого агента он не выбор:
+   списки полные, а не «лучшее из».  */
+function bsTierCredit(rank, ops, setName, t) {
+  let c = t.top;
+  for (let i = 0; i < rank.length; i++) {
+    if (rank[i].includes(setName)) return Math.max(t.floor, Math.round(c * 1000) / 1000);
+    c -= (ops[i] === '>>' ? t.bigStep : t.step);
+  }
+  return t.unlisted;
+}
+
+/* Какая цепочка рейтинга действует В ЭТОЙ сборке. Тот же принцип, что у ролей
+   в синергиях (§4.26): сет — свойство не агента, а сборки и отряда.
+     · эйдосы — Бёрнис надевает Inferno Metal, только когда сама ДД (M4+);
+     · отряд — с Диалин в команде дорожает Puffer Electro, потому что она
+       производит ульты; с Мияби Соукаку уходит в аномальную сборку.
+   Порядок проверки не случаен: эйдосы — свойство самого агента и перебивают
+   командное условие. */
+function bsActiveRank(entry, m, ctx) {
+  for (const w of (entry.whenMindscape || []))
+    if ((m.mindscape || 0) >= (w.min || 0)) return { ...w, id: 'mindscape' };
+  for (const w of (entry.whenTeam || [])) {
+    const mates = (ctx.team || []).filter(k => k !== m.agentKey);
+    const byName = (w.has || []).length && mates.some(k => w.has.includes(k));
+    /* Условие может быть и по КЛАССУ сокомандника, а не по имени: Бёрнис
+       меняет сборку не от конкретного станера, а от того, что станер вообще
+       есть — с ним она играет атакером через крит, а не аномаликом. */
+    const bySpec = (w.hasSpecialty || []).length
+      && mates.some(k => getAgentClasses(k).some(c => w.hasSpecialty.includes(c)));
+    if (byName || bySpec) return { ...w, id: 'team' };
+  }
+  return { rank: entry.rank || [], ops: entry.ops || [], id: 'base' };
+}
+
+function bsSets(m, data, ctx) {
+  const conf = data && data.sets;
+  if (!conf) return { counted: false, value: null };
+  ctx = ctx || {};
+  const counts = m.setCounts || {};
+  const four = Object.keys(counts).find(n => counts[n] >= 4) || null;
+  const entry = conf.fourPc[m.agentKey] || null;
+
+  let fourCredit = null, fourWhy = '', active = null, offChain = false;
+  if (!four) {
+    fourCredit = conf.credit.noFourPc; fourWhy = 'четырёхпредметного бонуса нет вовсе';
+  } else if (!entry) {
+    fourWhy = 'какие сеты идут этому агенту — не описано';       // без знаменателя
+  } else {
+    active = bsActiveRank(entry, m, ctx);
+    fourCredit = bsTierCredit(active.rank, active.ops, four, conf.tiers);
+    const place = active.rank.findIndex(t => t.includes(four));
+    /* Сет за пределами цепочки не «слабоват» — он не работает вовсе, и кредит
+       ему ноль (см. gameRules.off-chain-set-is-dead). Подбору этого мало: он
+       обязан не подставить вместо него другой мусорный сет, а назвать лучший
+       и предложить нафармить. Поэтому наружу идут и флаг, и что именно
+       фармить, и полный список рабочих вариантов — сеты в КОНЦЕ цепочки
+       работают плохо, но работают, и годятся, пока лучших нет. */
+    offChain = place < 0;
+    fourWhy = offChain
+      ? 'этого сета нет в цепочке агента — он на нём не работает вовсе'
+      : place === 0 ? 'сильнейший сет агента'
+      : `${place + 1}-й по силе из ${active.rank.length}`;
+    if (active.id !== 'base') fourWhy += `. ${active.why}`;
+  }
+
+  /* Двухпредметный — у сета, который не даёт четырёх. Их может не быть вовсе
+     (шесть предметов одного сета) — тогда работает 2-Pc того же самого. */
+  const twoName = Object.keys(counts).find(n => n !== four && counts[n] >= 2)
+               || (four && counts[four] >= 6 ? four : null);
+  const two = twoName ? conf.twoPc[twoName] : null;
+  let twoCredit = null, twoWhy = '';
+  if (!twoName) {
+    twoCredit = 0; twoWhy = 'двухпредметного бонуса нет — диски вразнобой';
+  } else if (!two || !two.fam) {
+    /* Бонус вроде «Increases Shield effect by 15%» статом не выражается, и
+       судить о нём нечем — выбывает из знаменателя, а не штрафует. */
+    twoWhy = two ? `${twoName}: «${two.text}» — статом не выражается, оценить нечем` : 'сет неизвестен';
+  } else {
+    const ok = bsStatUseful(two.fam, m.useful);
+    twoCredit = ok ? 1 : 0;
+    twoWhy = `${twoName}: ${two.text} — ${ok ? 'агенту полезен' : 'агенту бесполезен'}`;
+  }
+
+  const sp = conf.split;
+  const parts = [];
+  if (fourCredit !== null) parts.push([sp.fourPc, fourCredit]);
+  if (twoCredit !== null) parts.push([sp.twoPc, twoCredit]);
+  if (!parts.length) return { counted: false, value: null, four, fourWhy, twoName, twoWhy };
+  const wsum = parts.reduce((a, b) => a + b[0], 0);
+  const value = parts.reduce((a, b) => a + b[0] * b[1], 0) / wsum;
+  return { counted: true, value: bsClamp(value), four, fourCredit, fourWhy,
+           twoName, twoCredit, twoWhy,
+           offChain, best: active ? (active.rank[0] || []) : [],
+           workable: active ? active.rank.flat() : [],
+           rankId: active ? active.id : null, conf: entry ? entry.conf : null };
+}
+function bsWengine(m, data) {
+  const conf = data && data.wengine;
+  const w = m.wengine;
+  if (!conf) return { counted: false, value: null };
+  if (!w || !w.key) return { counted: true, value: 0, why: 'движка нет' };
+
+  const alt = (conf.alts || {})[m.agentKey];
+  let fit, why;
+  if (alt && alt[w.key] != null) {
+    fit = alt[w.key]; why = 'поимённое исключение';
+  } else if (AGENT_SIGNATURE_WENGINE[m.agentKey] === w.key) {
+    fit = conf.credit.signature; why = 'сигнатурный движок';
+  } else {
+    const rarity = ['S', 'A', 'B'].find(r => (WENGINE_RARITY[r] || []).includes(w.key)) || 'B';
+    const spec = Object.keys(WENGINE_SPECIALTIES).find(s => (WENGINE_SPECIALTIES[s] || []).includes(w.key)) || null;
+    const match = spec && getAgentClasses(m.agentKey).includes(spec);
+    if (!match) {
+      fit = conf.credit.specialtyMismatch;
+      why = `специальность движка (${spec || '?'}) не совпадает — пассивка не работает`;
+    } else {
+      /* Вторичный стат движка — тот же вопрос «полезен ли», что и у мейнов. */
+      const secFam = bsFam(((WENGINE_INFO[w.key] || {}).secondaryStat || {}).name || w.secName);
+      const secOk = bsStatUseful(secFam, m.useful);
+      fit = (secOk ? conf.credit.specialtyMatchUsefulSec : conf.credit.specialtyMatchPlainSec)[rarity];
+      why = `${rarity}-ранг по специальности, вторичный стат ${secOk ? 'полезен' : 'мимо'}`;
+    }
+  }
+
+  const r = Math.max(1, Math.min(5, w.rank || 1));
+  const refMul = conf.refine.atR1 + (conf.refine.atR5 - conf.refine.atR1) * (r - 1) / 4;
+  const maxLvl = (data.eligibility && data.eligibility.wengineLevel) || 60;
+  const lvlMul = conf.levelIsMultiplier ? bsClamp((w.level || 0) / maxLvl) : 1;
+  return { counted: true, value: bsClamp(fit * refMul * lvlMul),
+           key: w.key, fit, refine: r, level: w.level, why };
+}
+
+/* ── ДОПУСК (§4.13) ──
+   Не прошло — считаем всё равно, но помечаем: отладочной панели и билдеру
+   число нужно и у недособранной сборки, а вот в борд она не идёт. */
+function bsEligible(m, data) {
+  const e = (data && data.eligibility)
+    || { agentLevel: 60, discLevel: 15, discCount: 6, wengineLevel: 60, discRarity: 'S' };
+  const reasons = [];
+  if ((m.level || 0) < e.agentLevel) reasons.push(`агент ${m.level || 0} уровня, нужен ${e.agentLevel}`);
+  const discs = m.discs || [];
+  if (discs.length < e.discCount) reasons.push(`дисков ${discs.length}, нужно ${e.discCount}`);
+  const low = discs.filter(d => (d.level || 0) < e.discLevel);
+  if (low.length) reasons.push(`не докачаны до ${e.discLevel} уровня: слоты ${low.map(d => d.slot).join(', ')}`);
+  /* rarityLetter есть только у дисков со стенда Enka. В библиотеке хранятся
+     заведомо только S-ранговые Lv.15 (см. комментарий к driveDiscLibrary),
+     поэтому отсутствие поля — это S, а не «неизвестно». */
+  const notS = discs.filter(d => d.rarityLetter && d.rarityLetter !== e.discRarity);
+  if (notS.length) reasons.push(`не ${e.discRarity}-ранг: слоты ${notS.map(d => d.slot).join(', ')}`);
+  if (!m.wengine || !m.wengine.key) reasons.push('движок не надет');
+  else if ((m.wengine.level || 0) < e.wengineLevel) reasons.push(`движок ${m.wengine.level || 0} уровня, нужен ${e.wengineLevel}`);
+  return { eligible: !reasons.length, reasons };
+}
+
+/* ── ГЛАВНАЯ ФУНКЦИЯ ── */
+function buildScoreSync(m, ctx) {
+  ctx = ctx || {};
+  const data = ctx.data !== undefined ? ctx.data
+             : (typeof buildScoreDataFile === 'object' ? buildScoreDataFile : null);
+  const purpose = ctx.purpose || 'leaderboard';
+  const team = ctx.team || [];
+  const c = {
+    team,
+    enemyDef: Number.isFinite(ctx.enemyDef) ? ctx.enemyDef : NaN,
+    defShred: Number.isFinite(ctx.defShred) ? ctx.defShred : bsTeamDefShred(team.filter(k => k !== m.agentKey)),
+    recommend: ctx.recommend
+      || (m.ext && m.ext.recommend ? m.ext.recommend.mainBySlot : null),
+  };
+
+  const parts = {
+    caps:    bsCaps(m),
+    procs:   bsProcs(m),
+    mains:   data ? bsMains(m, data, c) : { counted: false, value: null, detail: [] },
+    sets:    bsSets(m, data, c),
+    wengine: bsWengine(m, data),
+  };
+
+  const weights = (data && data.weights[purpose]) || { caps: 45, procs: 40, mains: 0, sets: 15, wengine: 0 };
+  /* Нулевой вес — это не «выбыла», а «решено не считать»: составляющая
+     остаётся в разборе, но её вес НЕ достаётся другим. Выбывает только та, у
+     которой нет знаменателя. */
+  const live = Object.keys(parts).filter(k => parts[k].counted && (weights[k] || 0) > 0);
+  const wsum = live.reduce((a, k) => a + weights[k], 0);
+  Object.keys(parts).forEach(k => {
+    parts[k].weight = weights[k] || 0;
+    parts[k].effectiveWeight = live.includes(k) ? weights[k] / wsum : 0;
+  });
+
+  const score = wsum
+    ? Math.round(live.reduce((a, k) => a + parts[k].value * weights[k], 0) / wsum * 1000)
+    : null;
+
+  const el = bsEligible(m, data);
+  return {
+    version: BUILD_SCORE_VERSION, purpose, score, parts,
+    eligible: el.eligible, reasons: el.reasons,
+    dataOk: !!data,
+    dropped: Object.keys(parts).filter(k => !parts[k].counted),
+  };
+}
+
+async function buildScore(m, ctx) {
+  const data = await getBuildScoreFile();
+  let recommend = (ctx && ctx.recommend) || null;
+  if (!recommend) {
+    const f = await getAgentDataFile();
+    const a = f && f.agents[m.agentKey];
+    recommend = a && a.recommend ? a.recommend.mainBySlot : null;
+  }
+  return buildScoreSync(m, { ...(ctx || {}), data, recommend });
+}
+
+/* Человеческий разбор — то, ради чего скор вообще можно показывать. Числу без
+   объяснения на такой вкладке не поверят, и правильно сделают. */
+function explainBuildScore(res) {
+  const lines = [];
+  const pct = v => (v == null ? '—' : Math.round(v * 100) + '%');
+  const P = res.parts;
+  lines.push(`Скор ${res.score ?? '—'} из 1000 · профиль «${res.purpose}» · формула v${res.version}`);
+  if (!res.eligible) lines.push(`✕ в лидерборд не допускается: ${res.reasons.join('; ')}`);
+  if (!res.dataOk) lines.push('· данные скора не загрузились — считались только капы и проки');
+
+  if (P.caps.counted) lines.push(`· капы ${pct(P.caps.value)} (${P.caps.n} выверенных): `
+    + P.caps.detail.map(d => `${d.label} ${d.verdict}`).join(', '));
+  else lines.push('· капы: выверенных порогов у этого агента нет — составляющая выбыла, вес ушёл остальным');
+
+  if (P.procs.counted) lines.push(`· полезные проки ${P.procs.sum} из ${P.procs.max} (${pct(P.procs.value)})`);
+  else lines.push('· проки: правил полезности для агента нет — составляющая выбыла');
+
+  if (P.mains.counted) {
+    lines.push(`· мейн-статы ${pct(P.mains.value)}:`);
+    P.mains.detail.forEach(d => lines.push(`    слот ${d.slot} — ${d.stat || '—'}: ${d.why}`));
+  } else lines.push('· мейн-статы: рекомендации игры для агента нет — составляющая выбыла');
+
+  if (P.sets.counted) {
+    lines.push(`· сеты ${pct(P.sets.value)}: 4-Pc ${P.sets.four || '—'}${P.sets.fourWhy ? ` (${P.sets.fourWhy})` : ''}`);
+    if (P.sets.twoWhy) lines.push(`    2-Pc ${P.sets.twoWhy}`);
+    if (P.sets.offChain)
+      lines.push(`    ✕ ${P.sets.four} этому агенту не подходит вовсе. Работают только: `
+        + `${P.sets.workable.join(', ')}. Лучший — ${P.sets.best.join(' или ')}; `
+        + 'пока его нет, лучше не носить никакого 4-Pc, чем мёртвый.');
+    if (P.sets.rankId && P.sets.rankId !== 'base')
+      lines.push('    рейтинг сетов здесь не базовый — включилось условие по '
+        + (P.sets.rankId === 'team' ? 'составу отряда' : 'эйдосам'));
+    if (P.sets.conf === 'draft') lines.push('    состав сетов — черновик, ждёт вычитки');
+  } else lines.push('· сеты: какие сеты идут этому агенту — не описано, составляющая выбыла');
+
+  if (P.wengine.counted && P.wengine.effectiveWeight === 0)
+    lines.push(`· движок в этом профиле не считается (${P.wengine.why}) — §4.2`);
+  else if (P.wengine.counted)
+    lines.push(`· движок ${pct(P.wengine.value)}: ${P.wengine.why}, R${P.wengine.refine}, Lv.${P.wengine.level}`);
+
+  return lines;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ПОДБОР КОМАНДЫ: СКОР ТРОЙКИ И ПЕРЕБОР
+   ══════════════════════════════════════════════════════════════════════════
+   ЧТО ЭТО. Ядро вкладки «Билдер команд»: запреты, по которым тройка вообще
+   невозможна, число, которым тройки сравниваются между собой, и перебор,
+   который это число максимизирует. Интерфейса здесь нет — он на этапе 4Б.
+
+   ПОРЯДОК СИГНАЛОВ УСТАНОВЛЕН НЕ РАССУЖДЕНИЕМ (§4.22). Он проверен на реальных
+   клирах, и веса его соблюдают:
+     1. уязвимости и сопротивления врага — roomAttributeFit();
+     2. маркер «Suitable for Agents with X specialty» — roomSuitableFor();
+     3. теги зоны, строгие весомее мягких;
+     4. механика синергий и эмпирика клиров.
+   Первый пункт стоит первым потому, что игра — гача: контент точат под выход
+   баннера, боссы повторяются с раздутым HP, а зонные баффы меняются мало.
+   Заточка живёт в ките врага, то есть в его weak/res, а не в баффе.
+
+   ЗАПРЕТЫ — ЭТО ЗАПРЕТЫ, А НЕ ШТРАФЫ, И ИХ ТРИ. Все три выведены из 1228
+   реальных составов, а не назначены:
+     · хотя бы один агент урона — нарушений среди 1228 ровно ноль;
+     · не больше одного НЕ-аномального ДД (§4.29);
+     · не-аномальный ДД не уживается вообще ни с каким вторым ДД, включая
+       аномального — таких составов выше 1% доли ноль.
+   Третий сильнее второго и найден только на большой выборке. Для перебора это
+   не мелочь: выбрав не-аномального ДД, оба оставшихся слота обязаны быть
+   помощниками, и дерево обрубается на порядок.
+
+   ШТРАФА ЗА «НЕЗАКРЫТУЮ РОЛЬ» НЕТ НАМЕРЕННО. В плане он значился, но данные
+   его не подтвердили: 43% составов — три аномалика подряд, без саппорта и без
+   станера вовсе. Требовать саппорта значило бы выбросить самый популярный
+   состав патча. Всё, что казалось ролевыми требованиями, оказалось следствием
+   трёх запретов выше плюс размера тройки.
+
+   РЕЗИСТ ШТРАФУЕТ НЕ ВСЮ ТРОЙКУ, А ТОЛЬКО АГЕНТОВ УРОНА. Найдено на этапе 2:
+   в мете третьей стадии DA таскают Чжао в комнату с резистом льда. Он саппорт,
+   его лёд никого не бьёт, и штрафовать за это состав — ошибка. Попадание в
+   уязвимость, наоборот, считается по всем: аномалия от саппорта тоже аномалия.
+
+   ЧЕГО НЕТ ЗНАМЕНАТЕЛЯ, ТОГО НЕТ В ЧИСЛЕ — тот же приём, что в buildScore.
+   Составляющая без знаменателя выбывает, её вес делится между остальными.
+   Поэтому подбор работает и без сборок (режим «рекомендации»), и без данных
+   комнаты, и без описанной механики — просто с меньшим числом опор, и честно
+   об этом пишет.
+
+   ПОЧЕМУ ВСЁ СИНХРОННОЕ. Перебор троек из 58 агентов — это 30 856 сочетаний,
+   и на каждом надо посчитать синергию, эмпирику и сборки. Один await на тройку
+   стоил бы дороже всего остального счёта вместе взятого. Поэтому данные
+   грузятся ОДИН раз в tbContext(), а дальше всё считается синхронно.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Класс агента по отношению к урону. Три значения, а не два: аномальный урон
+   отличается от прочего тем, что уживается сам с собой. */
+function tbDamageKind(key, cfg) {
+  const c = getAgentClasses(key)[0];
+  if (!c) return null;
+  if (c === 'Anomaly') return 'anomaly';
+  if ((cfg.damageClasses || []).includes(c)) return 'other';
+  return 'helper';
+}
+
+/* Структурные запреты. Синхронно и без данных — только классы агентов. */
+function tbTeamLegal(keys, cfg) {
+  const kinds = keys.map(k => tbDamageKind(k, cfg));
+  const dmg = kinds.filter(x => x === 'anomaly' || x === 'other').length;
+  const other = kinds.filter(x => x === 'other').length;
+  if (dmg < (cfg.constraints.needDamage.min || 1))
+    return { ok: false, id: 'needDamage', why: cfg.constraints.needDamage.why, text: cfg.constraints.needDamage.text };
+  if (other > (cfg.constraints.oneNonAnomalyDamage.max || 1))
+    return { ok: false, id: 'oneNonAnomalyDamage', why: cfg.constraints.oneNonAnomalyDamage.why, text: cfg.constraints.oneNonAnomalyDamage.text };
+  if (other === 1 && dmg > 1)
+    return { ok: false, id: 'nonAnomalyDamageAlone', why: cfg.constraints.nonAnomalyDamageAlone.why, text: cfg.constraints.nonAnomalyDamageAlone.text };
+  return { ok: true };
+}
+
+/* ── СИГНАЛ 1: УЯЗВИМОСТИ И СОПРОТИВЛЕНИЯ ──
+   Попадание считаем по атрибутам ВСЕЙ тройки, промах — только по атрибутам
+   агентов урона. Асимметрия не косметическая: она и есть случай Чжао. */
+function tbRoomFit(room, keys, cfg) {
+  if (!room) return { counted: false, value: null };
+  const attrOf = k => (AGENT_ATTRIBUTE[k] || {}).base;
+  const all = keys.map(attrOf).filter(Boolean);
+  const dmgAttrs = keys
+    .filter(k => { const d = tbDamageKind(k, cfg); return d === 'anomaly' || d === 'other'; })
+    .map(attrOf).filter(Boolean);
+  const hitFit = roomAttributeFit(room, all);
+  const missFit = roomAttributeFit(room, cfg.roomFit.missOnlyForDamage ? dmgAttrs : all);
+  if (!hitFit.perEnemy.length) return { counted: false, value: null };
+  const value = Math.max(0, Math.min(1, hitFit.hit - cfg.roomFit.missWeight * missFit.miss));
+  return { counted: true, value, hit: hitFit.hit, miss: missFit.miss,
+           attrs: [...new Set(all)], dmgAttrs: [...new Set(dmgAttrs)] };
+}
+
+/* ── СИГНАЛ 2: МАРКЕР КОМНАТЫ ──
+   Отсутствие маркера — не «данных нет», а «сюда идёт что угодно». Поэтому
+   середина: тройка не награждается, но и не наказывается. */
+function tbSuitable(room, keys, cfg) {
+  const s = roomSuitableFor(room);
+  if (!room) return { counted: false, value: null };
+  if (s.open) return { counted: true, value: cfg.suitable.openRoom,
+                       text: 'the room is open to any vector \u2014 no specialty marker' };
+  const has = keys.some(k => getAgentClasses(k).includes(s.specialty));
+  return { counted: true, value: has ? cfg.suitable.match : cfg.suitable.miss,
+           text: has ? `the room asks for ${s.specialty}, and this team has one`
+                     : `the room asks for ${s.specialty}, and this team has none` };
+}
+
+/* ── СИГНАЛ 3: ТЕГИ ЗОНЫ ──
+   Проверяются только теги, которые вообще выражаются составом. Бонусы урона и
+   энергии зона раздаёт независимо от того, кто стоит, и в знаменатель не идут:
+   иначе состав штрафовался бы за то, на что не влияет. */
+function tbTags(room, keys, cfg) {
+  const z = roomZoneTags(room);
+  if (!room || !z.tags.length) return { counted: false, value: null };
+  const vocab = cfg.tags.vocabulary || {};
+  const classes = keys.flatMap(k => getAgentClasses(k));
+  const test = rule => {
+    if (!rule) return null;
+    if (rule.type === 'classInTeam') return rule.value.some(c => classes.includes(c));
+    if (rule.type === 'classCount')
+      return classes.filter(c => c === rule.value).length >= (rule.min || 1);
+    return null;
+  };
+  let got = 0, max = 0; const hit = [], missed = [];
+  for (const t of z.tags) {
+    const r = test(vocab[t]);
+    if (r === null) continue;                      // составом не проверяется — мимо знаменателя
+    const w = z.softTags.includes(t) ? cfg.tags.soft : cfg.tags.hard;
+    max += w;
+    if (r) { got += w; hit.push(t); } else missed.push(t);
+  }
+  if (!max) return { counted: false, value: null, why: 'теги зоны составом не проверяются' };
+  return { counted: true, value: got / max, hit, missed, zone: z.name, verified: z.verified };
+}
+
+/* ── СИГНАЛ 4: ЭМПИРИКА КЛИРОВ ──
+   Точное совпадение тройки с реальным составом комнаты — сильнейшее
+   свидетельство, какое вообще бывает: так уже проходили. Но и доля говорит,
+   состав на 1% и состав на 27% — разные вещи, отсюда база плюс доля.
+   Совпадения нет — считаем по парам: две трети силы состава видно и так. */
+function tbMeta(metaData, mode, roomKey, keys, cfg) {
+  if (!metaData) return { counted: false, value: null };
+  const box = metaData.comps[mode === 'da' ? 'da' : 'sd'] || {};
+  const rows = box[String(roomKey)] || [];
+  const ix = metaData._ix || {};
+  const mine = keys.map(k => ix[k]).filter(i => i !== undefined).sort((a, b) => a - b);
+  if (mine.length === keys.length) {
+    for (const [trio, boo, app] of rows) {
+      const t = trio.slice().sort((a, b) => a - b);
+      if (t[0] === mine[0] && t[1] === mine[1] && t[2] === mine[2]) {
+        return { counted: true,
+                 value: Math.min(1, cfg.meta.exactBase + app * cfg.meta.exactPerPct),
+                 exact: true, appRate: app,
+                 bangboo: boo >= 0 ? metaData.names[boo] : null };
+      }
+    }
+  }
+  /* Пары. Смотрим с обеих сторон и берём большее — доли у сторон разные,
+     потому что считаются от разных знаменателей. */
+  const duo = metaData.duo[mode === 'da' ? 'da' : 'sd'] || {};
+  const pair = (a, b) => {
+    const look = (x, y) => {
+      const row = duo[String(ix[x])];
+      if (!row) return 0;
+      const p = row[1].find(q => q[0] === ix[y]);
+      return p ? p[1] : 0;
+    };
+    return Math.max(look(a, b), look(b, a));
+  };
+  const ps = [];
+  for (let i = 0; i < keys.length; i++)
+    for (let j = i + 1; j < keys.length; j++) ps.push(pair(keys[i], keys[j]));
+  if (!ps.some(x => x > 0)) return { counted: false, value: null, exact: false };
+  const value = ps.reduce((a, b) => a + Math.min(1, b / cfg.meta.pairFull), 0) / ps.length;
+  return { counted: true, value, exact: false, pairs: ps };
+}
+
+/* ── СИГНАЛ 5: МЕХАНИКА СИНЕРГИЙ ──
+   Обязательные требования сюда не идут: незакрытое обязательное — это запрет,
+   и состав отсеивается раньше, в tbTeamLegal + блокерах teamSynergy. Здесь
+   считается доля закрытых НЕобязательных: она и отличает работающую тройку от
+   просто законной. */
+function tbSynergyPart(syn, cfg) {
+  if (!syn || syn.confidence === 'none') return { counted: false, value: null };
+  const met = syn.met.length;
+  const unmet = syn.unmet.filter(u => cfg.synergy.niceCountsAsMet || u.strength === 'usually').length;
+  if (!met && !unmet) return { counted: false, value: null, why: 'требований у этой тройки нет' };
+  return { counted: true, value: met / (met + unmet), met, unmet,
+           coverage: syn.coverage, confidence: syn.confidence };
+}
+
+/* ── СИГНАЛ 6: КАЧЕСТВО СБОРОК ──
+   Считается, только если сборки переданы. Вес роли: у ДД качество сборки
+   конвертируется в урон напрямую, у помощников — через баффы, которые часто
+   упираются в кап и дальше не растут.
+
+   ВСЕ ТРОЕ ИЛИ НИКТО. Раньше сигнал считался по тем, у кого сборка нашлась, и
+   это молча ломало сравнение. У человека сборка на Мияби и ни одной на группе
+   поддержки — тройка с Мияби получала «снаряжение 90%» по одному агенту, а
+   тройка, где все трое собраны ровно, но средне, — свои честные 70% по троим.
+   Побеждала первая, хотя реально слабее. Ещё хуже, что тройка совсем без
+   сборок теряла составляющую целиком, и её вес расходился по остальным
+   сигналам — то есть у неё менялась ШКАЛА, а у полусобранной нет: два состава
+   считались по разным формулам и клались в один список.
+   Поэтому знаменателя нет, пока сборки не найдены на всех троих. Сколько
+   нашлось — остаётся в разборе (haveFor / of), чтобы человек видел, ПОЧЕМУ
+   снаряжение не учтено, и мог дособрать пресеты. */
+function tbBuilds(keys, ctx, cfg) {
+  const models = ctx.builds || {};
+  const have = keys.filter(k => models[k]);
+  if (have.length < keys.length)
+    return { counted: false, value: null, haveFor: have.length, of: keys.length };
+  let sum = 0, wsum = 0; const per = {};
+  for (const k of have) {
+    const r = buildScoreSync(models[k], { ...ctx.buildCtx, purpose: 'builder', team: keys, data: ctx.bs });
+    if (r.score === null) continue;
+    const kind = tbDamageKind(k, cfg);
+    const w = (kind === 'helper') ? cfg.roleWeight.helper : cfg.roleWeight.damage;
+    sum += (r.score / 1000) * w; wsum += w; per[k] = r.score;
+  }
+  /* Хоть у одного не посчиталось (не набралось знаменателя у самого скора
+     сборки) — снова считать не по кому: возвращаемся к «все трое или никто». */
+  if (!wsum || Object.keys(per).length < keys.length)
+    return { counted: false, value: null, haveFor: Object.keys(per).length, of: keys.length };
+  return { counted: true, value: sum / wsum, per, haveFor: have.length, of: keys.length };
+}
+
+/* ── КОНТЕКСТ ──
+   Один await на весь подбор. Дальше всё синхронно: перебор зовёт teamScoreSync
+   десятки тысяч раз, и загрузка внутри цикла свела бы затею на нет. */
+async function tbContext(opts) {
+  const o = opts || {};
+  const [bs, syn, meta, rooms] = await Promise.all([
+    getBuildScoreFile(), getSynergyDataFile(), getMetaDataFile(), getRoomsDataFile(),
+  ]);
+  let room = o.room || null;
+  if (!room && rooms && o.mode) {
+    room = o.mode === 'da'
+      ? await getDaStageData(o.phase, o.stage)
+      : await getShiyuRoomData(o.season, o.floor, o.side);
+  }
+  return {
+    bs, syn, meta, room,
+    mode: o.mode === 'da' ? 'da' : 'sd',
+    roomKey: o.roomKey ?? (o.mode === 'da' ? o.stage : shiyuRoomKey(o.floor, o.side)),
+    builds: o.builds || null,
+    buildCtx: o.buildCtx || {},
+    cfg: (bs && bs.team) || null,
+  };
+}
+
+/* ── СКОР ТРОЙКИ ──
+   Возвращает не только число, но и всё, из чего оно сложилось: без разбора
+   рекомендации не поверят, и это не украшение, а часть результата. */
+function teamScoreSync(keys, ctx) {
+  const cfg = ctx.cfg;
+  const out = { keys: keys.slice(), score: null, ok: true, blockers: [], parts: {}, dropped: [] };
+  if (!cfg) { out.ok = false; out.blockers.push({ id: 'noConfig', why: 'данные подбора не загрузились' }); return out; }
+
+  /* Запреты — раньше всего: состав, нарушивший такой, не «хуже», а невозможен,
+     и считать его дальше незачем. */
+  const legal = tbTeamLegal(keys, cfg);
+  if (!legal.ok) { out.ok = false; out.blockers.push(legal); return out; }
+  const syn = teamSynergyWith(ctx.syn, keys);
+  if (!syn.ok) { out.ok = false; out.blockers = syn.blockers.slice(); out.synergy = syn; return out; }
+  out.synergy = syn;
+
+  const parts = {
+    roomFit:  tbRoomFit(ctx.room, keys, cfg),
+    suitable: tbSuitable(ctx.room, keys, cfg),
+    tags:     tbTags(ctx.room, keys, cfg),
+    synergy:  tbSynergyPart(syn, cfg),
+    meta:     tbMeta(ctx.meta, ctx.mode, ctx.roomKey, keys, cfg),
+    builds:   tbBuilds(keys, ctx, cfg),
+  };
+  const w = cfg.weights;
+  const live = Object.keys(parts).filter(k => parts[k].counted && (w[k] || 0) > 0);
+  const wsum = live.reduce((a, k) => a + w[k], 0);
+  Object.keys(parts).forEach(k => {
+    parts[k].weight = w[k] || 0;
+    parts[k].effectiveWeight = live.includes(k) ? w[k] / wsum : 0;
+  });
+  out.parts = parts;
+  out.dropped = Object.keys(parts).filter(k => !parts[k].counted);
+  out.score = wsum
+    ? Math.round(live.reduce((a, k) => a + parts[k].value * w[k], 0) / wsum * 1000)
+    : null;
+  return out;
+}
+
+async function teamScore(keys, opts) {
+  return teamScoreSync(keys, await tbContext(opts));
+}
+
+/* ── ПЕРЕБОР ──
+   Полный, без хитростей: 58 агентов дают 30 856 сочетаний, и это доли секунды.
+   Экономия одна, зато крупная — запреты проверяются ДО того, как считать
+   сигналы, и отсекают большую часть дерева на классах, то есть почти даром. */
+function findTeamsSync(candidates, ctx, opts) {
+  const o = opts || {};
+  const top = o.top || 10;
+  const list = [...new Set(candidates || [])].filter(k => getAgentClasses(k).length);
+  const must = (o.include || []).filter(k => list.includes(k));
+  const res = [];
+  let seen = 0, illegal = 0;
+  for (let i = 0; i < list.length; i++)
+    for (let j = i + 1; j < list.length; j++)
+      for (let k = j + 1; k < list.length; k++) {
+        const trio = [list[i], list[j], list[k]];
+        if (must.length && !must.every(m => trio.includes(m))) continue;
+        seen++;
+        if (!tbTeamLegal(trio, ctx.cfg).ok) { illegal++; continue; }
+        const r = teamScoreSync(trio, ctx);
+        if (!r.ok || r.score === null) { illegal++; continue; }
+        res.push(r);
+      }
+  res.sort((a, b) => b.score - a.score);
+  return { teams: res.slice(0, top), examined: seen, rejected: illegal, kept: res.length };
+}
+
+async function findTeams(candidates, opts) {
+  const ctx = await tbContext(opts);
+  return { ...findTeamsSync(candidates, ctx, opts), ctx: { room: !!ctx.room, mode: ctx.mode, roomKey: ctx.roomKey } };
+}
+
+
+/* ── НЕПЕРЕСЕКАЮЩИЕСЯ ТРОЙКИ ──
+   Задача другая, чем «лучшая тройка в комнату», и решается она иначе. Этаж
+   Shiyu требует две команды, пятый этаж — три, вся фаза Deadly Assault —
+   четыре, и один агент не может стоять в двух местах. Жадный проход тут врёт
+   заметно: лучшая тройка первой комнаты часто забирает агента, без которого
+   вторая комната рассыпается. Поэтому beam search.
+
+   ПОРЯДОК КОМНАТ — ОТ САМОЙ ТЕСНОЙ. Комнату, куда подходит меньше всего троек,
+   заполняем первой: у неё меньше запасных вариантов, и отдавать её агентов
+   более свободной комнате — самый дорогой из возможных промахов. Это обычная
+   эвристика для задач назначения, и она дешёвая: число законных троек уже
+   посчитано перебором.
+
+   ТОЧНОГО ОПТИМУМА НЕ ОБЕЩАЕМ, и это записано в плане (§5, этап 4). Полный
+   перебор пар непересекающихся троек — это миллиарды сочетаний. Beam с шириной
+   в несколько десятков находит решение, которое человек не улучшит глазами, за
+   доли секунды.
+
+   ЕСЛИ РЕШЕНИЯ НЕТ ВОВСЕ — так и говорим. У человека с двенадцатью агентами
+   три непересекающиеся тройки могут просто не собраться, и молча выдать две
+   значило бы соврать. */
+function findTeamSetsSync(candidates, ctxList, opts) {
+  const o = opts || {};
+  const pool = o.pool || 120, branch = o.branch || 14, width = o.beam || 40;
+
+  const rooms = ctxList.map((c, i) => {
+    const r = findTeamsSync(candidates, c.ctx, { top: pool, include: (o.include || {})[c.key] });
+    return { ...c, order: i, teams: r.teams, legal: r.kept, examined: r.examined };
+  });
+  const short = rooms.filter(r => !r.teams.length);
+  if (short.length)
+    return { ok: false, sets: [], why: 'noTeams', rooms,
+             blocked: short.map(r => r.key) };
+
+  /* Самая тесная комната идёт первой — см. шапку. */
+  const order = rooms.slice().sort((a, b) => a.legal - b.legal);
+  let beam = [{ used: new Set(), picks: [], total: 0 }];
+  for (const room of order) {
+    const next = [];
+    for (const st of beam) {
+      let added = 0;
+      for (const t of room.teams) {
+        if (t.keys.some(k => st.used.has(k))) continue;
+        const used = new Set(st.used);
+        t.keys.forEach(k => used.add(k));
+        next.push({ used, picks: [...st.picks, { room, team: t }], total: st.total + t.score });
+        if (++added >= branch) break;
+      }
+    }
+    if (!next.length)
+      return { ok: false, sets: [], why: 'noDisjoint', rooms,
+               filled: beam[0] ? beam[0].picks.length : 0, need: rooms.length };
+    next.sort((a, b) => b.total - a.total);
+    beam = next.slice(0, width);
+  }
+  /* Закреплённые агенты в НАБОРЕ означают не «в каждой тройке», а «где-нибудь
+     в наборе»: один агент не может стоять в двух комнатах сразу. Поэтому не
+     фильтруем перебор, а выбираем из готового beam лучшее состояние, где все
+     закреплённые пристроены. Не нашлось такого — берём лучшее вообще и честно
+     помечаем, что закрепить всех не вышло. */
+  const must = (o.mustUse || []).filter(Boolean);
+  const fits = must.length ? beam.filter(st => must.every(k => st.used.has(k))) : beam;
+  const best = fits.length ? fits[0] : beam[0];
+  const mustMissed = must.filter(k => !best.used.has(k));
+  /* Обратно в порядок комнат, а не в порядок заполнения: человек смотрит на
+     этаж сверху вниз, и переставлять комнаты под нашу эвристику нельзя. */
+  const sets = best.picks.slice().sort((a, b) => a.room.order - b.room.order)
+    .map(p => ({ key: p.room.key, label: p.room.label, team: p.team }));
+  return { ok: true, sets, total: best.total,
+           avg: Math.round(best.total / sets.length),
+           agentsUsed: best.used.size, rooms, mustMissed };
+}
+
+/* Контексты на всю задачу. Комната у каждой свои враги и своя зона, поэтому
+   контекст нужен отдельный на каждую — общий дал бы одинаковый roomFit везде,
+   а это главный сигнал подбора. */
+async function tbContexts(task, opts) {
+  const o = opts || {};
+  if (task === 'room') {
+    const ctx = await tbContext(o);
+    return [{ key: String(ctx.roomKey), label: o.label || String(ctx.roomKey), ctx }];
+  }
+  if (task === 'floor') {
+    const sides = (+o.floor >= 5) ? ['A', 'B', 'C'] : ['A', 'B'];
+    return Promise.all(sides.map(async (side, i) => {
+      const ctx = await tbContext({ ...o, side });
+      return { key: shiyuRoomKey(o.floor, side), label: `Room ${i + 1}`, ctx };
+    }));
+  }
+  if (task === 'da') {
+    const f = await getRoomsDataFile().catch(() => null);
+    const box = f && f.da && f.da[o.phase];
+    const keys = box ? Object.keys(box).filter(k => !k.startsWith('_')) : ['1', '2', '3', 'adv'];
+    return Promise.all(keys.map(async k => {
+      const ctx = await tbContext({ ...o, mode: 'da', stage: k, roomKey: k });
+      return { key: k, label: k === 'adv' ? 'Adversity' : `Stage ${k}`, ctx };
+    }));
+  }
+  return [];
+}
+
+async function findTeamSets(candidates, task, opts) {
+  const ctxs = await tbContexts(task, opts);
+  return { ...findTeamSetsSync(candidates, ctxs, opts), task, count: ctxs.length };
+}
+
+/* ── РАЗБОР ──
+   Без него вкладке не поверят, поэтому он часть результата, а не украшение.
+   Порядок строк повторяет порядок сигналов (§4.22): сперва про врага, потом
+   про комнату, потом про то, как тройка держится изнутри.
+
+   ТЕКСТ ЗДЕСЬ АНГЛИЙСКИЙ, И ЭТО НЕ МЕЛОЧЬ. Интерфейс сайта английский, а эти
+   строки идут прямо в карточку тройки — они пользовательские, а не отладочные.
+   Русскими остаются комментарии и поля `why` в JSON: те объясняют решение нам,
+   и в интерфейс не попадают. Где обоснование нужно показать человеку, рядом с
+   `why` лежит `text` — английский. */
+function explainTeam(r) {
+  const lines = [];
+  const pct = v => (v == null ? '\u2014' : Math.round(v * 100) + '%');
+  if (!r.ok) {
+    for (const b of r.blockers)
+      lines.push(b.kind === 'need' ? `\u2715 ${cardName(b.agent)}: required \u00absynergy: ${b.what}\u00bb is not covered by the other two.`
+               : b.agents ? `\u2715 ${b.agents.map(cardName).join(' and ')} \u2014 ${b.text || b.why}`
+               : `\u2715 ${b.text || b.why}`);
+    return lines;
+  }
+  const P = r.parts;
+  lines.push(`${r.keys.map(cardName).join(' + ')} \u2014 ${r.score} / 1000`);
+  if (P.roomFit.counted)
+    lines.push(`\u00b7 enemies ${pct(P.roomFit.value)}: hits a weakness on ${pct(P.roomFit.hit)} of the room's HP`
+      + (P.roomFit.miss > 0 ? `, runs into resistance on ${pct(P.roomFit.miss)} (counted for damage dealers only)` : ', nothing resisted'));
+  else lines.push("\u00b7 no room data for this season \u2014 enemies not taken into account");
+  if (P.suitable.counted) lines.push(`\u00b7 ${P.suitable.text || P.suitable.why}`);
+  if (P.tags.counted)
+    lines.push(`\u00b7 zone \u00ab${P.tags.zone}\u00bb ${pct(P.tags.value)}: matches ${P.tags.hit.join(', ') || 'nothing'}`
+      + (P.tags.missed.length ? `, misses ${P.tags.missed.join(', ')}` : ''));
+  if (P.meta.counted)
+    lines.push(P.meta.exact
+      ? `\u00b7 this exact team clears the room for ${P.meta.appRate}% of players${P.meta.bangboo ? `, with ${cardName(P.meta.bangboo)}` : ''}`
+      : `\u00b7 this exact team is not in the clear data, but these agents do play together \u2014 ${pct(P.meta.value)}`);
+  else lines.push('\u00b7 not found in clear statistics');
+  if (P.synergy.counted)
+    lines.push(`\u00b7 kit synergy ${pct(P.synergy.value)}: ${P.synergy.met} requirement${P.synergy.met === 1 ? '' : 's'} covered, ${P.synergy.unmet} not`
+      + (P.synergy.confidence !== 'full' ? ` (kits described for ${P.synergy.coverage.described} of ${P.synergy.coverage.total})` : ''));
+  if (P.builds.counted)
+    lines.push(`\u00b7 gear ${pct(P.builds.value)}: `
+      + Object.entries(P.builds.per).map(([k, v]) => `${cardName(k)} ${v}`).join(', '));
+  else if (P.builds.haveFor > 0)
+    lines.push(`\u00b7 gear not counted \u2014 you have builds for only ${P.builds.haveFor} of ${P.builds.of} agents here,`
+      + ' and scoring a team on part of its gear would flatter it over a team geared all the way through');
+  else lines.push('\u00b7 no builds supplied \u2014 judged on the roster, not the gear');
+  for (const t of (r.synergy ? r.synergy.met : []))
+    if (t.by && t.by.length) lines.push(`    ${cardName(t.agent)} needs \u00ab${t.what}\u00bb \u2014 covered by ${t.by.map(cardName).join(', ')}`);
+  /* «builds» из этой строки выброшен: про снаряжение выше уже сказано целой
+     фразой, с причиной и числом, и повторять его сухим списком значит
+     печатать один факт дважды — карточка от этого только мутнеет. */
+  const dropped = r.dropped.filter(k => k !== 'builds');
+  if (dropped.length) lines.push(`\u00b7 not scored: ${dropped.join(', ')} \u2014 weight went to the rest`);
+  return lines;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -16990,6 +18845,797 @@ function updateRoomOptions() {
   if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   ВКЛАДКА «ПОДБОР КОМАНД»: ИНТЕРФЕЙС
+   ══════════════════════════════════════════════════════════════════════════
+   ЧТО ЭТО. Оболочка вокруг движка подбора: выбор комнаты, запуск перебора,
+   показ троек с разбором. Считать здесь нечего — всё считает teamScore(),
+   а этот блок только спрашивает и рисует.
+
+   ДИЗАЙНА ТУТ НЕТ НАМЕРЕННО. Порядок работы по проекту: сначала техническая
+   часть, оформление Артём доводит на этапе 9. Задача этой версии — чтобы
+   подбор можно было ПОЩУПАТЬ на своих данных и увидеть, врёт он или нет.
+
+   ПОЧЕМУ РАЗБОР ВИДЕН СРАЗУ, А НЕ ПО КЛИКУ. Рекомендации, которой не веришь,
+   никто не пользуется, а поверить можно только увидев, из чего она сложилась.
+   Тумблер «Reasoning» его прячет, но по умолчанию он включён.
+
+   ПОЧЕМУ ПЕРЕБОР НЕ ЗАПУСКАЕТСЯ САМ. Он тянет четыре внешних файла и считает
+   тридцать тысяч сочетаний. Платить за это при каждом переключении вкладок
+   незачем, поэтому запуск — при первом открытии вкладки и дальше по кнопке
+   или по смене комнаты.
+
+   ОТКУДА БЕРУТСЯ КАНДИДАТЫ. Два источника, переключатель в тулбаре:
+     · My agents — включённые в Agent Library. Это ответ на вопрос «что мне
+       собрать из того, что у меня есть»;
+     · All agents — все 58. Это ответ на вопрос «а как вообще проходят».
+   Сборки в скор пока не идут: их источник (сохранённые пресеты против витрины
+   Enka) — отдельный разговор на этапе 5, и подмешивать его сюда рано. Скор
+   честно пишет, что судит по составу, а не по снаряжению.
+   ══════════════════════════════════════════════════════════════════════════ */
+let builderState = { ran: false, busy: false, show: { why: true, room: true }, last: null };
+
+function builderToggle(key, btn) {
+  builderState.show[key] = !builderState.show[key];
+  btn.classList.toggle('active', builderState.show[key]);
+  builderPaint();
+}
+
+/* Заполнение селектов сезона и стадии. Списки берутся из тех же таблиц, что
+   у остальных вкладок (SHIYU_SEASONS, DA_PHASES), чтобы не завести вторую
+   копию, которая разъедется при первом же новом сезоне. */
+function builderFillPeriods() {
+  const mode = document.getElementById('tbBuilderMode').value;
+  const sel = document.getElementById('tbBuilderPeriod');
+  const cur = sel.value;
+  if (mode === 'da') {
+    sel.innerHTML = DA_PHASES.map(p => `<option value="${p}">${escapeHtml(daPhaseLabel(p))}</option>`).join('');
+  } else {
+    sel.innerHTML = SHIYU_SEASONS.map(x => `<option value="${x}">${escapeHtml(shiyuSeasonLabel(x))}</option>`).join('');
+  }
+  if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+  else {
+    const live = mode === 'da' ? currentDaPhase() : currentShiyuSeason();
+    if (live && [...sel.options].some(o => o.value === live)) sel.value = live;
+  }
+}
+
+/* Комнаты Shiyu: на этажах 1-4 их две, на пятом три (§4.14). Правило то же,
+   что в updateRoomOptions() у вкладки команд, но список свой — там он привязан
+   к форме редактора, и переиспользовать его пришлось бы через DOM. */
+function builderFillRooms() {
+  const floor = +document.getElementById('tbBuilderFloor').value;
+  const sel = document.getElementById('tbBuilderSide');
+  const cur = sel.value;
+  sel.innerHTML = (floor <= 4 ? ['A', 'B'] : ['A', 'B', 'C'])
+    .map((v, i) => `<option value="${v}">Room ${i + 1}</option>`).join('');
+  if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+}
+
+async function builderFillStages() {
+  const phase = document.getElementById('tbBuilderPeriod').value;
+  const sel = document.getElementById('tbBuilderStage');
+  const cur = sel.value;
+  const f = await getRoomsDataFile().catch(() => null);
+  const box = f && f.da && f.da[phase];
+  /* Ключи стадий берём из самих данных, а не из константы: у фазы их может быть
+     и три, и четыре — Adversity открывается не всегда. Данных нет — оставляем
+     привычный набор, чтобы селект не оказался пустым. */
+  const keys = box ? Object.keys(box).filter(k => !k.startsWith('_')) : ['1', '2', '3', 'adv'];
+  const label = k => (k === 'adv' ? 'Adversity' : `Stage ${k}`);
+  sel.innerHTML = keys.map(k => `<option value="${k}">${escapeHtml(label(k))}</option>`).join('');
+  if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+}
+
+async function builderModeChanged() {
+  const mode = document.getElementById('tbBuilderMode').value;
+  document.getElementById('tbBuilderShiyuRoom').classList.toggle('hidden', mode === 'da');
+  document.getElementById('tbBuilderDaStage').classList.toggle('hidden', mode !== 'da');
+  builderFillPeriods();
+  if (mode === 'da') await builderFillStages(); else builderFillRooms();
+  builderRun();
+}
+
+async function builderPeriodChanged() {
+  if (document.getElementById('tbBuilderMode').value === 'da') await builderFillStages();
+  builderRun();
+}
+
+function builderFloorChanged() { builderFillRooms(); builderRun(); }
+
+function builderOpened() {
+  if (builderState.ran) return;
+  builderState.ran = true;
+  builderFillPeriods();
+  builderFillRooms();
+  builderRun();
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   СНАРЯЖЕНИЕ В ПОДБОРЕ
+
+   До сих пор подбор судил по составу и честно об этом писал: «no builds
+   supplied — judged on the roster, not the gear». Здесь появляется
+   снаряжение — и с ним четыре правила, которые задал Артём.
+
+   ПРИМЕНЯТЬ МОЖНО ТОЛЬКО СВОИ СБОРКИ. Сохранить у себя можно чужую — во
+   вкладке профиля копируется публикация или снимок чужого стенда, — но
+   ПРИМЕНИТЬ её нельзя: это не твои диски. Поэтому подбор берёт только
+   `manual` без источника (собрано руками) и `verified` (снимок собственного
+   подтверждённого стенда), а `imported` и копии чужих публикаций отсекает.
+   Стенд считается своим, только если на экране ТВОЙ подтверждённый UID:
+   вкладка профиля показывает любой чужой UID, и без этой проверки подбор
+   считал бы тройку по снаряжению незнакомого человека. Ошибиться здесь —
+   значит соврать в самом дорогом месте: показать состав, который у человека
+   не собран.
+
+   ЛУЧШИЙ ПРЕСЕТ ЗАВИСИТ ОТ КОМНАТЫ. У Мияби крит-сборка и аномальная — разные
+   вещи, и какая сильнее, решают враги комнаты. Поэтому пресет не выбирается
+   раз и навсегда: модели строятся один раз (это дорого — лист статов на
+   каждый пресет), а ВЫБОР лучшего делается заново для каждой комнаты и стоит
+   уже копейки. Отсюда разделение на builderGearModels (async, один раз) и
+   builderPickGear (sync, на комнату) — тот же приём, что у контекста подбора.
+
+   ЕСЛИ ВСЕ ПРЕСЕТЫ СЛАБЫЕ — так и говорим и советуем собрать с нуля из
+   библиотеки, а не молча считаем по плохим. Порог в данных (team.gear.weakBelow
+   в zzz-buildscore.json), не в коде: это калибруемая величина, а не знание.
+
+   АССИСТЫ МОЖНО ВЫКЛЮЧИТЬ. Источник «Off» — не заглушка на случай отсутствия
+   данных, а полноправный режим: снаряжение не учитывается вовсе, и подбор
+   возвращается к оценке по составу. Рядом — ручной выбор: для каждого агента
+   можно назначить конкретный пресет вместо автоподбора или исключить агента
+   из учёта. Человек, который знает свои сборки лучше алгоритма, должен иметь
+   возможность сказать это прямо.
+
+   ИЗВЕСТНОЕ УПРОЩЕНИЕ. Артём отметил, что на выбор пресета влияют и
+   сокомандники — что они льют в бою. Но состав тройки на момент выбора ещё не
+   известен: перебор идёт ПОСЛЕ. Поэтому пресет выбирается по комнате, а
+   оценивается уже с тройкой. Точный вариант — переподобрать пресеты для
+   десятка показанных троек и пересчитать их; это дёшево и стоит следующим
+   шагом.
+   ══════════════════════════════════════════════════════════════════════════ */
+const BUILDER_GEAR_SOURCES = ['none', 'presets', 'stand', 'both'];
+
+/* Ручные назначения: agentKey → presetId | 'stand' | 'skip' | undefined(авто).
+   Живут в состоянии вкладки, а не в localStorage: это решение про КОНКРЕТНЫЙ
+   подбор, и переживать перезагрузку ему незачем. */
+let builderGearPick = {};
+/* Модели пресетов держатся между запусками: строятся они долго, а меняются
+   только когда человек правит пресеты. Ключ кэша — источник плюс отпечаток
+   списка пресетов; отпечаток дешёвый, а лишняя пересборка стоит секунд. */
+let builderGearCache = null;
+
+/* Свой ли это пресет. Осторожная сторона ошибки выбрана сознательно в обе
+   стороны: `imported` и всё, у чего есть `source`, считаем чужим, а
+   сомнительное старьё без источника — своим, потому что отобрать у человека
+   его же сборку хуже, чем не показать её. */
+function presetIsMine(p) {
+  const cat = presetCategory(p);
+  if (cat === 'verified') return true;          // снимок СВОЕГО подтверждённого стенда
+  if (cat === 'imported') return false;         // чужая публикация или чужой стенд
+  return cat === 'manual' && !p.source;         // собрано руками, без чужого следа
+}
+
+/* Стенд свой, только если на экране собственный подтверждённый UID. Без
+   подтверждения UID стенд — просто чей-то чужой профиль, открытый поиском. */
+function builderStandIsMine() {
+  return !!(currentUser && myGameUid && profileCurrentUid === myGameUid);
+}
+
+/* Сборки со стенда — ВСЕ, а не только открытая карточка. profileCurrentLiveBuild
+   держит одного агента, того, что сейчас нарисован справа; подбору нужны все
+   шестеро. Разбор сырого ответа Enka повторяет renderProfileDetail — те же
+   поля, тот же порядок дисков, — потому что расхождение здесь означало бы, что
+   одна и та же витрина в двух местах сайта показывает разные сборки. */
+async function builderStandBuilds() {
+  if (!builderStandIsMine()) return [];
+  const avatars = profileLastAvatars || [];
+  if (!avatars.length) return [];
+  const itemsRef = await getEnkaEquipmentItems().catch(() => ({}));
+  const out = [];
+  for (const a of avatars) {
+    const slug = ENKA_AGENT_MAP[a.Id];
+    if (!slug) continue;
+    const discs = (a.EquippedList || []).slice().sort((x, y) => x.Slot - y.Slot)
+      .map(e => enkaBuildDiscDisplayEntry(e.Equipment, e.Slot, itemsRef));
+    if (discs.length !== 6) continue;
+    out.push({
+      agentKey: slug,
+      preset: {
+        id: 'stand:' + slug, name: 'Showcase', discs,
+        wengine: a.Weapon ? ENKA_WENGINE_MAP[a.Weapon.Id] : null,
+        wrank: a.Weapon ? Math.max(1, a.Weapon.UpgradeLevel || 1) : 0,
+        wengineLevel: a.Weapon ? a.Weapon.Level : null,
+        level: a.Level, coreSkillEnhancement: a.CoreSkillEnhancement || 0,
+        mindscape: a.TalentLevel || 0,
+      },
+    });
+  }
+  return out;
+}
+
+/* Модель карточки из пресета — та же, что строят панели профиля и пресета.
+   Своей арифметики здесь нет: всё считают уже существующие функции, иначе у
+   подбора и у карточки разъехались бы числа по одной и той же сборке. */
+async function builderModelFromPreset(agentKey, preset, extFile) {
+  const discs = (preset.discs || []).slice().sort((a, b) => a.slot - b.slot);
+  if (discs.length !== 6) return null;
+  const lib = getAgentLibEntry(agentKey);
+  const level = Number.isFinite(preset.level) ? preset.level : (lib.level || 60);
+  const coreRank = Number.isFinite(preset.coreSkillEnhancement)
+    ? preset.coreSkillEnhancement : (lib.coreSkillEnhancement || 0);
+  const sheet = await buildManualAgentStatSheet(agentKey, preset.wengine, discs, {
+    level, coreSkillEnhancement: coreRank,
+    wengineLevel: preset.wengineLevel ?? undefined,
+  }).catch(() => null);
+  const useful = resolveUsefulSubstats(agentKey, discs);
+  const setCounts = {};
+  discs.forEach(d => { setCounts[d.setName] = (setCounts[d.setName] || 0) + 1; });
+  const info = preset.wengine ? WENGINE_INFO[preset.wengine] : null;
+  return {
+    agentKey, level, coreRank,
+    mindscape: Number.isFinite(preset.mindscape) ? preset.mindscape : (lib.mindscape || 0),
+    sheet, useful, discs, setCounts,
+    procCounts: countUsefulProcs(discs, useful),
+    ext: extFile ? (extFile.agents[agentKey] || null) : null,
+    wengine: preset.wengine ? {
+      key: preset.wengine,
+      level: preset.wengineLevel ?? (getWengineLibEntry(preset.wengine).level || 60),
+      rank: preset.wrank || 1,
+      secName: info && info.secondaryStat ? info.secondaryStat.name : null,
+    } : null,
+    _presetId: preset.id, _presetName: preset.name || 'Preset',
+    _from: String(preset.id || '').startsWith('stand:') ? 'stand' : 'preset',
+  };
+}
+
+/* Отпечаток набора пресетов: если он не изменился, модели можно не строить
+   заново. Берутся id и число дисков — этого хватает, чтобы заметить
+   добавление, удаление и правку, а считать хэш по всем субстатам дороже, чем
+   изредка лишний раз пересобрать. */
+function builderGearFingerprint(keys, source) {
+  const parts = [source, builderStandIsMine() ? (profileCurrentUid || '') : '', String((profileLastAvatars || []).length)];
+  for (const k of keys)
+    for (const p of getAgentPresets(k).filter(presetIsMine))
+      parts.push(k + ':' + p.id + ':' + ((p.discs || []).length) + ':' + (p.wengine || '') + ':' + (p.wrank || 0));
+  return parts.join('|');
+}
+
+/* Модели всех своих сборок каждого кандидата. Дорогая часть, поэтому один раз
+   на запуск и с кэшем: лист статов считается на КАЖДЫЙ пресет, а пресетов у
+   человека бывает десяток. От комнаты здесь ничто не зависит — выбор лучшего
+   идёт отдельно, в builderPickGear. */
+async function builderGearModels(keys, source) {
+  if (!source || source === 'none') return null;
+  const fp = builderGearFingerprint(keys, source);
+  if (builderGearCache && builderGearCache.fp === fp) return builderGearCache.data;
+
+  const extFile = await getAgentDataFile().catch(() => null);
+  const byKey = {};
+  const want = new Set(keys);
+
+  if (source !== 'stand') {
+    for (const k of keys) {
+      for (const p of getAgentPresets(k).filter(presetIsMine)) {
+        const m = await builderModelFromPreset(k, p, extFile);
+        if (m) (byKey[k] = byKey[k] || []).push(m);
+      }
+    }
+  }
+  if (source === 'stand' || source === 'both') {
+    for (const s of await builderStandBuilds()) {
+      if (!want.has(s.agentKey)) continue;
+      const m = await builderModelFromPreset(s.agentKey, s.preset, extFile);
+      if (m) (byKey[s.agentKey] = byKey[s.agentKey] || []).push(m);
+    }
+  }
+  const data = { byKey, source, standMine: builderStandIsMine() };
+  builderGearCache = { fp, data };
+  return data;
+}
+
+/* Выбор лучшей сборки под ЭТУ комнату. Синхронно и дёшево: перебор моделей,
+   уже построенных, через buildScoreSync с контекстом комнаты. Здесь же
+   применяются ручные назначения человека — они СИЛЬНЕЕ автоподбора, потому
+   что человек знает про свои сборки то, чего в данных нет. */
+function builderPickGear(models, ctx) {
+  if (!models) return null;
+  const out = { map: {}, notes: [], weak: [], skipped: [], asked: 0, covered: 0, source: models.source };
+  const cfg = (ctx.bs && ctx.bs.team) || null;
+  const weakBelow = (cfg && cfg.gear && Number.isFinite(cfg.gear.weakBelow)) ? cfg.gear.weakBelow : 0;
+
+  for (const key of Object.keys(models.byKey)) {
+    const list = models.byKey[key];
+    if (!list || !list.length) continue;
+    out.asked++;
+    const pick = builderGearPick[key];
+    if (pick === 'skip') { out.skipped.push(key); continue; }
+
+    let chosen = null, chosenScore = -1, auto = true;
+    if (pick) {
+      const forced = list.find(m => m._presetId === pick);
+      if (forced) {
+        const r = buildScoreSync(forced, { data: ctx.bs, purpose: 'builder', enemyDef: ctx.enemyDef });
+        chosen = forced; chosenScore = r.score === null ? 0 : r.score; auto = false;
+      }
+    }
+    if (!chosen) {
+      for (const m of list) {
+        const r = buildScoreSync(m, { data: ctx.bs, purpose: 'builder', enemyDef: ctx.enemyDef });
+        if (r.score !== null && r.score > chosenScore) { chosenScore = r.score; chosen = m; }
+      }
+    }
+    if (!chosen) continue;
+    /* Копия, а не сама модель: скор комнатозависим, и записывать его в общий
+       объект значило бы, что вторая комната перетрёт число первой. */
+    const model = { ...chosen, _score: chosenScore, _auto: auto };
+    out.map[key] = model;
+    out.covered++;
+    out.notes.push({ key, name: chosen._presetName, from: chosen._from, of: list.length, score: chosenScore, auto });
+    /* Слабый — не «плохой человек», а сигнал: лучший из имеющихся пресетов не
+       дотягивает до порога, и правильный совет тут собрать сборку заново из
+       библиотеки, а не тасовать то же самое. */
+    if (weakBelow && chosenScore < weakBelow) out.weak.push({ key, score: chosenScore, of: list.length });
+  }
+  return out;
+}
+
+/* ── ПАНЕЛЬ СНАРЯЖЕНИЯ ──
+   Показывает ровно то, что подбор реально взял: чью сборку, какую именно и
+   почему. Здесь же ручной выбор — селект на агента. Список короткий по
+   устройству: в него попадают только агенты, у которых СВОИ сборки есть, а их
+   у человека обычно единицы, не весь ростер.
+
+   Отдельная строка — про непокрытых. Составляющая «снаряжение» включается
+   только когда собраны все трое (см. tbBuilds), поэтому человеку важно видеть
+   не «сколько сборок есть», а «скольким тройкам это вообще помогло». */
+function builderGearHtml(gear, models, shown) {
+  const src = document.getElementById('tbBuilderGear');
+  if (!src || src.value === 'none' || !models) return '';
+  const keys = Object.keys(models.byKey).sort((a, b) => cardName(a).localeCompare(cardName(b)));
+  if (!keys.length) {
+    const why = models.source === 'stand'
+      ? (models.standMine
+          ? 'Your showcase has no agents with a full set of six discs yet.'
+          : 'Open your own verified UID on the Profile tab first — the picker only ever applies builds that are yours.')
+      : 'You have no builds of your own saved yet. Presets copied from other players stay copies: they can be viewed, but not applied here.';
+    return `<div class="bd-gear"><div class="bd-gear-head">Gear</div><div class="bd-note">${why}</div></div>`;
+  }
+  const rows = keys.map(k => {
+    const list = models.byKey[k];
+    const note = gear && gear.notes.find(n => n.key === k);
+    const pick = builderGearPick[k] || '';
+    const opts = [`<option value="">Best for this room</option>`]
+      .concat(list.map(m => `<option value="${escapeHtml(m._presetId)}"${pick === m._presetId ? ' selected' : ''}>${escapeHtml(m._presetName)}${m._from === 'stand' ? ' (stand)' : ''}</option>`))
+      .concat([`<option value="skip"${pick === 'skip' ? ' selected' : ''}>Don’t use my gear</option>`]);
+    const weak = gear && gear.weak.some(w => w.key === k);
+    return `<div class="bd-gear-row">
+      <img class="bd-gear-face" src="${agentSquareUrl(k)}" alt="" onerror="this.style.opacity=0">
+      <span class="bd-gear-name">${escapeHtml(cardName(k))}</span>
+      <select class="bd-gear-sel" onchange="builderGearChanged('${escapeHtml(k)}', this.value)">${opts.join('')}</select>
+      <span class="bd-gear-score${weak ? ' weak' : ''}">${note ? note.score : '—'}</span>
+    </div>`;
+  }).join('');
+
+  /* Сколько ПОКАЗАННЫХ троек снаряжение реально задело. Без этой строки панель
+     обещала «снаряжение учтено у пятерых», а в каждой карточке ниже стояло «no
+     builds supplied»: своих сборок у людей единицы, а подбор перебирает весь
+     ростер, и почти в каждой тройке кто-то один остаётся без сборки. Число
+     собранных агентов — не то же самое, что число троек, на которые это
+     повлияло, и показывать надо второе. */
+  const teams = shown || [];
+  const hit = teams.filter(t => t && t.parts && t.parts.builds && t.parts.builds.counted).length;
+  /* СМЕШАННЫЙ СПИСОК — честное предупреждение, а не украшение. Тройка,
+     собранная целиком, но средне, считается по шести сигналам; тройка, где
+     сборок нет, теряет составляющую, и её вес расходится по остальным пяти. У
+     второй сумма выходит выше просто потому, что про её снаряжение ничего не
+     известно. Это ровно та же беда «разные шкалы в одном списке», от которой
+     защищает правило «все трое или никто» внутри тройки, но между тройками её
+     снять нельзя: судить состав по снаряжению, которого нет, невозможно.
+     Поэтому не молчим, а говорим прямо — правило Артёма про два уровня
+     достоверности: выверенное решает, выведенное помечено. КАК ИМЕННО ранжировать
+     такой список (одним списком с пометкой, двумя группами, или добивая
+     несобранных средним по клирам) — открытый вопрос к Артёму, см.
+     team.gear._mixedRanking в zzz-buildscore.json. */
+  const mixed = hit > 0 && hit < teams.length;
+  const reachLine = teams.length
+    ? (hit
+        ? `<div class="bd-note${mixed ? ' warn' : ''}">Gear counted toward ${hit} of the ${teams.length} team${teams.length === 1 ? '' : 's'} below — the rest
+           have at least one agent you have no build for.${mixed ? ` Those two kinds are not scored on the same footing:
+           a team judged on its gear can place below one whose gear is simply unknown, because the unknown part's weight
+           goes to its other signals. Compare inside each kind, not across them.` : ''}</div>`
+        : `<div class="bd-note warn">Gear counted toward none of the teams below: each has at least one agent you have
+           no build of your own for, so what you see is ranked by roster alone.
+           ${document.getElementById('tbBuilderSource').value === 'all'
+             ? 'The picker is drawing from every agent in the game — switching it to <b>My agents</b> narrows it to the ones you own.'
+             : 'Saving a preset for the agents you play would let gear count here.'}</div>`)
+    : '';
+
+  const weak = (gear && gear.weak) || [];
+  const weakLine = weak.length
+    ? `<div class="bd-note warn">Even the best build you have for ${weak.map(w => escapeHtml(cardName(w.key))).join(', ')}
+       scores below the bar for this room. Rather than shuffling these discs, it is worth assembling a fresh build
+       from your disc library — the picker would rate a purpose-built set considerably higher.</div>`
+    : '';
+  const covered = gear ? gear.covered : 0;
+  return `<div class="bd-gear">
+    <div class="bd-gear-head">Gear · ${covered} agent${covered === 1 ? '' : 's'} with builds of your own</div>
+    <div class="bd-gear-rows">${rows}</div>
+    <div class="bd-note">Gear only counts toward a team's score when all three of its agents have a build here —
+      judging a team on part of its gear would flatter it over one geared all the way through.</div>
+    ${reachLine}
+    ${weakLine}
+  </div>`;
+}
+
+/* Подпись в подвале выдачи. Раньше здесь стояло «gear not taken into account»
+   по признаку opts.builds, которого подбор никогда не заполнял, — то есть
+   подпись была верна случайно. Теперь она говорит ровно то, что произошло с
+   ПОКАЗАННЫМИ тройками. */
+function builderGearFootNote(st, teams) {
+  const src = document.getElementById('tbBuilderGear');
+  if (!src || src.value === 'none') return ' · gear not taken into account';
+  const hit = (teams || []).filter(t => t && t.parts && t.parts.builds && t.parts.builds.counted).length;
+  return hit
+    ? ` · gear counted in ${hit} of ${teams.length}`
+    : ' · gear on, but no team here has all three agents built';
+}
+
+function builderGearChanged(key, value) {
+  if (!value) delete builderGearPick[key]; else builderGearPick[key] = value;
+  builderRun();
+}
+
+/* Смена источника сбрасывает ручные назначения: пресеты стенда и свои пресеты
+   живут под разными id, и назначение, сделанное для одного источника, в другом
+   просто не найдётся — тихо превратилось бы в автоподбор, а человек считал бы,
+   что его выбор в силе. */
+function builderGearSourceChanged() {
+  builderGearPick = {};
+  builderRun();
+}
+
+/* Кандидаты. Список всех агентов собирается из AGENT_RARITY — это тот же
+   источник, по которому строится Agent Library, так что новый агент попадает
+   в подбор ровно тогда же, когда появляется в библиотеке. */
+function builderCandidates() {
+  const all = [...(AGENT_RARITY.S || []), ...(AGENT_RARITY.A || [])];
+  if (document.getElementById('tbBuilderSource').value === 'all') return all;
+  return all.filter(k => (agentLibrary[k] || {}).enabled);
+}
+
+async function builderRun() {
+  if (!builderState.ran || builderState.busy) return;
+  const res = document.getElementById('builderResults');
+  const mode = document.getElementById('tbBuilderMode').value;
+  const cand = builderCandidates();
+
+  if (cand.length < 3) {
+    builderState.last = null;
+    document.getElementById('builderRoomInfo').innerHTML = '';
+    res.innerHTML = `<div class="bd-empty">Only ${cand.length} agent${cand.length === 1 ? '' : 's'} enabled in your Agent Library.<br>
+      Turn on the agents you own, or switch the picker to <b>All agents</b> to see how this room is cleared in general.</div>`;
+    return;
+  }
+
+  builderState.busy = true;
+  document.getElementById('tbBuilderRun').disabled = true;
+  res.innerHTML = `<div class="bd-empty">Searching through ${cand.length} agents…</div>`;
+  try {
+    const period = document.getElementById('tbBuilderPeriod').value;
+    const opts = mode === 'da'
+      ? { mode: 'da', phase: period, stage: document.getElementById('tbBuilderStage').value,
+          roomKey: document.getElementById('tbBuilderStage').value }
+      : { mode: 'shiyu', season: period,
+          floor: +document.getElementById('tbBuilderFloor').value,
+          side: document.getElementById('tbBuilderSide').value };
+    if (mode !== 'da') opts.roomKey = shiyuRoomKey(opts.floor, opts.side);
+    opts.top = +document.getElementById('tbBuilderTop').value || 10;
+
+    /* Задача бывает трёх видов, и «этаж» имеет смысл только у Shiyu, а «все
+       стадии» — только у Deadly Assault. Несовместимую молча приводим к
+       комнате, а не показываем пустоту. */
+    let task = document.getElementById('tbBuilderTask').value;
+    if (task === 'floor' && mode === 'da') task = 'da';
+    if (task === 'da' && mode !== 'da') task = 'floor';
+    const pins = builderPinned();
+
+    /* Снаряжение готовится ДО перебора и ровно один раз: модели дорогие, а
+       перебор синхронный и await внутри него невозможен. Выбор лучшего пресета
+       делается на каждую комнату отдельно — он от комнаты и зависит. */
+    const gearSrc = document.getElementById('tbBuilderGear').value;
+    const gearModels = await builderGearModels(cand, gearSrc).catch(err => {
+      console.info('[zzz] gear models failed:', err && err.message); return null;
+    });
+
+    const t0 = performance.now();
+    if (task === 'room') {
+      const ctx = await tbContext(opts);
+      const gear = builderPickGear(gearModels, ctx);
+      if (gear) ctx.builds = gear.map;
+      const found = findTeamsSync(cand, ctx, { ...opts, include: pins });
+      builderState.last = { kind: 'room', ...found, ctx, opts, task, gear, gearModels,
+                            ms: Math.round(performance.now() - t0), candidates: cand.length };
+    } else {
+      const ctxs = await tbContexts(task, opts);
+      /* На задачу из нескольких комнат панель показывает снаряжение первой:
+         список агентов один и тот же, а числа у комнат разные, и показывать
+         четыре столбца ради этого не стоит. */
+      let gear = null;
+      for (const c of ctxs) {
+        const g = builderPickGear(gearModels, c.ctx);
+        if (g) { c.ctx.builds = g.map; if (!gear) gear = g; }
+      }
+      const found = findTeamSetsSync(cand, ctxs, { ...opts, mustUse: pins });
+      builderState.last = { kind: 'set', ...found, ctxs, ctx: ctxs[0] && ctxs[0].ctx, opts, task, gear, gearModels,
+                            ms: Math.round(performance.now() - t0), candidates: cand.length };
+    }
+  } catch (err) {
+    console.info('[zzz] team builder failed:', err && err.message);
+    builderState.last = { error: (err && err.message) || 'unknown' };
+  } finally {
+    builderState.busy = false;
+    document.getElementById('tbBuilderRun').disabled = false;
+  }
+  builderPaint();
+}
+
+/* ── ШАПКА КОМНАТЫ ──
+   Уязвимости красятся акцентом, сопротивления красным — это главный сигнал
+   подбора (§4.20), и человек должен видеть его раньше любых чисел. Босс
+   выделен: в нём сидит основная доля HP, и именно по его весу считается
+   попадание. */
+function builderRoomHtml(ctx) {
+  if (!ctx || !ctx.room) {
+    return `<div class="bd-note">No room data for this season yet — teams below are ranked by synergy and clear
+      statistics only. Room data lives in <code>zzz-rooms.json</code>.</div>`;
+  }
+  const r = ctx.room;
+  const weak = roomWeaknesses(r), res = roomResistances(r);
+  const z = roomZoneTags(r);
+  const suit = roomSuitableFor(r);
+  const rank = roomRankInfo(r);
+  const boss = roomMainTarget(r);
+  const totalHp = (r.enemies || []).reduce((n, e) => n + (e.hp || 0), 0);
+  const enemies = (r.enemies || []).map(e => {
+    const share = totalHp ? Math.round((e.hp || 0) / totalHp * 100) : 0;
+    return `<div class="${e.boss ? 'bd-enemy-boss' : ''}">${escapeHtml(e.name || '—')}
+      — ${share}% of room HP${e.boss ? ' · boss' : ''}</div>`;
+  }).join('');
+  const rankLine = rank
+    ? `${rank.type === 'time' ? 'S-rank under' : 'S-rank at'} ${rank.ranks.S}${rank.type === 'time' ? 's' : ' pts'}`
+    : '';
+  return `<div class="bd-room-head">
+      <span class="bd-room-title">${escapeHtml(builderRoomTitle())}</span>
+      ${z.name ? `<span class="bd-room-zone">${escapeHtml(z.name)}</span>` : ''}
+      ${rankLine ? `<span class="bd-room-sub">${escapeHtml(rankLine)}</span>` : ''}
+      ${suit.specialty ? `<span class="bd-room-sub">· suitable for ${escapeHtml(suit.specialty)}</span>` : ''}
+    </div>
+    <div class="bd-chips">
+      ${weak.map(w => `<span class="bd-chip weak">weak: ${escapeHtml(w)}</span>`).join('')}
+      ${res.map(w => `<span class="bd-chip res">resists: ${escapeHtml(w)}</span>`).join('')}
+      ${z.tags.map(t => `<span class="bd-chip">${escapeHtml(t)}${z.softTags.includes(t) ? ' (soft)' : ''}</span>`).join('')}
+    </div>
+    ${enemies ? `<div class="bd-enemies">${enemies}</div>` : ''}`;
+}
+
+function builderRoomTitle() {
+  const mode = document.getElementById('tbBuilderMode').value;
+  if (mode === 'da') {
+    const st = document.getElementById('tbBuilderStage');
+    return `${st.options[st.selectedIndex] ? st.options[st.selectedIndex].text : ''} · ${document.getElementById('tbBuilderPeriod').value}`;
+  }
+  const floor = document.getElementById('tbBuilderFloor').value;
+  const side = document.getElementById('tbBuilderSide');
+  return `Floor ${floor}, ${side.options[side.selectedIndex] ? side.options[side.selectedIndex].text : ''} · Season ${document.getElementById('tbBuilderPeriod').value}`;
+}
+
+/* ── КАРТОЧКА ТРОЙКИ ──
+   Строки разбора приходят готовыми из explainTeam(): переписывать их здесь
+   значило бы завести вторую формулировку тех же фактов, а они обязаны
+   совпадать — по одной и той же тройке подбор не может рассказывать две
+   разные истории. Отступ у вложенных строк единственное, что добавляется. */
+function builderTeamHtml(t, i, roomKey) {
+  const isMeta = !!(t.parts && t.parts.meta && t.parts.meta.exact);
+  const pins = builderPinned();
+  const faces = t.keys.map(k =>
+    `<img class="bd-face${pins.includes(k) ? ' pinned' : ''}" src="${agentSquareUrl(k)}" alt=""
+       title="${escapeHtml(cardName(k))} — click to lock into every team"
+       onclick="builderTogglePin('${escapeHtml(k)}')"
+       onerror="this.style.opacity='.25'">`).join('');
+  const lines = explainTeam(t).slice(1);
+  const why = lines.map(l => {
+    const inner = /^\s{4}/.test(l);
+    return `<div class="${inner ? 'bd-why-in' : ''}">${escapeHtml(l.trim())}</div>`;
+  }).join('');
+  return `<div class="bd-team${isMeta ? ' meta' : ''}">
+    <div class="bd-team-head">
+      <span class="bd-rank">#${i + 1}</span>
+      <span class="bd-faces">${faces}</span>
+      <span class="bd-names">${t.keys.map(k => escapeHtml(cardName(k))).join(' · ')}</span>
+      ${isMeta ? `<span class="bd-meta-flag">${t.parts.meta.appRate}% of clears</span>` : ''}
+      <span class="bd-score">${t.score}<span class="bd-score-max"> / 1000</span></span>
+      <button class="bd-save" onclick="builderSaveTeam('${t.keys.map(k => escapeHtml(k)).join('|')}','${escapeHtml(String(roomKey || ''))}')"
+              title="Add this team to your ${document.getElementById('tbBuilderMode').value === 'da' ? 'Deadly Assault' : 'Shiyu Defense'} list">save</button>
+    </div>
+    <div class="bd-why${builderState.show.why ? '' : ' hidden'}">${why}</div>
+  </div>`;
+}
+
+
+/* ── ЭТАП 5: РУЧНОЙ ДОБОР, НАБОРЫ ТРОЕК, НАРОДНЫЕ РЕКОМЕНДАЦИИ ──
+   Три вещи поверх готового движка.
+
+   РУЧНОЙ ДОБОР. Человек закрепляет одного-двух агентов, подбор достраивает
+   остальных. Механика была в движке с самого начала (`findTeams` принимает
+   `include`), здесь появился способ ею воспользоваться: клик по лицу в любой
+   выдаче закрепляет агента. Обратный клик снимает.
+
+   НАБОРЫ. Этаж требует две команды, пятый этаж три, фаза Deadly Assault
+   четыре, и агент не может стоять в двух местах — это findTeamSetsSync().
+   Показываются они не списком, а по комнатам: человек смотрит этаж сверху
+   вниз, и порядок комнат важнее порядка качества.
+
+   НАРОДНЫЕ РЕКОМЕНДАЦИИ. То же, что уже есть в скоре сигналом `meta`, но
+   показанное прямо: чем реально проходят эту комнату. Главное здесь — ПОМЕТКА
+   НЕХВАТАЮЩИХ. Список лучших составов бесполезен, если не видно, кого из них у
+   тебя нет: именно этот вопрос человек и задаёт, глядя на чужую мету. */
+
+function builderPinned() { return builderState.pinned || (builderState.pinned = []); }
+
+function builderTogglePin(key) {
+  const p = builderPinned();
+  const i = p.indexOf(key);
+  if (i >= 0) p.splice(i, 1);
+  else if (p.length < 3) p.push(key);
+  builderRun();
+}
+function builderClearPins() { builderState.pinned = []; builderRun(); }
+
+function builderPinsHtml() {
+  const p = builderPinned();
+  const el = document.getElementById('builderPinned');
+  el.classList.toggle('hidden', !p.length);
+  if (!p.length) return;
+  el.innerHTML = `<span>Locked in:</span>` + p.map(k =>
+    `<span class="bd-pin"><img src="${agentSquareUrl(k)}" alt="" onerror="this.style.display='none'">
+       ${escapeHtml(cardName(k))}
+       <button onclick="builderTogglePin('${escapeHtml(k)}')" title="Remove">×</button></span>`).join('')
+    + `<button class="bd-save" onclick="builderClearPins()">clear all</button>`
+    + (p.length >= 3 ? `<span>— a squad is three agents, so this is the whole team</span>`
+                     : `<span>— the rest is filled in around them</span>`);
+}
+
+/* Чем реально проходят комнату и кого из этого у человека нет. Считаем по
+   библиотеке, а не по текущему источнику: вопрос «кого мне не хватает» имеет
+   смысл только относительно того, что у тебя есть. */
+function builderMetaHtml(ctx) {
+  const el = document.getElementById('builderMeta');
+  const meta = ctx && ctx.meta;
+  const rows = meta && ((meta.comps[ctx.mode] || {})[String(ctx.roomKey)] || []);
+  if (!rows || !rows.length) { el.innerHTML = ''; el.classList.add('hidden'); return; }
+  const cut = (meta._meta.filters || {}).readThreshold || 1;
+  const top = rows.filter(r => r[2] >= cut).slice(0, 5);
+  if (!top.length) { el.innerHTML = ''; el.classList.add('hidden'); return; }
+  const owned = k => !!(agentLibrary[k] || {}).enabled;
+  const anyOwned = Object.values(agentLibrary).some(v => v && v.enabled);
+  const list = top.map(([trio, boo, app]) => {
+    const keys = trio.map(i => meta.names[i]);
+    const missing = anyOwned ? keys.filter(k => !owned(k)) : [];
+    return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0">
+      <span style="font-family:'Share Tech Mono',monospace;color:var(--accent);min-width:52px">${app}%</span>
+      <span>${keys.map(k => owned(k) || !anyOwned
+          ? escapeHtml(cardName(k))
+          : `<span class="bd-miss">${escapeHtml(cardName(k))}</span>`).join(' · ')}</span>
+      ${boo >= 0 ? `<span class="bd-room-sub">with ${escapeHtml(cardName(meta.names[boo]))}</span>` : ''}
+      ${missing.length ? `<span class="bd-room-sub bd-miss">you are missing ${missing.length}</span>` : ''}
+      <button class="bd-save" onclick="builderPinTrio('${keys.map(k => escapeHtml(k)).join('|')}')">try this</button>
+    </div>`;
+  }).join('');
+  el.classList.remove('hidden');
+  el.innerHTML = `<div class="bd-room-head"><span class="bd-room-title">How players actually clear this</span>
+      <span class="bd-room-sub">patch ${escapeHtml(meta._meta.patch)} · teams used by at least ${cut}% of players</span></div>
+    ${list}
+    ${anyOwned ? '' : `<div class="bd-room-sub" style="margin-top:6px">Enable the agents you own in the Agent Library and this list will mark what you are missing.</div>`}`;
+}
+
+function builderPinTrio(joined) {
+  builderState.pinned = joined.split('|').slice(0, 3);
+  builderRun();
+}
+
+/* Сохранение выданной тройки в обычную сетку команд. Кладём только агентов и
+   привязку к комнате: снаряжение подбор не выбирал и выдумывать его за
+   человека нельзя. Дальше это обычная команда, её правит редактор. */
+function builderSaveTeam(joined, roomKey) {
+  const keys = joined.split('|').slice(0, 3);
+  const mode = document.getElementById('tbBuilderMode').value === 'da' ? 'da' : 'shiyu';
+  pushUndo();
+  const t = newTeam(mode);
+  t.name = 'Builder pick';
+  keys.forEach((k, i) => { if (t.agents[i]) t.agents[i].key = k; });
+  const period = document.getElementById('tbBuilderPeriod').value;
+  if (mode === 'da') { t.daPhase = period; t.daStage = String(roomKey || '1'); }
+  else {
+    t.shiyu = period;
+    const m = String(roomKey || '').match(/^(\d+)-(\d+)$/);
+    if (m) { t.floor = m[1]; t.side = ['A', 'B', 'C'][+m[2] - 1] || 'A'; }
+  }
+  teams.push(t);
+  localStorage.setItem('zzz_teams', JSON.stringify(teams));
+  renderTeams();
+  const btn = event && event.target;
+  if (btn) { btn.textContent = 'saved ✓'; btn.disabled = true; }
+}
+
+function builderPaint() {
+  const info = document.getElementById('builderRoomInfo');
+  const res = document.getElementById('builderResults');
+  const st = builderState.last;
+  builderPinsHtml();
+  if (!st) return;
+
+  if (st.error) {
+    info.innerHTML = ''; info.classList.add('hidden');
+    document.getElementById('builderMeta').classList.add('hidden');
+    res.innerHTML = `<div class="bd-empty">Team builder data could not be loaded (${escapeHtml(st.error)}).<br>
+      Check that <code>zzz-buildscore.json</code>, <code>zzz-meta.json</code>, <code>zzz-synergy.json</code>
+      and <code>zzz-rooms.json</code> sit next to <code>index.html</code>.</div>`;
+    return;
+  }
+
+  info.innerHTML = st.kind === 'set' ? '' : builderRoomHtml(st.ctx);
+  info.classList.toggle('hidden', !builderState.show.room || !info.innerHTML);
+  if (builderState.show.room && st.kind !== 'set') builderMetaHtml(st.ctx);
+  else document.getElementById('builderMeta').classList.add('hidden');
+
+  const gearEl = document.getElementById('builderGear');
+  gearEl.innerHTML = builderGearHtml(st.gear, st.gearModels,
+    st.kind === 'set' ? (st.sets || []).map(x => x.team) : st.teams);
+  gearEl.classList.toggle('hidden', !gearEl.innerHTML);
+
+  if (st.kind === 'set') { builderPaintSet(st, res); return; }
+
+  if (!st.teams.length) {
+    res.innerHTML = `<div class="bd-empty">No legal team could be built from these ${st.candidates} agents${
+      builderPinned().length ? ' with those agents locked in' : ''}.<br>
+      Every combination broke one of the three squad rules — most often «only one non-anomaly DPS per squad».</div>`;
+    return;
+  }
+  const foot = `<div class="bd-note">Checked ${st.examined.toLocaleString('en-US')} combinations from
+    ${st.candidates} agents in ${st.ms} ms · ${st.rejected.toLocaleString('en-US')} rejected by squad rules ·
+    ${st.kept.toLocaleString('en-US')} legal${builderGearFootNote(st, st.teams)}</div>`;
+  res.innerHTML = st.teams.map((t, n) => builderTeamHtml(t, n, st.ctx && st.ctx.roomKey)).join('') + foot;
+}
+
+/* Наборы рисуются ПО КОМНАТАМ, а не одним списком: человек смотрит этаж сверху
+   вниз, и порядок комнат для него важнее порядка качества. Каждая тройка
+   подписана своей комнатой, чтобы её можно было сохранить туда, куда она
+   подобрана. */
+function builderPaintSet(st, res) {
+  if (!st.ok) {
+    const why = st.why === 'noTeams'
+      ? `no legal team at all for ${(st.blocked || []).join(', ')}`
+      : `no way to fill all ${st.need || (st.rooms || []).length} rooms without reusing an agent`;
+    res.innerHTML = `<div class="bd-empty">Could not build the full set — ${escapeHtml(why)}.<br>
+      A floor needs ${(st.rooms || []).length} squads of three, which is
+      ${(st.rooms || []).length * 3} different agents, and none of them can be in two rooms at once.<br>
+      Enable more agents in the Agent Library, or switch the picker to <b>All agents</b> to see what a full roster would run.</div>`;
+    return;
+  }
+  const missed = (st.mustMissed || []).length
+    ? `<div class="bd-note">Could not fit ${st.mustMissed.map(k => escapeHtml(cardName(k))).join(', ')}
+        into this set — locking an agent here means «somewhere in the set», and there was no arrangement that used them.</div>`
+    : '';
+  const body = st.sets.map(sec =>
+    `<div class="bd-set-label">${escapeHtml(sec.label)}</div>` + builderTeamHtml(sec.team, 0, sec.key)
+  ).join('');
+  const foot = `<div class="bd-note">${st.sets.length} squads · ${st.agentsUsed} different agents ·
+    average ${st.avg} / 1000 · built from ${st.candidates} agents in ${st.ms} ms ·
+    beam search, not an exact optimum${builderGearFootNote(st, (st.sets || []).map(x => x.team))}</div>`;
+  res.innerHTML = missed + body + foot;
+}
+
 /* ── RENDER LIST ──
    renderTeams() рисует ОБЕ сетки сразу — шиюйскую и Deadly Assault. Так все
    существующие вызовы (undo, сохранение, удаление, дублирование, тумблеры
@@ -18590,7 +21236,9 @@ function renderAuthUI() {
       </div>
     </div>`;
   } else {
-    el.innerHTML = `<button class="lib-pill-btn" onclick="loginDiscord()">Sign in with Discord</button>`;
+    el.innerHTML = SB_OFFLINE
+      ? `<button class="lib-pill-btn" onclick="loginDiscord()" title="Backend client could not be loaded — usually an ad-blocker" style="opacity:.55">Sign in unavailable</button>`
+      : `<button class="lib-pill-btn" onclick="loginDiscord()">Sign in with Discord</button>`;
   }
 }
 
@@ -18685,10 +21333,14 @@ function updateAdminTabVisibility() {
 }
 
 async function initAuth() {
+  if (SB_OFFLINE) return;   // библиотеки нет — подписываться не на что
   sb.auth.onAuthStateChange((event, session) => handleAuthSession(event, session));
 }
 
 async function loginDiscord() {
+  /* Молча ничего не делать нельзя: человек нажал и ждёт окно Discord. Говорим
+     прямо, что связи с бэкендом нет, — это чаще всего адблокер. */
+  if (SB_OFFLINE) { alert('Sign-in is unavailable: the backend client could not be loaded.\n\nThis is usually an ad-blocker or a network filter. Everything stored locally — teams, libraries, the team builder — keeps working without an account.'); return; }
   await sb.auth.signInWithOAuth({ provider: 'discord', options: { redirectTo: window.location.href.split('#')[0].split('?')[0] } });
 }
 

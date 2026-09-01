@@ -1,0 +1,1119 @@
+{
+ "_meta": {
+  "version": 5,
+  "generatedAt": "2026-08-29",
+  "note": "Данные комнат и боссов эндгейма. Собирается вручную раз в сезон/фазу, процедура в docs/rooms-update.md. Сырые выгрузки лежат в data-src/.",
+  "sources": [
+   {
+    "name": "nanoka.cc",
+    "url": "https://zzz.nanoka.cc/",
+    "used": "комнаты, враги, статы, слабости, зонные баффы, ранговые пороги"
+   }
+  ],
+  "coverage": {
+   "shiyu": "Все пять этажей Critical Node. Этажи 1-4: одна зона на этаж, две комнаты, ранг по ВРЕМЕНИ (секунды). Этаж 5: три комнаты, у каждой своя зона, ранг по ОЧКАМ. Различие несёт поле rankType.",
+   "da": "Три обычные стадии фазы + Adversity (хард-режим с одним боссом, открывается за 9 звёзд на трёх обычных). Подтверждено Артёмом."
+  },
+  "confidence": "Числа и тексты баффов — verified (сняты с источника дословно). Поле tags — draft: расставлено Claude, ждёт проверки Артёмом.",
+  "tagsPrinciple": "ГЛАВНОЕ ПРАВИЛО ПОДБОРА (со слов Артёма, 2026-08-29). Вес уязвимостей и сопротивлений врага ВЫШЕ веса зонных баффов. Игра гача: под выход баннера контент затачивают под конкретного персонажа, боссы из патча в патч повторяются, им лишь раздувают HP, а баффы штурма для боссов меняются мало. Заточка живёт не в зонном баффе, а в ките самого врага — в его weak/res. Поэтому решает связка «атрибуты состава против weak/res врага», а зонный бафф лишь доуточняет выбор. Касается и Shiyu, и обычного штурма.",
+  "softTagsNote": "softTags — подмножество tags, которое подбору стоит считать приятным бонусом, а не требованием. Строгий тег может отсеивать состав, мягкий — только двигать его в рейтинге.",
+  "suitableForNote": "suitableFor — маркер источника «Suitable for Agents with X specialty» (у nanoka он же иконкой класса img[alt=\"Icon_AvatarClass_X\"]). По проверке на клирах патча 3.1.2 это ЛУЧШИЙ предсказатель состава из всего, что у нас есть: Anomaly → 99% аномальных, Rupture → 83% рапчур, Stun → стан вырос вчетверо. Механический текст баффа так не работает: у Adversity он награждает Attack, а играют её аномалой. Поэтому suitableFor держится отдельным полем и весит в подборе БОЛЬШЕ тегов зоны — сразу после уязвимостей врага. null значит «маркера нет», то есть стадия открыта для любого вектора."
+ },
+ "tagVocabulary": {
+  "anomaly-team": "зона награждает состав из 2-3 аномальщиков",
+  "anomaly-dmg+": "повышен урон аномалий",
+  "anomaly-dmg-": "урон аномалий срезан — аномальный состав невыгоден",
+  "ap+": "зона даёт Anomaly Proficiency",
+  "am+": "зона даёт Anomaly Mastery",
+  "atk+": "зона даёт ATK",
+  "pen+": "зона даёт PEN / PEN Ratio",
+  "attack-class+": "бонус агентам класса Attack",
+  "stun-class+": "бонус за стан / требуется стан",
+  "support-class+": "бонус агентам класса Support",
+  "basic-attack+": "бонус обычной атаке",
+  "ex-special+": "бонус EX Special",
+  "chain+": "бонус Chain Attack",
+  "crit-rate+": "зона даёт КШ",
+  "crit-dmg+": "зона даёт крит. урон",
+  "res-shred": "зона срезает сопротивление врага",
+  "def-shred": "зона срезает защиту врага",
+  "daze+": "зона ускоряет набор дейза",
+  "energy+": "зона даёт энергию",
+  "heal-required": "нужен хил",
+  "shield-required": "нужен щит",
+  "elem-physical+": "бонус физическому урону",
+  "elem-fire+": "бонус огненному урону",
+  "elem-ice+": "бонус ледяному урону",
+  "elem-electric+": "бонус электрическому урону",
+  "elem-ether+": "бонус эфирному урону",
+  "elem-wind+": "бонус урону ветром"
+ },
+ "shiyu": {
+  "55": {
+   "_season": {
+    "label": "3.1 v2",
+    "start": "2026-08-21",
+    "end": "2026-09-04",
+    "srcUrl": "https://zzz.nanoka.cc/shiyu/62055",
+    "node": "Critical Node",
+    "floors": {
+     "1": "First Frontier",
+     "2": "Second Frontier",
+     "3": "Third Frontier",
+     "4": "Fourth Frontier",
+     "5": "Fifth Frontier"
+    }
+   },
+   "1-1": {
+    "srcId": "6205501",
+    "floorId": "6205501",
+    "lvl": 50,
+    "waves": 4,
+    "rankType": "time",
+    "ranks": {
+     "S": 300,
+     "A": 420,
+     "B": 600
+    },
+    "zone": {
+     "name": "Blazing Maelstrom",
+     "lines": [
+      "Attribute Anomaly DMG dealt by Agents increases by 15%.",
+      "If there are 2/3 Agents in the squad with Anomaly specialty, Agent Anomaly Proficiency increases by 40/120 pts."
+     ],
+     "tags": [
+      "anomaly-dmg+",
+      "anomaly-team",
+      "ap+"
+     ],
+     "tagsConf": "verified"
+    },
+    "weakness": [
+     "Ice",
+     "Ether"
+    ],
+    "enemies": [
+     {
+      "name": "Farbauti",
+      "hp": 1550600,
+      "atk": 2394,
+      "def": 639,
+      "stun": 7406,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Ether"
+      ],
+      "boss": true
+     },
+     {
+      "name": "Armored Hati",
+      "hp": 1195788,
+      "atk": 3019,
+      "def": 639,
+      "stun": 4713,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Ether"
+      ]
+     },
+     {
+      "name": "Fossor",
+      "hp": 278912,
+      "atk": 1978,
+      "def": 473,
+      "stun": 1765,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Ether"
+      ]
+     },
+     {
+      "name": "Sordidus",
+      "hp": 278912,
+      "atk": 1796,
+      "def": 473,
+      "stun": 1765,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Ether"
+      ]
+     }
+    ]
+   },
+   "1-2": {
+    "srcId": "6205501",
+    "floorId": "6205501",
+    "lvl": 50,
+    "waves": 4,
+    "rankType": "time",
+    "ranks": {
+     "S": 300,
+     "A": 420,
+     "B": 600
+    },
+    "zone": {
+     "name": "Blazing Maelstrom",
+     "lines": [
+      "Attribute Anomaly DMG dealt by Agents increases by 15%.",
+      "If there are 2/3 Agents in the squad with Anomaly specialty, Agent Anomaly Proficiency increases by 40/120 pts."
+     ],
+     "tags": [
+      "anomaly-dmg+",
+      "anomaly-team",
+      "ap+"
+     ],
+     "tagsConf": "verified"
+    },
+    "weakness": [
+     "Electric",
+     "Ether"
+    ],
+    "enemies": [
+     {
+      "name": "Beholder Engine",
+      "hp": 252937,
+      "atk": 1405,
+      "def": 509,
+      "stun": 1602,
+      "anomaly": 0,
+      "weak": [
+       "Electric",
+       "Ether"
+      ]
+     },
+     {
+      "name": "Tarasque Mixer",
+      "hp": 1627605,
+      "atk": 2290,
+      "def": 639,
+      "stun": 6233,
+      "anomaly": 0,
+      "weak": [
+       "Electric",
+       "Ether"
+      ],
+      "boss": true
+     }
+    ]
+   },
+   "2-1": {
+    "srcId": "6205502",
+    "floorId": "6205502",
+    "lvl": 55,
+    "waves": 4,
+    "rankType": "time",
+    "ranks": {
+     "S": 300,
+     "A": 420,
+     "B": 600
+    },
+    "zone": {
+     "name": "Blazing Maelstrom",
+     "lines": [
+      "Attribute Anomaly DMG dealt by Agents increases by 15%.",
+      "If there are 2/3 Agents in the squad with Anomaly specialty, Agent Anomaly Proficiency increases by 40/120 pts."
+     ],
+     "tags": [
+      "anomaly-dmg+",
+      "anomaly-team",
+      "ap+"
+     ],
+     "tagsConf": "verified"
+    },
+    "weakness": [
+     "Physical",
+     "Ice"
+    ],
+    "enemies": [
+     {
+      "name": "Poacher",
+      "hp": 376438,
+      "atk": 1494,
+      "def": 551,
+      "stun": 1728,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Physical"
+      ]
+     },
+     {
+      "name": "Raider",
+      "hp": 442788,
+      "atk": 1743,
+      "def": 551,
+      "stun": 1728,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Physical"
+      ]
+     },
+     {
+      "name": "Bulky Enforcer",
+      "hp": 2306887,
+      "atk": 2324,
+      "def": 689,
+      "stun": 6403,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Physical"
+      ],
+      "boss": true
+     },
+     {
+      "name": "Bulky Intimidator",
+      "hp": 1733866,
+      "atk": 2102,
+      "def": 689,
+      "stun": 4851,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Physical"
+      ]
+     }
+    ]
+   },
+   "2-2": {
+    "srcId": "6205502",
+    "floorId": "6205502",
+    "lvl": 55,
+    "waves": 3,
+    "rankType": "time",
+    "ranks": {
+     "S": 300,
+     "A": 420,
+     "B": 600
+    },
+    "zone": {
+     "name": "Blazing Maelstrom",
+     "lines": [
+      "Attribute Anomaly DMG dealt by Agents increases by 15%.",
+      "If there are 2/3 Agents in the squad with Anomaly specialty, Agent Anomaly Proficiency increases by 40/120 pts."
+     ],
+     "tags": [
+      "anomaly-dmg+",
+      "anomaly-team",
+      "ap+"
+     ],
+     "tagsConf": "verified"
+    },
+    "weakness": [
+     "Ice",
+     "Ether"
+    ],
+    "enemies": [
+     {
+      "name": "Alpeca",
+      "hp": 376438,
+      "atk": 1494,
+      "def": 496,
+      "stun": 1728,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Ether"
+      ]
+     },
+     {
+      "name": "Hati",
+      "hp": 1661211,
+      "atk": 2932,
+      "def": 744,
+      "stun": 4721,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Ether"
+      ]
+     },
+     {
+      "name": "Armored Hati",
+      "hp": 1779653,
+      "atk": 3209,
+      "def": 744,
+      "stun": 5084,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Ether"
+      ]
+     },
+     {
+      "name": "Hoplitai",
+      "hp": 376438,
+      "atk": 1660,
+      "def": 633,
+      "stun": 1728,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Ether"
+      ]
+     },
+     {
+      "name": "Mandrake",
+      "hp": 316120,
+      "atk": 1743,
+      "def": 496,
+      "stun": 1814,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Ether"
+      ]
+     },
+     {
+      "name": "Banyrek",
+      "hp": 2484002,
+      "atk": 3347,
+      "def": 620,
+      "stun": 8388,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Ether"
+      ],
+      "boss": true
+     }
+    ]
+   },
+   "3-1": {
+    "srcId": "6205503",
+    "floorId": "6205503",
+    "lvl": 60,
+    "waves": 3,
+    "rankType": "time",
+    "ranks": {
+     "S": 300,
+     "A": 420,
+     "B": 600
+    },
+    "zone": {
+     "name": "Blazing Maelstrom",
+     "lines": [
+      "Attribute Anomaly DMG dealt by Agents increases by 15%.",
+      "If there are 2/3 Agents in the squad with Anomaly specialty, Agent Anomaly Proficiency increases by 40/120 pts."
+     ],
+     "tags": [
+      "anomaly-dmg+",
+      "anomaly-team",
+      "ap+"
+     ],
+     "tagsConf": "verified"
+    },
+    "weakness": [
+     "Physical",
+     "Ice"
+    ],
+    "enemies": [
+     {
+      "name": "Poacher",
+      "hp": 931738,
+      "atk": 1187,
+      "def": 635,
+      "stun": 1854,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Physical"
+      ]
+     },
+     {
+      "name": "Raider",
+      "hp": 1095963,
+      "atk": 1385,
+      "def": 635,
+      "stun": 1854,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Physical"
+      ]
+     },
+     {
+      "name": "Bulky Enforcer",
+      "hp": 5873412,
+      "atk": 2110,
+      "def": 794,
+      "stun": 7792,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Physical"
+      ],
+      "boss": true
+     },
+     {
+      "name": "Bulky Intimidator",
+      "hp": 4422533,
+      "atk": 1891,
+      "def": 794,
+      "stun": 5945,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Physical"
+      ]
+     }
+    ]
+   },
+   "3-2": {
+    "srcId": "6205503",
+    "floorId": "6205503",
+    "lvl": 60,
+    "waves": 3,
+    "rankType": "time",
+    "ranks": {
+     "S": 300,
+     "A": 420,
+     "B": 600
+    },
+    "zone": {
+     "name": "Blazing Maelstrom",
+     "lines": [
+      "Attribute Anomaly DMG dealt by Agents increases by 15%.",
+      "If there are 2/3 Agents in the squad with Anomaly specialty, Agent Anomaly Proficiency increases by 40/120 pts."
+     ],
+     "tags": [
+      "anomaly-dmg+",
+      "anomaly-team",
+      "ap+"
+     ],
+     "tagsConf": "verified"
+    },
+    "weakness": [
+     "Ice",
+     "Ether"
+    ],
+    "enemies": [
+     {
+      "name": "Hati",
+      "hp": 4111728,
+      "atk": 2330,
+      "def": 857,
+      "stun": 5065,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Ether"
+      ]
+     },
+     {
+      "name": "Dullahan",
+      "hp": 4988498,
+      "atk": 2440,
+      "def": 921,
+      "stun": 8182,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Ether"
+      ]
+     },
+     {
+      "name": "Fossor",
+      "hp": 1027423,
+      "atk": 1671,
+      "def": 635,
+      "stun": 2043,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Ether"
+      ]
+     },
+     {
+      "name": "Sordidus",
+      "hp": 1027423,
+      "atk": 1517,
+      "def": 635,
+      "stun": 2043,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Ether"
+      ]
+     },
+     {
+      "name": "Banyrek",
+      "hp": 6148251,
+      "atk": 2660,
+      "def": 714,
+      "stun": 9000,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Ether"
+      ],
+      "boss": true
+     }
+    ]
+   },
+   "4-1": {
+    "srcId": "6205504",
+    "floorId": "6205504",
+    "lvl": 65,
+    "waves": 1,
+    "rankType": "time",
+    "ranks": {
+     "S": 300,
+     "A": 420,
+     "B": 600
+    },
+    "zone": {
+     "name": "Blazing Maelstrom",
+     "lines": [
+      "Attribute Anomaly DMG dealt by Agents increases by 15%.",
+      "If there are 2/3 Agents in the squad with Anomaly specialty, Agent Anomaly Proficiency increases by 40/120 pts."
+     ],
+     "tags": [
+      "anomaly-dmg+",
+      "anomaly-team",
+      "ap+"
+     ],
+     "tagsConf": "verified"
+    },
+    "weakness": [
+     "Fire",
+     "Ice"
+    ],
+    "enemies": [
+     {
+      "name": "Haytor",
+      "hp": 22282617,
+      "atk": 3343,
+      "def": 1588,
+      "stun": 15243,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Fire"
+      ],
+      "res": [
+       "Electric"
+      ],
+      "boss": true
+     }
+    ]
+   },
+   "4-2": {
+    "srcId": "6205504",
+    "floorId": "6205504",
+    "lvl": 65,
+    "waves": 2,
+    "rankType": "time",
+    "ranks": {
+     "S": 300,
+     "A": 420,
+     "B": 600
+    },
+    "zone": {
+     "name": "Blazing Maelstrom",
+     "lines": [
+      "Attribute Anomaly DMG dealt by Agents increases by 15%.",
+      "If there are 2/3 Agents in the squad with Anomaly specialty, Agent Anomaly Proficiency increases by 40/120 pts."
+     ],
+     "tags": [
+      "anomaly-dmg+",
+      "anomaly-team",
+      "ap+"
+     ],
+     "tagsConf": "verified"
+    },
+    "weakness": [
+     "Ice",
+     "Ether"
+    ],
+    "enemies": [
+     {
+      "name": "Hati",
+      "hp": 4470542,
+      "atk": 2460,
+      "def": 857,
+      "stun": 5409,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Ether"
+      ]
+     },
+     {
+      "name": "Notorious - Armored Hati",
+      "hp": 11370775,
+      "atk": 2785,
+      "def": 952,
+      "stun": 8536,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Ether"
+      ],
+      "boss": true
+     }
+    ]
+   },
+   "5-1": {
+    "srcId": "62055051",
+    "floorId": "6205505",
+    "lvl": 70,
+    "waves": 3,
+    "rankType": "score",
+    "ranks": {
+     "S": 25000,
+     "A": 16000,
+     "B": 8000
+    },
+    "stageRules": [
+     "In this stage, dealing DMG to enemies earns you DMG Score. Defeating a single normal/elite enemy will grant you an instance of Elimination Score.",
+     "In this stage, scores earned at different times will receive additional multiplier bonuses. The earlier in the challenge, the higher the multiplier. The total score cap (including bonus) is 50,000."
+    ],
+    "zone": {
+     "name": "Blazing Maelstrom",
+     "lines": [
+      "Attribute Anomaly DMG dealt by Agents increases by 15%.",
+      "If there are 2/3 Agents in the squad with Anomaly specialty, Agent Anomaly Proficiency increases by 40/120 pts."
+     ],
+     "tags": [
+      "anomaly-dmg+",
+      "anomaly-team",
+      "ap+"
+     ],
+     "tagsConf": "verified"
+    },
+    "weakness": [
+     "Physical",
+     "Wind"
+    ],
+    "enemies": [
+     {
+      "name": "Metamorphosed - Avarus",
+      "hp": 39370170,
+      "atk": 3179,
+      "def": 952,
+      "stun": 15486,
+      "anomaly": 0,
+      "weak": [
+       "Physical",
+       "Wind"
+      ],
+      "res": [
+       "Fire"
+      ],
+      "boss": true
+     },
+     {
+      "name": "City Guardboo",
+      "hp": 9696729,
+      "atk": 3252,
+      "def": 857,
+      "stun": 14001,
+      "anomaly": 0,
+      "weak": [
+       "Electric",
+       "Wind"
+      ]
+     },
+     {
+      "name": "Special Anti-Riotboo",
+      "hp": 1681944,
+      "atk": 1931,
+      "def": 682,
+      "stun": 3172,
+      "anomaly": 0,
+      "weak": [
+       "Fire",
+       "Wind"
+      ]
+     },
+     {
+      "name": "Airspace Patrolboo",
+      "hp": 1681944,
+      "atk": 1589,
+      "def": 682,
+      "stun": 3172,
+      "anomaly": 0,
+      "weak": [
+       "Fire",
+       "Wind"
+      ]
+     }
+    ]
+   },
+   "5-2": {
+    "srcId": "62055052",
+    "floorId": "6205505",
+    "lvl": 70,
+    "waves": 2,
+    "rankType": "score",
+    "ranks": {
+     "S": 25000,
+     "A": 16000,
+     "B": 8000
+    },
+    "stageRules": [
+     "In this stage, dealing DMG to enemies earns you DMG Score. Defeating a single normal/elite enemy will grant you an instance of Elimination Score.",
+     "In this stage, scores earned at different times will receive additional multiplier bonuses. The earlier in the challenge, the higher the multiplier. The total score cap (including bonus) is 50,000."
+    ],
+    "zone": {
+     "name": "Treacherous Domain",
+     "lines": [
+      "Agent Ether DMG increases by 20%.",
+      "When Agents inflict an Attribute Anomaly on enemies, their DEF is reduced by 15%, and All-Attribute RES is reduced by 15% for 10s. Repeated triggers reset the duration."
+     ],
+     "tags": [
+      "elem-ether+",
+      "def-shred",
+      "res-shred"
+     ],
+     "tagsConf": "verified",
+     "note": "anomaly-team снят: зона награждает за САМО наложение аномалии, порога «2/3 аномальщика» в тексте нет — хватает одного. Проверено Артёмом."
+    },
+    "weakness": [
+     "Physical",
+     "Ether"
+    ],
+    "enemies": [
+     {
+      "name": "Guardian MK II",
+      "hp": 4982009,
+      "atk": 2592,
+      "def": 857,
+      "stun": 11169,
+      "anomaly": 0,
+      "weak": [
+       "Electric"
+      ],
+      "res": [
+       "Fire"
+      ]
+     },
+     {
+      "name": "Private Jaeger",
+      "hp": 748957,
+      "atk": 1614,
+      "def": 635,
+      "stun": 2115,
+      "anomaly": 0,
+      "weak": [
+       "Electric"
+      ]
+     },
+     {
+      "name": "Demolition Jaeger",
+      "hp": 823689,
+      "atk": 1442,
+      "def": 635,
+      "stun": 2220,
+      "anomaly": 0,
+      "weak": [
+       "Electric"
+      ]
+     },
+     {
+      "name": "Mirage Archer Unit",
+      "hp": 39537115,
+      "atk": 3521,
+      "def": 952,
+      "stun": 18236,
+      "anomaly": 0,
+      "weak": [
+       "Ether",
+       "Physical"
+      ],
+      "res": [
+       "Fire"
+      ],
+      "boss": true
+     }
+    ]
+   },
+   "5-3": {
+    "srcId": "62055053",
+    "floorId": "6205505",
+    "lvl": 70,
+    "waves": 2,
+    "rankType": "score",
+    "ranks": {
+     "S": 25000,
+     "A": 16000,
+     "B": 8000
+    },
+    "stageRules": [
+     "In this stage, dealing DMG to enemies earns you DMG Score. Defeating a single normal/elite enemy will grant you an instance of Elimination Score.",
+     "In this stage, scores earned at different times will receive additional multiplier bonuses. The earlier in the challenge, the higher the multiplier. The total score cap (including bonus) is 50,000."
+    ],
+    "zone": {
+     "name": "Biting Cold",
+     "lines": [
+      "When an Agent with Attack specialty lands Basic Attack, it ignores 30% of enemy Ice RES.",
+      "After an Agent with Attack specialty uses a Chain Attack or EX Special Attack, their Ice DMG increases by 20% and CRIT DMG increases by 40% for 15s. Repeated triggers reset the duration."
+     ],
+     "tags": [
+      "attack-class+",
+      "basic-attack+",
+      "res-shred",
+      "elem-ice+",
+      "chain+",
+      "ex-special+",
+      "crit-dmg+"
+     ],
+     "tagsConf": "verified"
+    },
+    "weakness": [
+     "Ice",
+     "Ether"
+    ],
+    "enemies": [
+     {
+      "name": "Bulky Enforcer",
+      "hp": 5365018,
+      "atk": 2347,
+      "def": 794,
+      "stun": 8890,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Physical"
+      ]
+     },
+     {
+      "name": "Bulky Intimidator",
+      "hp": 4039725,
+      "atk": 2103,
+      "def": 794,
+      "stun": 6782,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Physical"
+      ]
+     },
+     {
+      "name": "Thracian",
+      "hp": 39812637,
+      "atk": 3228,
+      "def": 952,
+      "stun": 13677,
+      "anomaly": 0,
+      "weak": [
+       "Ice",
+       "Ether"
+      ],
+      "boss": true
+     }
+    ]
+   }
+  }
+ },
+ "da": {
+  "3.1.3": {
+   "_phase": {
+    "label": "3.1 v3",
+    "start": "2026-08-28",
+    "end": "2026-09-11",
+    "srcUrl": "https://zzz.nanoka.cc/boss/690441",
+    "pointsPerStage": 60000,
+    "performancePointsMax": 5000,
+    "note": "60 000 + 5 000 = 65 000, совпадает с DA_SCORE_MAX в index.html.",
+    "advNote": "Стадия adv (Adversity) на nanoka лежит в отдельном наборе «Hard Mode» с ID 6904NN+1xx — здесь 69044201. Она не четвёртый босс фазы, а её хард-режим: один босс, тот же срок, открывается за 9 звёзд на трёх обычных стадиях."
+   },
+   "1": {
+    "srcId": "69044101",
+    "lvl": 70,
+    "boss": "Newborn Dead End Butcher",
+    "zone": {
+     "name": null,
+     "lines": [
+      "When not in a Stunned state, Boss enemies gain 1 stack of All or Nothing every 6s, stacking up to 3 stacks. Each stack of All or Nothing increases the DMG dealt by the Boss enemy by 10%. When an Agent's attack hits an enemy, for each stack of All or Nothing the target has, CRIT DMG from the Agent's attacks increases by 25% and Attribute Anomaly DMG decreases by 15%. When an enemy enters a Stunned state, they gain 1 stack of All or Nothing. All or Nothing stacks will be reset when the enemy recovers from being Stunned.",
+      "Successfully triggering Perfect Dodge or Perfect Assist grants 300 Performance Points. A maximum of 5,000 Performance Points can be obtained."
+     ],
+     "tags": [
+      "crit-dmg+",
+      "anomaly-dmg-"
+     ],
+     "tagsConf": "verified",
+     "srcNote": "У баффов на источнике вместо названий плейсхолдеры 69014403_Title / 69014404_Title — баг локализации nanoka."
+    },
+    "weakness": [
+     "Ice",
+     "Ether"
+    ],
+    "enemies": [
+     {
+      "name": "Dead End Butcher",
+      "hp": 190295458,
+      "hpMin": 10886467,
+      "atk": 3423,
+      "def": 952,
+      "stun": 14078,
+      "anomaly": 10,
+      "lvlRange": [
+       1,
+       29
+      ],
+      "weak": [
+       "Ice",
+       "Ether"
+      ],
+      "boss": true
+     }
+    ],
+    "suitableFor": null
+   },
+   "2": {
+    "srcId": "69044102",
+    "lvl": 70,
+    "boss": "Girtablullu",
+    "zone": {
+     "name": null,
+     "lines": [
+      "Suitable for Agents with Anomaly specialty.",
+      "Whenever an Agent inflicts an Anomaly on the Boss, they apply 1 stack of Shadow to it. Each stack of Shadow increases the Boss's Anomaly DMG taken by 7.5% and additionally increases its Vortex DMG taken by 5% for 10s. Shadow can stack up to 3 times. The duration of each stack is calculated separately. During Corruptive Barrier, applying Shadow to the Boss additionally reduces the Corruptive Barrier by 20% of its max value and accumulates 15% Daze (cannot be repeatedly triggered within 15s). When the Corruptive Barrier is broken, the Boss immediately gains max stacks of Shadow. When the Boss is Stunned, all Shadow stacks are removed and an equal number of Laceration stacks are applied. Each stack of Laceration reduces the Boss's Anomaly Buildup RES by 5% and increases its Stun DMG Multiplier by 10%. When the Boss's Stunned state ends, all Laceration stacks are removed.",
+      "Each successful parry against Girtablullu's consecutive downward smashes after it activates Corruptive Barrier grants 1,000 Performance Points. Successfully triggering a Chain Parry against the final slam grants an additional 1,000 Performance Points. Successfully breaking the Corruptive Barrier grants 1,500 Performance Points. Maximum obtainable Performance Points: 5,000."
+     ],
+     "tags": [
+      "anomaly-team",
+      "anomaly-dmg+",
+      "daze+"
+     ],
+     "tagsConf": "verified",
+     "note": "stun-class+ снят по решению Артёма: стан здесь не нужен, зона про аномалии."
+    },
+    "weakness": [
+     "Wind"
+    ],
+    "enemies": [
+     {
+      "name": "Girtablullu",
+      "hp": 184028254,
+      "hpMin": 10527932,
+      "atk": 4108,
+      "def": 952,
+      "stun": 21037,
+      "anomaly": 10,
+      "lvlRange": [
+       1,
+       29
+      ],
+      "weak": [
+       "Wind"
+      ],
+      "boss": true
+     }
+    ],
+    "suitableFor": "Anomaly"
+   },
+   "3": {
+    "srcId": "69044103",
+    "lvl": 70,
+    "boss": "Primordial Nightmare - \"The Creator\"",
+    "zone": {
+     "name": null,
+     "lines": [
+      "Boss Anomaly DMG taken is reduced by 30%. When switching from Miasmic Shield state to normal state, or from normal state to Miasmic Shield state, Agent CRIT DMG against them is increased by 20%. This effect can stack up to 3 times and resets when the boss recovers from Stun.",
+      "Triggering Miasmic Shield Purification grants 1,000 Performance Points. During the Control Skill, each successful counter against the Boss's attacks grants 500 Performance Points. Performing a Shutdown on the Boss's Control Skill grants 2,000 Performance Points. Maximum obtainable Performance Points: 5,000.",
+      "Suitable for Agents with Attack specialty."
+     ],
+     "tags": [
+      "anomaly-dmg-",
+      "crit-dmg+",
+      "attack-class+",
+      "stun-class+"
+     ],
+     "tagsConf": "verified",
+     "softTags": [
+      "stun-class+"
+     ],
+     "note": "stun-class+ помечен мягким: Shutdown приносит очки, но стаки крит. урона сбрасываются при выходе из стана, и далеко не все составы играют через стан. Подбору это подсказка, а не требование."
+    },
+    "weakness": [
+     "Physical"
+    ],
+    "enemies": [
+     {
+      "name": "Primordial Nightmare - \"The Creator\"",
+      "hp": 338335399,
+      "hpMin": 19355572,
+      "atk": 4108,
+      "def": 476,
+      "stun": 18236,
+      "anomaly": 10,
+      "lvlRange": [
+       1,
+       29
+      ],
+      "weak": [
+       "Physical"
+      ],
+      "res": [
+       "Ice",
+       "Ether"
+      ],
+      "boss": true
+     }
+    ],
+    "suitableFor": "Attack"
+   },
+   "adv": {
+    "srcId": "69044201",
+    "lvl": 70,
+    "boss": "Rewritten - Sanguine Sweeper",
+    "zone": {
+     "name": null,
+     "lines": [
+      "Each successful counter and subsequent trigger of a special stagger against the Boss's attacks grants 1,000 Performance Points. During the Control Skill, each successful counter against the Boss's attacks grants 500 Performance Points. Performing a Shutdown on the Boss's Control Skill grants 1,500 Performance Points. Maximum obtainable Performance Points: 5,000.",
+      "When an Agent lands Shutdown on an enemy, the enemy's All-Attribute RES decreases by 10%, Agents with Attack specialty gain 20% bonus ATK, 25% bonus PEN Ratio, and their Ice and Ether CRIT DMG increases by 60%.",
+      "Upon triggering a special stagger, the whole squad's Anomaly Proficiency increases by 40 pts and their Anomaly DMG increases by 30%."
+     ],
+     "tags": [
+      "anomaly-dmg+",
+      "ap+",
+      "attack-class+",
+      "res-shred"
+     ],
+     "tagsConf": "verified",
+     "srcNote": "Плейсхолдер 69014407_Title на источнике — баг локализации nanoka.",
+     "softTags": [
+      "anomaly-dmg+",
+      "ap+",
+      "attack-class+",
+      "res-shred"
+     ],
+     "note": "Подрезано по РЕАЛЬНЫМ клирам, не по тексту. Босс и бафф Adversity в 3.1.2 и 3.1.3 совпадают дословно, поэтому статистика 3.1.2 применима: Anomaly 90%, Stun 14%, Attack 9%. Убраны stun-class+ (14% против 50% и 89% там, где стан правда нужен), res-shred как строгий (приходит от Shutdown, которого не делают 86% составов), atk+/pen+/crit-dmg+ (описывают внутренности баффа, а не выбор состава), elem-ice+/elem-ether+ (дублируют сигнал уязвимости, его считает roomAttributeFit). Строгих тегов не осталось намеренно: у Adversity нет маркера «Suitable for», разработчики не душат векторы. Разбор: data-src/shiyustats-da-3.1.2-evidence.md"
+    },
+    "weakness": [
+     "Ice"
+    ],
+    "enemies": [
+     {
+      "name": "Rewritten - Sanguine Sweeper",
+      "hp": 742510891,
+      "hpMin": 46994360,
+      "atk": 3708,
+      "def": 476,
+      "stun": 17876,
+      "anomaly": 10,
+      "lvlRange": [
+       1,
+       24
+      ],
+      "weak": [
+       "Ice"
+      ],
+      "boss": true
+     }
+    ],
+    "mode": "hard",
+    "note": "Adversity — режим хард-мода с одним боссом. Длится ровно столько же, сколько одна фаза Deadly Assault, и открывается только после прохождения трёх боссов фазы на 9 звёзд. Подтверждено Артёмом 2026-08-29.",
+    "suitableFor": null
+   }
+  }
+ }
+}
