@@ -1327,7 +1327,7 @@ select {
 .bd-gear { max-width: 880px; margin: 0 auto 12px; }
 .bd-gear-head { font-size: 12px; font-weight: 700; color: var(--text-mid); margin-bottom: 6px; }
 .bd-gear-rows { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
-.bd-gear-row { display: grid; grid-template-columns: 24px 1fr 220px 44px; align-items: center; gap: 8px;
+.bd-gear-row { display: grid; grid-template-columns: 24px 1fr 220px 44px 12px; align-items: center; gap: 8px;
                background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 4px 8px; }
 .bd-gear-face { width: 24px; height: 24px; border-radius: var(--r-sm); background: var(--bg3); object-fit: cover; }
 .bd-gear-name { font-size: 12px; font-weight: 700; }
@@ -1335,6 +1335,56 @@ select {
                border: 1px solid var(--border); border-radius: var(--r-sm); max-width: 100%; }
 .bd-gear-score { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--accent); text-align: right; }
 .bd-gear-score.weak { color: var(--red); }
+
+/* Разворачивалка сборки. Маркер <details> убран и заменён своей стрелкой:
+   родной треугольник встаёт слева от ВСЕЙ строки и ломает сетку из четырёх
+   колонок, ради которой строки и выровнены. */
+.bd-gear-det > summary { list-style: none; cursor: pointer; }
+.bd-gear-det > summary::-webkit-details-marker { display: none; }
+/* Стрелка — ПЯТАЯ КОЛОНКА сетки, а не absolute сбоку. Абсолютной она вылезала
+   за скруглённый край карточки и выглядела обрезанной; в сетке она стоит внутри
+   строки и не может разъехаться при другой ширине. `::after` у grid-контейнера
+   сам становится ячейкой сетки, поэтому лишний <span> не нужен. */
+.bd-gear-det > summary .bd-gear-row::after {
+  content: '\25be'; color: var(--text-dim); font-size: 10px; text-align: right;
+  transition: transform .12s; }
+.bd-gear-det[open] > summary .bd-gear-row::after { transform: rotate(180deg); }
+.bd-gear-det[open] > summary .bd-gear-row { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+
+/* Сама сборка */
+.bd-discs { background: var(--bg3); border: 1px solid var(--border); border-top: none;
+            border-radius: 0 0 var(--r-sm) var(--r-sm); padding: 9px 11px 11px; margin-bottom: 4px; }
+.bd-disc-we { display: flex; align-items: center; gap: 7px; font-size: 12px; margin-bottom: 7px; }
+.bd-disc-we img { width: 22px; height: 22px; border-radius: var(--r-sm); background: var(--bg2); object-fit: cover; }
+.bd-disc-we-name { font-weight: 700; }
+.bd-disc-we-sub { color: var(--text-mid); font-family: 'Share Tech Mono', monospace; font-size: 11px; }
+.bd-disc-we-none { color: var(--red); }
+.bd-disc-sets { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 7px; }
+.bd-disc-set { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-mid);
+               background: var(--bg2); border: 1px solid var(--border); border-radius: 999px; padding: 2px 9px 2px 3px; }
+.bd-disc-set.live { color: var(--text); border-color: var(--accent-30); }
+.bd-disc-set img { width: 16px; height: 16px; border-radius: 50%; background: var(--bg3); object-fit: cover; }
+.bd-disc-set-off { color: var(--text-dim); }
+.bd-disc-mainline { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; font-size: 11px; margin-bottom: 4px; }
+.bd-disc-lbl { color: var(--text-dim); margin-right: 3px; }
+.bd-disc-main { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r-sm);
+                padding: 1px 7px; font-family: 'Share Tech Mono', monospace; }
+.bd-disc-main b { color: var(--accent); font-weight: 700; margin-right: 4px; }
+.bd-discs .pd-section-title { display: none; }   /* заголовок «Build Analysis» здесь лишний: контекст и так ясен */
+
+/* Сборки внутри карточки тройки */
+.bd-team-gears { margin-top: 8px; border-top: 1px solid var(--border); padding-top: 8px;
+                 display: flex; flex-direction: column; gap: 4px; }
+.bd-team-gear > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px;
+                          font-size: 12px; background: var(--bg3); border: 1px solid var(--border);
+                          border-radius: var(--r-sm); padding: 4px 9px; }
+.bd-team-gear > summary::-webkit-details-marker { display: none; }
+.bd-team-gear > summary:hover { border-color: var(--accent-30); }
+.bd-team-gear[open] > summary { border-radius: var(--r-sm) var(--r-sm) 0 0; }
+.bd-team-gear > summary img { width: 20px; height: 20px; border-radius: var(--r-sm); background: var(--bg2); object-fit: cover; }
+.bd-tg-name { font-weight: 700; min-width: 90px; }
+.bd-tg-preset { color: var(--text-mid); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bd-tg-score { font-family: 'Share Tech Mono', monospace; color: var(--accent); }
 
 .feed-list { display: flex; flex-direction: column; gap: 14px; max-width: 640px; margin: 0 auto; padding-bottom: 30px; }
 .feed-post { display: flex; gap: 10px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); padding: 12px; }
@@ -19180,6 +19230,62 @@ function builderPickGear(models, ctx) {
   return out;
 }
 
+/* ── ЧТО ИМЕННО ВЗЯТО ──
+   Число «сборка на 793» само по себе бесполезно: человек не может ни
+   проверить его, ни исправить то, на что оно жалуется. Поэтому рядом
+   разворачивается сама сборка — движок, сеты и шесть дисков с мейн-статами и
+   качеством прокрутки.
+
+   ОТРИСОВКА ПЕРЕИСПОЛЬЗОВАНА, И ЭТО НЕ ЭКОНОМИЯ. Полосы качества считает
+   pdDiscQualityHtml() — та же функция, что рисует их в карточке пресета, и
+   принимает она ту же модель. Написать здесь вторую такую же значило бы завести
+   два места, где одна и та же сборка может показать разные числа; расходятся
+   такие пары всегда, вопрос только когда.
+
+   МЕЙН-СТАТЫ ВЫДЕЛЕНЫ У СЛОТОВ 4-6, потому что выбирает их игрок: в слотах 1-3
+   мейн-стат прибит намертво (HP, ATK, DEF) и сообщать о нём нечего. Именно
+   четвёртый, пятый и шестой решают составляющую `mains` — и именно из-за них
+   автоподбор берёт у Мияби крит-сборку вместо аномальной. */
+function builderDiscsHtml(m) {
+  if (!m) return '';
+  const w = m.wengine;
+  const info = w ? (WENGINE_INFO[w.key] || null) : null;
+  /* Движок Артём просил показывать наравне с дисками, и правильно: у него свой
+     вторичный стат, который идёт в те же капы, что и сабстаты дисков, а ранг
+     меняет силу пассивки. Сборка без движка — законное состояние (скор просто
+     не допускает её до лидерборда), поэтому здесь честная строка, а не пропуск. */
+  const wLine = w
+    ? `<div class="bd-disc-we">
+        <img src="${wengineUrl(w.key)}" alt="" onerror="this.style.opacity=.15">
+        <span class="bd-disc-we-name">${escapeHtml(prettyName(w.key))}</span>
+        <span class="bd-disc-we-sub">Lv.${w.level || '?'} · R${w.rank || 1}${
+          info && info.secondaryStat
+            ? ` · ${escapeHtml(info.secondaryStat.name)} ${escapeHtml(String(info.secondaryStat.value))}`
+            : ''}</span>
+      </div>`
+    : `<div class="bd-disc-we bd-disc-we-none">No W-Engine on this build</div>`;
+
+  /* Сеты — по убыванию числа частей: сперва то, что реально даёт бонус (4 или
+     2), потом одиночки. Одиночный диск бонуса не даёт вовсе, и показывать его
+     наравне с четвёркой значило бы врать о составе сборки. */
+  const sets = Object.entries(m.setCounts || {})
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, n]) => `<span class="bd-disc-set${n >= 2 ? ' live' : ''}">
+        <img src="${discUrl(name)}" alt="" onerror="this.style.opacity=.15">
+        ${n >= 2 ? `${n}-Pc ` : ''}${escapeHtml(name)}${n >= 2 ? '' : ' <span class="bd-disc-set-off">(no bonus)</span>'}
+      </span>`).join('');
+
+  const mains = (m.discs || []).filter(d => d.slot >= 4).map(d =>
+    `<span class="bd-disc-main"><b>${d.slot}</b> ${escapeHtml(d.mainStat || '—')}</span>`).join('');
+
+  return `<div class="bd-discs">
+    ${wLine}
+    <div class="bd-disc-sets">${sets}</div>
+    <div class="bd-disc-mainline"><span class="bd-disc-lbl">Main stats you chose</span>${mains}</div>
+    ${pdDiscQualityHtml(m)}
+  </div>`;
+}
+
 /* ── ПАНЕЛЬ СНАРЯЖЕНИЯ ──
    Показывает ровно то, что подбор реально взял: чью сборку, какую именно и
    почему. Здесь же ручной выбор — селект на агента. Список короткий по
@@ -19209,12 +19315,26 @@ function builderGearHtml(gear, models, shown) {
       .concat(list.map(m => `<option value="${escapeHtml(m._presetId)}"${pick === m._presetId ? ' selected' : ''}>${escapeHtml(m._presetName)}${m._from === 'stand' ? ' (stand)' : ''}</option>`))
       .concat([`<option value="skip"${pick === 'skip' ? ' selected' : ''}>Don’t use my gear</option>`]);
     const weak = gear && gear.weak.some(w => w.key === k);
-    return `<div class="bd-gear-row">
+    /* Развёрнутое нативным <details>, а не своим тумблером: браузер сам помнит
+       состояние, работает с клавиатуры и раскрывает содержимое по Ctrl+F —
+       всё это пришлось бы писать руками и вышло бы хуже. Та же причина, что у
+       блоков кита. Разворачивается ВЫБРАННАЯ сборка, а не пресет из селекта:
+       показывать надо то, по чему реально посчитан скор в этой строке. */
+    const chosen = gear && gear.map[k];
+    const body = chosen ? builderDiscsHtml(chosen) : '';
+    const row = `<div class="bd-gear-row">
       <img class="bd-gear-face" src="${agentSquareUrl(k)}" alt="" onerror="this.style.opacity=0">
       <span class="bd-gear-name">${escapeHtml(cardName(k))}</span>
-      <select class="bd-gear-sel" onchange="builderGearChanged('${escapeHtml(k)}', this.value)">${opts.join('')}</select>
+      <select class="bd-gear-sel" onclick="event.preventDefault(); event.stopPropagation();"
+              onchange="builderGearChanged('${escapeHtml(k)}', this.value)">${opts.join('')}</select>
       <span class="bd-gear-score${weak ? ' weak' : ''}">${note ? note.score : '—'}</span>
     </div>`;
+    /* Селект живёт ВНУТРИ <summary>, и клик по нему иначе сворачивал бы блок:
+       браузер считает любой клик по summary переключением. Отсюда
+       preventDefault выше — без него выбрать пресет мышью невозможно. */
+    return body
+      ? `<details class="bd-gear-det"><summary>${row}</summary>${body}</details>`
+      : row;
   }).join('');
 
   /* Сколько ПОКАЗАННЫХ троек снаряжение реально задело. Без этой строки панель
@@ -19354,20 +19474,26 @@ async function builderRun() {
       const gear = builderPickGear(gearModels, ctx);
       if (gear) ctx.builds = gear.map;
       const found = findTeamsSync(cand, ctx, { ...opts, include: pins });
+      /* gearByRoom — карта «комната → что взято», по ней карточка тройки
+         разворачивает сборки. Ключ обязателен даже когда комната одна: карточка
+         не знает, из какой задачи её позвали, и одинаковый доступ по roomKey
+         избавляет от второй ветки, которая рано или поздно разъедется. */
       builderState.last = { kind: 'room', ...found, ctx, opts, task, gear, gearModels,
+                            gearByRoom: gear ? { [String(ctx.roomKey)]: gear } : null,
                             ms: Math.round(performance.now() - t0), candidates: cand.length };
     } else {
       const ctxs = await tbContexts(task, opts);
       /* На задачу из нескольких комнат панель показывает снаряжение первой:
          список агентов один и тот же, а числа у комнат разные, и показывать
          четыре столбца ради этого не стоит. */
-      let gear = null;
+      let gear = null; const gearByRoom = {};
       for (const c of ctxs) {
         const g = builderPickGear(gearModels, c.ctx);
-        if (g) { c.ctx.builds = g.map; if (!gear) gear = g; }
+        if (g) { c.ctx.builds = g.map; gearByRoom[String(c.ctx.roomKey)] = g; if (!gear) gear = g; }
       }
       const found = findTeamSetsSync(cand, ctxs, { ...opts, mustUse: pins });
       builderState.last = { kind: 'set', ...found, ctxs, ctx: ctxs[0] && ctxs[0].ctx, opts, task, gear, gearModels,
+                            gearByRoom: Object.keys(gearByRoom).length ? gearByRoom : null,
                             ms: Math.round(performance.now() - t0), candidates: cand.length };
     }
   } catch (err) {
@@ -19448,6 +19574,25 @@ function builderTeamHtml(t, i, roomKey) {
     const inner = /^\s{4}/.test(l);
     return `<div class="${inner ? 'bd-why-in' : ''}">${escapeHtml(l.trim())}</div>`;
   }).join('');
+  /* Сборки прямо в карточке. Берутся ПО КОМНАТЕ, а не из общего места: лучший
+     пресет комнатозависим (§4.51), и в наборе троек у каждой комнаты он свой —
+     общая карта показала бы под второй комнатой сборку, выбранную для первой.
+     Показываются, только когда снаряжение реально вошло в скор: если оно
+     выбыло, строка разбора выше уже объяснила почему, и разворачивать нечего. */
+  const gear = (builderState.last && builderState.last.gearByRoom)
+    ? builderState.last.gearByRoom[String(roomKey || '')] : null;
+  const gearBody = (gear && t.parts && t.parts.builds && t.parts.builds.counted)
+    ? t.keys.map(k => {
+        const m = gear.map[k];
+        if (!m) return '';
+        return `<details class="bd-team-gear"><summary>
+            <img src="${agentSquareUrl(k)}" alt="" onerror="this.style.opacity=.25">
+            <span class="bd-tg-name">${escapeHtml(cardName(k))}</span>
+            <span class="bd-tg-preset">${escapeHtml(m._presetName || 'Preset')}${m._from === 'stand' ? ' \u00b7 showcase' : ''}${m._auto === false ? ' \u00b7 your pick' : ''}</span>
+            <span class="bd-tg-score">${m._score}</span>
+          </summary>${builderDiscsHtml(m)}</details>`;
+      }).join('')
+    : '';
   return `<div class="bd-team${isMeta ? ' meta' : ''}">
     <div class="bd-team-head">
       <span class="bd-rank">#${i + 1}</span>
@@ -19459,6 +19604,7 @@ function builderTeamHtml(t, i, roomKey) {
               title="Add this team to your ${document.getElementById('tbBuilderMode').value === 'da' ? 'Deadly Assault' : 'Shiyu Defense'} list">save</button>
     </div>
     <div class="bd-why${builderState.show.why ? '' : ' hidden'}">${why}</div>
+    ${gearBody ? `<div class="bd-team-gears">${gearBody}</div>` : ''}
   </div>`;
 }
 
