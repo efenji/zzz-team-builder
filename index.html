@@ -2798,8 +2798,10 @@ select {
 
 <div class="page hidden" id="pageBuilder">
   <div id="builderPinned" class="bd-pinned hidden"></div>
+  <div id="builderPartners" class="bd-room hidden"></div>
   <div id="builderRoomInfo" class="bd-room"></div>
   <div id="builderMeta" class="bd-room"></div>
+  <div id="builderEditor" class="bd-room hidden"></div>
   <div id="builderGear" class="bd-room hidden"></div>
   <div id="builderResults" class="bd-results"></div>
 </div>
@@ -14280,6 +14282,174 @@ function explainBuildScore(res) {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   РЕДАКТОРСКИЕ РЕКОМЕНДАЦИИ (zzz-recommended.json)
+   ══════════════════════════════════════════════════════════════════════════
+   ЧТО ЭТО И ЗАЧЕМ. Третий источник рекомендаций. Первые два ИЗМЕРЯЮТ: клиры
+   говорят, чем комнату проходят на самом деле, механика — что чей кит требует.
+   Оба молчат ровно там, где вопрос острее всего: новый агент, новая комната,
+   мало забегов. Эту дыру закрывает знание Артёма, записанное руками.
+
+   ДВА ВИДА, И ПРАВА У НИХ РАЗНЫЕ. `teams` — «тройка под такое-то»: идёт и в
+   панель Editor's picks, и седьмым сигналом в скор. `partners` — «агент играет
+   с»: только подсказка при закреплении, в скор не идёт и запретов не задаёт.
+   Так решил Артём, и это правильно: список напарников — направление поиска, а
+   не правило, и фильтр из него прятал бы рабочие составы.
+
+   ПРИВЯЗКА ДВОЙНАЯ, И ЭТО ГЛАВНОЕ РЕШЕНИЕ ЗДЕСЬ. Сезон Shiyu живёт две недели,
+   фаза DA столько же. Запись, привязанная к ключу комнаты, умирает вместе с
+   ними, и таблицу пришлось бы переписывать каждые две недели. Поэтому основа —
+   условие ПО СОДЕРЖАНИЮ: уязвимость врага, маркер комнаты, теги зоны, имя
+   босса. Боссы из патча в патч повторяются (§4.20), и такое условие переживает
+   сезон. А конкретную комнату можно назвать сверху, двумя разными способами:
+     · `when.rooms` — жёстко: запись работает ТОЛЬКО в этих комнатах;
+     · `when.especially` — мягко: работает везде, где сошлось условие, а в
+       названных комнатах считается сильнейшим совпадением и весит больше.
+
+   СИГНАЛ ОДНОСТОРОННИЙ — ЭТО НЕ ПОСЛАБЛЕНИЕ, А ЗАЩИТА ОТ §4.54. Пометка тройку
+   только поднимает: её значение берётся как max(значение записи, скор той же
+   тройки без этого сигнала). Без такой оговорки повторилась бы ровно та беда,
+   что со снаряжением: у неотмеченной тройки составляющая выбывает, её вес
+   расходится по остальным, и неотмеченная могла бы обойти отмеченную просто
+   потому, что про неё редактор ничего не сказал. Отсутствие пометки — это «не
+   сказано», а не «сказано нет», и в число такое идти не должно.
+
+   ЧУЖОЙ ПАТЧ НЕ ГАСИТСЯ. Запись, написанная под прошлую версию игры, считается
+   наравне и помечается в интерфейсе строкой «written for 3.1». Гасить её
+   автоматически было бы аккуратнее на вид и хуже по делу: таблица тихо
+   опустела бы, а заметил бы это Артём не сразу. Решение его.
+
+   ИНДЕКС СТРОИТСЯ ОДИН РАЗ НА КОМНАТУ. Перебор зовёт скор тридцать тысяч раз,
+   и обход списка записей на каждой тройке был бы миллионами сравнений ради
+   десятка совпадений. Поэтому tbContext один раз собирает карту «отсортированные
+   ключи тройки → совпадение», а в скоре остаётся один просмотр по ключу.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+const REC_DATA_URL = 'zzz-recommended.json';
+
+let recDataFile = null;
+let recDataPromise = null;
+async function getRecommendedDataFile() {
+  if (recDataFile !== null) return recDataFile || null;
+  if (!recDataPromise) {
+    recDataPromise = (async () => {
+      try {
+        const res = await fetch(REC_DATA_URL);
+        if (!res.ok) throw new Error(res.status + ' ' + REC_DATA_URL);
+        const d = await res.json();
+        if (!d || !Array.isArray(d.teams) || !Array.isArray(d.partners)) throw new Error('unexpected shape');
+        recDataFile = d;
+        return d;
+      } catch (err) {
+        /* Файла нет — это законное состояние, а не поломка: таблица ведётся
+           руками и может быть пустой. Подбор считает по шести сигналам. */
+        console.info('[zzz] editor picks unavailable, builder will run without them:', err.message);
+        recDataFile = false;
+        return null;
+      }
+    })();
+  }
+  return recDataPromise;
+}
+
+/* Версия игры — первые два числа, как у архива лидерборда (§4.24):
+   '3.1.3' → '3.1', '3.1 v3' → '3.1'. */
+function recGameVersion(s) {
+  const m = String(s || '').match(/(\d+)\.(\d+)/);
+  return m ? `${m[1]}.${m[2]}` : null;
+}
+
+/* Текущая версия выводится из того, что и так ведётся, — отдельного поля с
+   датой не заводим: оно разъехалось бы с данными при первом же обновлении. */
+function recCurrentVersion(ctx) {
+  return recGameVersion(ctx && ctx.phase)
+      || recGameVersion(ctx && ctx.meta && ctx.meta._meta && ctx.meta._meta.patch)
+      || null;
+}
+
+/* Факты о комнате в виде, удобном для сравнения. Собираются один раз на
+   комнату: внутри перебора это было бы тридцать тысяч разборов одного и того
+   же объекта. */
+function recRoomFacts(ctx) {
+  const room = ctx && ctx.room;
+  const zone = room ? roomZoneTags(room) : { tags: [] };
+  return {
+    mode: ctx ? ctx.mode : null,
+    roomKey: ctx ? String(ctx.roomKey ?? '') : '',
+    season: ctx && ctx.season != null ? String(ctx.season) : null,
+    phase: ctx && ctx.phase != null ? String(ctx.phase) : null,
+    weak: room ? roomWeaknesses(room) : [],
+    res: room ? roomResistances(room) : [],
+    suitable: room ? (roomSuitableFor(room).specialty || null) : null,
+    tags: zone.tags || [],
+    /* Босс у Shiyu помечен флагом внутри врагов, у DA лежит отдельной строкой —
+       сравниваем по общему списку имён, чтобы запись писалась одинаково. */
+    enemies: (room && room.enemies ? room.enemies.map(e => String(e.name || '').toLowerCase()) : [])
+      .concat(room && room.boss ? [String(room.boss).toLowerCase()] : []),
+    version: recCurrentVersion(ctx),
+  };
+}
+
+const recAny = (have, want) => (want || []).some(w => (have || []).includes(w));
+
+/* Совпадение записи с комнатой. Все указанные ключи условия должны сойтись (И),
+   внутри ключа достаточно одного значения (ИЛИ). Не указанный ключ ничего не
+   требует — пустое условие означает «годится везде», и это законная запись. */
+function recMatch(entry, f) {
+  const w = (entry && entry.when) || {};
+  if (w.mode && w.mode !== f.mode) return null;
+  if (w.season && f.season && String(w.season) !== f.season) return null;
+  if (w.phase && f.phase && String(w.phase) !== f.phase) return null;
+  if (w.weak && w.weak.length && !recAny(f.weak, w.weak)) return null;
+  /* notRes — единственное условие «наоборот»: запись прячется там, где комната
+     режет названный атрибут. Нужна, чтобы совет не пришлось писать дважды. */
+  if (w.notRes && w.notRes.length && recAny(f.res, w.notRes)) return null;
+  if (w.suitableFor && w.suitableFor.length && !(f.suitable && w.suitableFor.includes(f.suitable))) return null;
+  if (w.tags && w.tags.length && !recAny(f.tags, w.tags)) return null;
+  if (w.boss && w.boss.length
+      && !w.boss.some(b => f.enemies.some(n => n.includes(String(b).toLowerCase())))) return null;
+  const hard = (w.rooms || []).map(String);
+  if (hard.length && !hard.includes(f.roomKey)) return null;
+  const soft = (w.especially || []).map(String);
+  const version = recGameVersion(entry.patch);
+  return {
+    strength: (hard.includes(f.roomKey) || soft.includes(f.roomKey)) ? 'room' : 'condition',
+    stale: !!(version && f.version && version !== f.version),
+    patch: entry.patch || null,
+  };
+}
+
+/* Ключ тройки — отсортированные ключи агентов: порядок в записи роли не играет,
+   тройка это множество. */
+function recTeamKey(list) { return (list || []).slice().sort().join('|'); }
+
+function recIndexFor(rec, ctx) {
+  const out = { map: Object.create(null), list: [] };
+  if (!rec || !Array.isArray(rec.teams) || !rec.teams.length) return out;
+  const f = recRoomFacts(ctx);
+  for (const e of rec.teams) {
+    if (!Array.isArray(e.team) || e.team.length !== 3) continue;
+    const m = recMatch(e, f);
+    if (!m) continue;
+    const hit = { entry: e, strength: m.strength, stale: m.stale, patch: m.patch };
+    out.list.push(hit);
+    const k = recTeamKey(e.team);
+    const prev = out.map[k];
+    /* Одна и та же тройка может попасть под две записи — общую по условию и
+       именную по комнате. В скор идёт сильнейшая: она говорит про ЭТУ комнату,
+       а не про такие вообще. */
+    if (!prev || (prev.strength !== 'room' && m.strength === 'room')) out.map[k] = hit;
+  }
+  out.list.sort((a, b) => (a.strength === 'room' ? 0 : 1) - (b.strength === 'room' ? 0 : 1));
+  return out;
+}
+
+/* Второй вид таблицы. В скор не идёт намеренно (см. шапку блока). */
+function recPartnersFor(rec, agentKey) {
+  if (!rec || !Array.isArray(rec.partners)) return null;
+  return rec.partners.find(p => p && p.agent === agentKey) || null;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    ПОДБОР КОМАНДЫ: СКОР ТРОЙКИ И ПЕРЕБОР
    ══════════════════════════════════════════════════════════════════════════
    ЧТО ЭТО. Ядро вкладки «Билдер команд»: запреты, по которым тройка вообще
@@ -14505,13 +14675,37 @@ function tbBuilds(keys, ctx, cfg) {
   return { counted: true, value: sum / wsum, per, haveFor: have.length, of: keys.length };
 }
 
+/* ── СИГНАЛ 7: РЕДАКТОРСКАЯ ПОМЕТКА ──
+   Знание Артёма там, где измерения молчат: новый агент, новая комната, мало
+   клиров. Считается по индексу, построенному один раз на комнату (см. блок
+   «РЕДАКТОРСКИЕ РЕКОМЕНДАЦИИ»), поэтому внутри перебора это один просмотр по
+   ключу, а не обход таблицы.
+
+   ЗАПИСЬ С ЧУЖИМ ПАТЧЕМ СЧИТАЕТСЯ НАРАВНЕ и лишь помечается — решение Артёма:
+   гасить её автоматически значило бы тихо опустошить таблицу. */
+function tbEditor(keys, ctx, cfg) {
+  const ix = ctx && ctx.editor;
+  /* Ранний выход, когда под комнату не подошло ни одной записи, — а это
+     обычное состояние. Без него перебор строил бы ключ на каждой из тридцати
+     тысяч троек ради заведомо пустой карты. */
+  if (!ix || !ix.list || !ix.list.length) return { counted: false, value: null };
+  const hit = ix.map[recTeamKey(keys)];
+  if (!hit) return { counted: false, value: null };
+  const c = (cfg && cfg.editor) || { room: 1, condition: 0.8 };
+  return { counted: true,
+           value: hit.strength === 'room' ? c.room : c.condition,
+           strength: hit.strength, stale: hit.stale, patch: hit.patch,
+           text: hit.entry.text || null, why: hit.entry.why || null };
+}
+
 /* ── КОНТЕКСТ ──
    Один await на весь подбор. Дальше всё синхронно: перебор зовёт teamScoreSync
    десятки тысяч раз, и загрузка внутри цикла свела бы затею на нет. */
 async function tbContext(opts) {
   const o = opts || {};
-  const [bs, syn, meta, rooms] = await Promise.all([
+  const [bs, syn, meta, rooms, rec] = await Promise.all([
     getBuildScoreFile(), getSynergyDataFile(), getMetaDataFile(), getRoomsDataFile(),
+    getRecommendedDataFile(),
   ]);
   let room = o.room || null;
   if (!room && rooms && o.mode) {
@@ -14519,14 +14713,22 @@ async function tbContext(opts) {
       ? await getDaStageData(o.phase, o.stage)
       : await getShiyuRoomData(o.season, o.floor, o.side);
   }
-  return {
-    bs, syn, meta, room,
+  const ctx = {
+    bs, syn, meta, room, rec,
     mode: o.mode === 'da' ? 'da' : 'sd',
     roomKey: o.roomKey ?? (o.mode === 'da' ? o.stage : shiyuRoomKey(o.floor, o.side)),
+    /* Сезон и фазу кладём в контекст, потому что редакторская запись вправе
+       привязаться к ним прямо, а комната о себе этого не знает. */
+    season: o.season ?? null,
+    phase: o.phase ?? null,
     builds: o.builds || null,
     buildCtx: o.buildCtx || {},
     cfg: (bs && bs.team) || null,
   };
+  /* Индекс редакторских записей — после того, как комната разрешена: он весь
+     про совпадение с ней. */
+  ctx.editor = recIndexFor(rec, ctx);
+  return ctx;
 }
 
 /* ── СКОР ТРОЙКИ ──
@@ -14552,8 +14754,26 @@ function teamScoreSync(keys, ctx) {
     synergy:  tbSynergyPart(syn, cfg),
     meta:     tbMeta(ctx.meta, ctx.mode, ctx.roomKey, keys, cfg),
     builds:   tbBuilds(keys, ctx, cfg),
+    editor:   tbEditor(keys, ctx, cfg),
   };
   const w = cfg.weights;
+
+  /* ОДНОСТОРОННОСТЬ РЕДАКТОРСКОЙ ПОМЕТКИ. Отсутствие пометки означает «редактор
+     ничего не сказал», а не «сказал нет», и опускать за это тройку нельзя. Но
+     составляющая, которая у одних есть, а у других выбывает, ровно это и делает
+     — на снаряжении мы это уже видели (§4.54). Поэтому значение пометки не
+     может быть НИЖЕ того, что тройка набирает без неё: подняли — считаем,
+     опустили бы — не считаем. Дороже одного лишнего прохода по составляющим
+     это не стоит. */
+  if (parts.editor.counted) {
+    const rest = Object.keys(parts).filter(k => k !== 'editor' && parts[k].counted && (w[k] || 0) > 0);
+    const rw = rest.reduce((a, k) => a + w[k], 0);
+    if (rw) {
+      const base = rest.reduce((a, k) => a + parts[k].value * w[k], 0) / rw;
+      if (base > parts.editor.value) { parts.editor.value = base; parts.editor.clamped = true; }
+    }
+  }
+
   const live = Object.keys(parts).filter(k => parts[k].counted && (w[k] || 0) > 0);
   const wsum = live.reduce((a, k) => a + w[k], 0);
   Object.keys(parts).forEach(k => {
@@ -14745,6 +14965,11 @@ function explainTeam(r) {
       ? `\u00b7 this exact team clears the room for ${P.meta.appRate}% of players${P.meta.bangboo ? `, with ${cardName(P.meta.bangboo)}` : ''}`
       : `\u00b7 this exact team is not in the clear data, but these agents do play together \u2014 ${pct(P.meta.value)}`);
   else lines.push('\u00b7 not found in clear statistics');
+  if (P.editor.counted)
+    lines.push(`\u00b7 editor's pick${P.editor.strength === 'room' ? ' for this room' : ''}`
+      + (P.editor.text ? `: ${P.editor.text}` : '')
+      + (P.editor.stale ? ` (written for ${P.editor.patch})` : '')
+      + (P.editor.clamped ? ' \u2014 noted, though the team already scores higher without it' : ''));
   if (P.synergy.counted)
     lines.push(`\u00b7 kit synergy ${pct(P.synergy.value)}: ${P.synergy.met} requirement${P.synergy.met === 1 ? '' : 's'} covered, ${P.synergy.unmet} not`
       + (P.synergy.confidence !== 'full' ? ` (kits described for ${P.synergy.coverage.described} of ${P.synergy.coverage.total})` : ''));
@@ -14760,7 +14985,11 @@ function explainTeam(r) {
   /* «builds» из этой строки выброшен: про снаряжение выше уже сказано целой
      фразой, с причиной и числом, и повторять его сухим списком значит
      печатать один факт дважды — карточка от этого только мутнеет. */
-  const dropped = r.dropped.filter(k => k !== 'builds');
+  /* `editor` выброшен по той же причине, что и `builds`, но причина другая:
+     отсутствие редакторской пометки — обычное состояние, а не пропуск данных.
+     Писать «not scored: editor» под каждой тройкой значило бы отчитываться о
+     том, что редактор про неё промолчал, — а он молчит почти про всё. */
+  const dropped = r.dropped.filter(k => k !== 'builds' && k !== 'editor');
   if (dropped.length) lines.push(`\u00b7 not scored: ${dropped.join(', ')} \u2014 weight went to the rest`);
   return lines;
 }
@@ -19685,6 +19914,95 @@ function builderMetaHtml(ctx) {
     ${anyOwned ? '' : `<div class="bd-room-sub" style="margin-top:6px">Enable the agents you own in the Agent Library and this list will mark what you are missing.</div>`}`;
 }
 
+/* Редакторские рекомендации — второй источник рядом с народным, и панель
+   намеренно повторяет соседнюю: тот же порядок, та же пометка «кого у тебя
+   нет», та же кнопка. Отличие одно и оно содержательное: у народных слева
+   стоит доля игроков, а тут стоять ей неоткуда — вместо числа человек читает
+   объяснение того, кто это написал.
+
+   ПАНЕЛЬ ПРИВЯЗАНА К КОМНАТЕ, поэтому на задачах «весь этаж» и «вся фаза» она
+   прячется — ровно как соседняя. Показывать под набором из четырёх комнат
+   записи, отобранные для первой, значило бы соврать о том, к чему они.
+
+   ЧУЖОЙ ПАТЧ ПОДПИСАН, А НЕ СПРЯТАН (решение Артёма): запись, написанная под
+   прошлую версию игры, видна и считается, но рядом стоит «written for 3.1». */
+function builderEditorHtml(ctx) {
+  const el = document.getElementById('builderEditor');
+  const list = (ctx && ctx.editor && ctx.editor.list) || [];
+  if (!list.length) { el.innerHTML = ''; el.classList.add('hidden'); return; }
+  const owned = k => !!(agentLibrary[k] || {}).enabled;
+  const anyOwned = Object.values(agentLibrary).some(v => v && v.enabled);
+  const rows = list.slice(0, 5).map(h => {
+    const keys = h.entry.team || [];
+    const missing = anyOwned ? keys.filter(k => !owned(k)) : [];
+    const note = [
+      h.entry.text || '',
+      h.strength === 'room' ? 'picked for this room' : 'picked for rooms like this one',
+      h.stale && h.patch ? `written for ${h.patch}` : '',
+    ].filter(Boolean).join(' \u00b7 ');
+    return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0">
+      <span style="font-family:'Share Tech Mono',monospace;color:var(--accent);min-width:52px">${
+        h.strength === 'room' ? 'room' : 'type'}</span>
+      <span>${keys.map(k => owned(k) || !anyOwned
+          ? escapeHtml(cardName(k))
+          : `<span class="bd-miss">${escapeHtml(cardName(k))}</span>`).join(' \u00b7 ')}</span>
+      ${h.entry.bangboo ? `<span class="bd-room-sub">with ${escapeHtml(cardName(h.entry.bangboo))}</span>` : ''}
+      ${missing.length ? `<span class="bd-room-sub bd-miss">you are missing ${missing.length}</span>` : ''}
+      <button class="bd-save" onclick="builderPinTrio('${keys.map(k => escapeHtml(k)).join('|')}')">try this</button>
+    </div>
+    ${note ? `<div class="bd-room-sub" style="margin:0 0 8px 60px">${escapeHtml(note)}</div>` : ''}`;
+  }).join('');
+  el.classList.remove('hidden');
+  el.innerHTML = `<div class="bd-room-head"><span class="bd-room-title">Editor's picks</span>
+      <span class="bd-room-sub">hand-written for cases where clear statistics are thin \u2014 a new agent, a new room, few runs</span></div>
+    ${rows}`;
+}
+
+/* Второй вид редакторской таблицы: «агент играет с». В скор он не идёт и
+   запретов не задаёт — так решил Артём, и это правильно: список напарников
+   задаёт направление поиска, а превращённый в фильтр он прятал бы рабочие
+   составы, которых автор записи просто не назвал.
+
+   Показывается по закреплённым агентам, потому что вопрос «с кем его ставить»
+   возникает ровно тогда, когда человек уже выбрал, с кого начать. Напарник
+   кликается и закрепляется рядом — иначе подсказку пришлось бы исполнять
+   руками через поиск по лицам. */
+function builderPartnersHtml(ctx) {
+  const el = document.getElementById('builderPartners');
+  const rec = ctx && ctx.rec;
+  const pins = builderPinned();
+  const rows = pins.map(k => [k, recPartnersFor(rec, k)]).filter(([, e]) => e);
+  if (!rows.length) { el.innerHTML = ''; el.classList.add('hidden'); return; }
+  const owned = k => !!(agentLibrary[k] || {}).enabled;
+  const anyOwned = Object.values(agentLibrary).some(v => v && v.enabled);
+  const full = pins.length >= 3;
+  const body = rows.map(([k, e]) => {
+    const chips = (e.with || []).map(w => {
+      const have = owned(w.key) || !anyOwned;
+      const already = pins.includes(w.key);
+      const label = escapeHtml(cardName(w.key)) + (already ? ' \u2713' : '');
+      const cls = have ? '' : ' bd-miss';
+      /* Уже закреплённого и того, кого некуда ставить, кнопкой не делаем:
+         кнопка, которая ничего не сделает, хуже отсутствующей. */
+      return (already || full)
+        ? `<span class="bd-room-sub${cls}" title="${escapeHtml(w.text || '')}">${label}</span>`
+        : `<button class="bd-save${cls}" style="margin-left:0" title="${escapeHtml(w.text || '')}"
+             onclick="builderTogglePin('${escapeHtml(w.key)}')">${label}</button>`;
+    }).join(' ');
+    return `<div style="margin:4px 0">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-weight:700">${escapeHtml(cardName(k))}</span>
+        <span class="bd-room-sub">plays with</span>${chips}</div>
+      ${e.text ? `<div class="bd-room-sub" style="margin-top:2px">${escapeHtml(e.text)}</div>` : ''}
+    </div>`;
+  }).join('');
+  el.classList.remove('hidden');
+  el.innerHTML = `<div class="bd-room-head"><span class="bd-room-title">Editor's notes</span>
+      <span class="bd-room-sub">who these agents are usually run with${
+        full ? ' \u2014 the squad is already full, so these are for reference' : ' \u2014 click to lock one in'}</span></div>
+    ${body}`;
+}
+
 function builderPinTrio(joined) {
   builderState.pinned = joined.split('|').slice(0, 3);
   builderRun();
@@ -19719,6 +20037,10 @@ function builderPaint() {
   const res = document.getElementById('builderResults');
   const st = builderState.last;
   builderPinsHtml();
+  /* Подсказка по напарникам живёт при закреплённых, а не при выдаче, поэтому
+     рисуется до проверки на результат: закрепить агента можно и тогда, когда
+     подбор ещё ничего не выдал. */
+  builderPartnersHtml(st && st.ctx);
   if (!st) return;
 
   if (st.error) {
@@ -19732,8 +20054,11 @@ function builderPaint() {
 
   info.innerHTML = st.kind === 'set' ? '' : builderRoomHtml(st.ctx);
   info.classList.toggle('hidden', !builderState.show.room || !info.innerHTML);
-  if (builderState.show.room && st.kind !== 'set') builderMetaHtml(st.ctx);
-  else document.getElementById('builderMeta').classList.add('hidden');
+  if (builderState.show.room && st.kind !== 'set') { builderMetaHtml(st.ctx); builderEditorHtml(st.ctx); }
+  else {
+    document.getElementById('builderMeta').classList.add('hidden');
+    document.getElementById('builderEditor').classList.add('hidden');
+  }
 
   const gearEl = document.getElementById('builderGear');
   gearEl.innerHTML = builderGearHtml(st.gear, st.gearModels,
