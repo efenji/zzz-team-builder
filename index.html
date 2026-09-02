@@ -1316,6 +1316,63 @@ select {
           flex-direction: column; gap: 3px; font-size: 12px; color: var(--text-mid); }
 .bd-why.hidden { display: none; }
 .bd-why-in { padding-left: 14px; color: var(--text-dim); }
+/* ── СЕССИЯ СБОРКИ ── каркас, дизайн доводится отдельно */
+.bd-session { max-width: 880px; margin: 0 auto 14px; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 12px 14px; }
+.bd-session.hidden { display: none; }
+.ses-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.ses-title { font-weight: 700; font-size: 14px; }
+.ses-sub { font-size: 12px; color: var(--accent); }
+.ses-note { font-size: 12px; color: var(--text-mid); line-height: 1.55; }
+.ses-note.warn { color: var(--text); border-left: 2px solid var(--red); padding-left: 8px; margin: 6px 0; }
+.ses-teams { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.ses-team { border: 1px solid var(--border); border-radius: var(--r-sm); padding: 8px 10px; }
+.ses-team-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.ses-team-name { font-weight: 600; font-size: 13px; }
+.ses-inc { font-size: 11px; color: var(--text-mid); display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+.ses-slot { display: grid; grid-template-columns: 40px minmax(0,1fr) auto; gap: 10px; align-items: center;
+  padding: 5px 0; border-top: 1px solid var(--border); }
+.ses-slot:first-of-type { border-top: none; }
+.ses-face { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--border);
+  background: var(--bg3); padding: 0; overflow: hidden; cursor: pointer; display: grid; place-items: center; }
+.ses-face img { width: 100%; height: 100%; object-fit: cover; }
+.ses-empty { color: var(--text-mid); font-size: 18px; }
+.ses-name { font-size: 13px; font-weight: 600; }
+.ses-gear { font-size: 11px; color: var(--text-mid); }
+.ses-presets { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 3px; }
+.ses-chip { font-size: 10px; padding: 2px 7px; border-radius: var(--r-sm); border: 1px solid var(--border);
+  background: var(--bg3); color: var(--text-mid); cursor: pointer; }
+.ses-chip:hover { border-color: var(--accent-30); color: var(--accent); }
+.ses-locks { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.ses-lock { font-size: 10px; padding: 3px 7px; border-radius: var(--r-sm); border: 1px solid var(--border);
+  background: var(--bg3); color: var(--text-mid); cursor: pointer; white-space: nowrap; }
+.ses-lock.on { border-color: var(--accent); color: var(--accent); }
+.ses-report { margin: 8px 0 4px; border: 1px solid var(--border); border-radius: var(--r-sm); padding: 8px 10px; }
+.ses-rep-head { font-size: 12px; font-weight: 700; margin-bottom: 5px; }
+.ses-rep-row { display: grid; grid-template-columns: 130px 78px minmax(0,1fr); gap: 8px;
+               font-size: 11px; padding: 2px 0; align-items: baseline; }
+.ses-rep-name { font-weight: 600; }
+.ses-rep-score { color: var(--accent); }
+.ses-rep-why { color: var(--text-mid); }
+.ses-rep-note { font-size: 11px; color: var(--text-mid); margin-top: 4px; }
+.ses-rep-note.warn { color: var(--red); }
+.ses-rep-foot { font-size: 11px; color: var(--text-mid); margin-top: 6px;
+                border-top: 1px solid var(--border); padding-top: 5px; }
+.ses-boo { font-size: 11px; color: var(--text-mid); display: inline-flex; gap: 6px; align-items: baseline; }
+.ses-boo.on { color: var(--accent); }
+.ses-boo-why { color: var(--text-mid); }
+.ses-reco { margin-top: 6px; border-top: 1px solid var(--border); padding-top: 6px; }
+.ses-reco-head { font-size: 11px; font-weight: 600; color: var(--text-mid); margin-bottom: 3px; }
+.ses-reco-row { display: grid; grid-template-columns: 44px minmax(0,1fr) 130px minmax(0,1fr);
+                gap: 8px; align-items: center; font-size: 11px; padding: 1px 0; }
+.ses-reco-team { font-weight: 600; }
+.ses-reco-num, .ses-reco-note, .ses-reco-empty { color: var(--text-mid); font-size: 11px; }
+.ses-chip[disabled] { opacity: .35; cursor: default; }
+/* Тело окна карточки: своя прокрутка, чтобы длинная карточка не растягивала
+   само окно за пределы экрана. */
+.lib-modal-body { overflow-y: auto; padding: 12px 14px; flex: 1; min-height: 0; }
+/* Группа команд одной сессии в общей сетке (§4.63) */
+.team-card.from-session { box-shadow: inset 0 0 0 1px var(--accent-30); }
 .bd-empty { text-align: center; color: var(--text-mid); font-size: 13px; padding: 40px 20px; line-height: 1.7; }
 .bd-note { max-width: 880px; margin: 0 auto 12px; font-size: 12px; color: var(--text-mid);
            background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 8px 10px; }
@@ -2797,6 +2854,20 @@ select {
 </div>
 
 <div class="page hidden" id="pageBuilder">
+  <!-- Карточка агента ПО ТРЕБОВАНИЮ (§4.61): рисуется только по нажатию.
+       Постоянно держать её на экране нельзя — это тяжёлая отрисовка на девять
+       агентов сразу. -->
+  <div class="lib-modal-bg hidden" id="sesCardBg" onclick="sessCardBgClick(event)">
+    <div class="lib-modal-box">
+      <div class="lib-modal-hd">
+        <button class="modal-x" onclick="sessCloseCard()">✕</button>
+        <div class="lib-modal-ttl" id="sesCardTitle">Build</div>
+        <button class="btn-save" onclick="sessCloseCard()">Done</button>
+      </div>
+      <div class="lib-modal-body" id="sesCardBody"></div>
+    </div>
+  </div>
+  <div id="builderSession" class="bd-session hidden"></div>
   <div id="builderPinned" class="bd-pinned hidden"></div>
   <div id="builderPartners" class="bd-room hidden"></div>
   <div id="builderRoomInfo" class="bd-room"></div>
@@ -11108,8 +11179,17 @@ const UP_WHEN_ANOMALY_BUILD = [
 ];
 
 const USEFUL_SUBSTATS = {
+  /* Крита тут НЕТ, и это правило Артёма дословно: «аномалики не играют никак с
+     критами, абсолютно, им нельзя собирать криты; все остальные аномалики
+     всегда собираются в знание аномалии и в атаку» (2026-09-02, §4.71). Раньше
+     здесь стояла ветка «крит в четвёртом слоте → критовая сборка», и она делала
+     критовым КАЖДОГО аномалика, у кого такой диск случайно оказался. Мияби —
+     абсолютное исключение, она играется от критов с M0 по M6 и потому имеет
+     собственное правило в USEFUL_SUBSTATS_AGENT, а не подходит под классовое.
+     Проверено данными: у Джейн в четвёртом слоте Anomaly Proficiency у 99.2%
+     из 9 980 игроков, крит — 0.11%; у Ярцева, Бёрнис, Грейс и Арии то же самое.
+     У Мияби наоборот: крит у 82% из 14 762. */
   Anomaly: [
-    { when: { slot: 4, mainStat: ['CRIT Rate', 'CRIT DMG'] }, ...UP_MIYABI },
     { main: ['Anomaly Proficiency', 'ATK%'] },
   ],
   Attack: [
@@ -11130,10 +11210,16 @@ const USEFUL_SUBSTATS = {
     { when: UP_WHEN_ANOMALY_BUILD, main: ['Anomaly Proficiency', 'ATK%'] },
     { main: ['ATK%', 'CRIT Rate', 'CRIT DMG'] },
   ],
+  /* Крит у саппорта раньше засчитывался, только если крит-мейн стоял в
+     четвёртом слоте. Артём поправил (§4.71): «сначала выполняется кап, если он
+     у персонажа есть; после капа остальные проки, если они есть, раскидываются
+     в урон — хоть это и несколько процентов, но это всё же урон, и на больших
+     пробуждениях саппорты дамажат больше». То есть крит полезен ему всегда,
+     просто ПОСЛЕ капа, а порядок внутри урона задан в sets.twoPcPriority.
+     Стан устроен так же и уже был написан правильно. */
   Support: [
     { when: { slot: 4, mainStat: 'Anomaly Proficiency' }, main: ['Anomaly Proficiency', 'ATK%'] },
-    { when: { slot: 4, mainStat: ['CRIT Rate', 'CRIT DMG'] }, main: ['ATK%', 'CRIT Rate', 'CRIT DMG'] },
-    { main: ['ATK%'] },
+    { main: ['ATK%', 'CRIT Rate', 'CRIT DMG'] },
   ],
 };
 
@@ -11182,6 +11268,17 @@ const USEFUL_SUBSTATS_AGENT = {
     { main: ['HP%'] },
   ],
   'soukaku': [
+    { when: { slot: 4, mainStat: ['CRIT Rate', 'CRIT DMG'] }, ...UP_MIYABI },
+    { main: ['Anomaly Proficiency', 'ATK%'] },
+  ],
+  /* Бёрнис названа Артёмом поимённо как второй агент с критовой веткой — но, в
+     отличие от Мияби, у неё это ХУДШАЯ из двух сборок, а не основная («играется
+     с аномалиями даже на максимальных пробуждениях; в критах со станером она
+     всегда хуже», §4.72). Поэтому ветка тут условная, по крит-мейну четвёртого
+     слота: если человек собрал её в крит, судить его диски по знанию аномалии
+     было бы неправдой — плоха сама сборка, и об этом говорит хвост её цепочки
+     сетов, а не обнулённые проки. Без этого правила она платила бы дважды. */
+  'burnice': [
     { when: { slot: 4, mainStat: ['CRIT Rate', 'CRIT DMG'] }, ...UP_MIYABI },
     { main: ['Anomaly Proficiency', 'ATK%'] },
   ],
@@ -14028,10 +14125,10 @@ function bsMains(m, data, ctx) {
    которое подвинется на калибровке этапа 8. Так числа двигаются, не трогая
    знание. Сета нет в рейтинге вовсе — значит для этого агента он не выбор:
    списки полные, а не «лучшее из».  */
-function bsTierCredit(rank, ops, setName, t) {
+function bsTierProcs(rank, ops, setName, t) {
   let c = t.top;
   for (let i = 0; i < rank.length; i++) {
-    if (rank[i].includes(setName)) return Math.max(t.floor, Math.round(c * 1000) / 1000);
+    if (rank[i].includes(setName)) return Math.max(t.floor, Math.round(c * 10) / 10);
     c -= (ops[i] === '>>' ? t.bigStep : t.step);
   }
   return t.unlisted;
@@ -14060,68 +14157,125 @@ function bsActiveRank(entry, m, ctx) {
   return { rank: entry.rank || [], ops: entry.ops || [], id: 'base' };
 }
 
+/* ── ЦЕНА ДВУХПРЕДМЕТНОГО БОНУСА, В ПРОКРУТАХ ──
+   Двоичного «полезен / бесполезен» мало: Артём прямо сказал, что на аномалике
+   Anomaly Proficiency, ATK% и CRIT DMG не равны — «сначала AP, потом ATK%, а
+   крит вообще не подходит». Поэтому у каждого класса свой порядок эшелонов
+   (sets.twoPcPriority), а статы вне списка судятся общим правилом полезности:
+   у агента есть строка бонуса урона своего атрибута и ключевой стат класса, и
+   выводить их отдельной таблицей значило бы завести вторую копию правил. */
+function bsTwoPcProcs(setName, data, m) {
+  const conf = data.sets, cr = conf.twoPcCredit;
+  const two = conf.twoPc[setName];
+  if (!two) return { procs: 0, why: `${setName}: сет неизвестен` };
+  /* Поимённая ставка — там, где бонус статом не выражается и общее правило его
+     не судит. Четыре таких сета Артём разобрал поимённо (§4.71). */
+  const ov = (conf.twoPcOverride || {})[setName];
+  if (ov && Number.isFinite(ov.procs))
+    return { procs: ov.procs, why: `${setName}: «${two.text}» — ${ov.why}` };
+  if (!two.fam)
+    return { procs: cr.unmeasured, why: `${setName}: «${two.text}» — статом не выражается, зачёт средний` };
+  /* Поимённый порядок сильнее классового: у Мияби класс аномалика, а играется
+     она сугубо через крит, и классовый порядок ей прямо противоположен (§4.72). */
+  const spec = getAgentClasses(m.agentKey)[0] || '';
+  const tiers = (conf.twoPcPriorityAgent || {})[m.agentKey]
+             || (conf.twoPcPriority || {})[spec] || [];
+  for (let i = 0; i < tiers.length; i++) {
+    if (tiers[i].some(name => bsFam(name) === two.fam)) {
+      const v = [cr.tier1, cr.tier2, cr.tier3][Math.min(i, 2)];
+      return { procs: v, why: `${setName}: ${two.text} — ${i + 1}-й эшелон для класса ${spec}` };
+    }
+  }
+  if (bsStatUseful(two.fam, m.useful))
+    return { procs: cr.otherUseful, why: `${setName}: ${two.text} — агенту полезен` };
+  return { procs: cr.miss, why: `${setName}: ${two.text} — агенту бесполезен` };
+}
+
+/* Не стакается ли этот четырёхпредметный с уже надетым на сокоманднике.
+   Список назвал Артём: часть сетов раздаёт бафф ОТРЯДУ, и второй такой же
+   четвёркой не работает вовсе. ctx.teamFourPc заполняет тот, кто знает
+   снаряжение всей тройки — решатель; там, где его нет, проверка молчит. */
+function bsNoStackClash(setName, data, ctx, m) {
+  const list = ((data.sets.noStack || {}).sets) || [];
+  if (!list.includes(setName)) return null;
+  const worn = ctx.teamFourPc || null;
+  if (!worn) return null;
+  for (const [k, v] of Object.entries(worn))
+    if (k !== m.agentKey && v === setName) return k;
+  return null;
+}
+
+/* ── СЕТЫ: СЧЁТ ИДЁТ В ПРОКРУТАХ (§4.68) ──
+   Со слов Артёма 2026-09-02: четырёхпредметный бонус стоит в среднем 12
+   полезных прокрутов, двухпредметный — около 3.3, шаг вниз по цепочке — 5,
+   большой шаг — 10. Его же проверка: «2/2/2 на 39 прокрутах равна 4/2 на 30».
+   Сходится: 4+2 это ОДИН четырёхпредметный плюс ДВА двухпредметных (у надетой
+   четвёрки её собственная двойка идёт в комплекте), а 2/2/2 — три
+   двухпредметных, то есть разница ровно 12 − 3.3 ≈ 9.
+
+   ЧТО ИЗ ЭТОГО СЛЕДУЕТ ДЛЯ КОДА. Считаются ВСЕ пары, а не одна, как раньше, и
+   «сборка без 4-Pc» перестала быть отдельным числом: она просто набирает три
+   двухпредметных вместо одного четырёхпредметного и двух двухпредметных.
+   Правило §4.35 «лучше не носить никакого 4-Pc, чем мёртвый» теперь не
+   назначено, а ВЫВОДИТСЯ: у мёртвого сета четырёхпредметный бонус нулевой, а
+   четыре слота под него отняли две пары — 2/2/2 выигрывает само собой.
+
+   ПОЛ В ЦЕПОЧКЕ НЕ УКРАШЕНИЕ. Артём сказал: любой сет ИЗ ЦЕПОЧКИ всегда лучше
+   2/2/2. Без пола хвост четырёхтировой цепочки провалился бы ниже неё, и
+   решатель начал бы честно раздевать агентов до трёх пар. */
 function bsSets(m, data, ctx) {
   const conf = data && data.sets;
   if (!conf) return { counted: false, value: null };
   ctx = ctx || {};
+  const T = conf.tiers, cr = conf.twoPcCredit;
   const counts = m.setCounts || {};
   const four = Object.keys(counts).find(n => counts[n] >= 4) || null;
   const entry = conf.fourPc[m.agentKey] || null;
 
-  let fourCredit = null, fourWhy = '', active = null, offChain = false;
+  /* Не знаем цепочку — не знаем, мёртв надетый сет или сильнейший. Знаменателя
+     нет, составляющая выбывает целиком (§4.33). */
+  if (four && !entry)
+    return { counted: false, value: null, four,
+             fourWhy: 'какие сеты идут этому агенту — не описано' };
+
+  const active = entry ? bsActiveRank(entry, m, ctx) : null;
+  let fourProcs = 0, fourWhy = '', offChain = false, dupIn = null, place = -1;
   if (!four) {
-    fourCredit = conf.credit.noFourPc; fourWhy = 'четырёхпредметного бонуса нет вовсе';
-  } else if (!entry) {
-    fourWhy = 'какие сеты идут этому агенту — не описано';       // без знаменателя
+    fourWhy = 'четырёхпредметного бонуса нет — работают только двухпредметные';
   } else {
-    active = bsActiveRank(entry, m, ctx);
-    fourCredit = bsTierCredit(active.rank, active.ops, four, conf.tiers);
-    const place = active.rank.findIndex(t => t.includes(four));
-    /* Сет за пределами цепочки не «слабоват» — он не работает вовсе, и кредит
-       ему ноль (см. gameRules.off-chain-set-is-dead). Подбору этого мало: он
-       обязан не подставить вместо него другой мусорный сет, а назвать лучший
-       и предложить нафармить. Поэтому наружу идут и флаг, и что именно
-       фармить, и полный список рабочих вариантов — сеты в КОНЦЕ цепочки
-       работают плохо, но работают, и годятся, пока лучших нет. */
+    place = active.rank.findIndex(t => t.includes(four));
     offChain = place < 0;
-    fourWhy = offChain
-      ? 'этого сета нет в цепочке агента — он на нём не работает вовсе'
-      : place === 0 ? 'сильнейший сет агента'
-      : `${place + 1}-й по силе из ${active.rank.length}`;
-    if (active.id !== 'base') fourWhy += `. ${active.why}`;
+    if (offChain) {
+      fourProcs = T.unlisted;
+      fourWhy = 'этого сета нет в цепочке агента — четырёхпредметный бонус на нём не работает вовсе';
+    } else if ((dupIn = bsNoStackClash(four, data, ctx, m))) {
+      fourProcs = T.unlisted;
+      fourWhy = `${four} уже надет четвёркой на ${dupIn} в этом отряде — такой бонус не стакается, второй раз он не работает`;
+    } else {
+      fourProcs = bsTierProcs(active.rank, active.ops, four, T);
+      fourWhy = place === 0 ? 'сильнейший сет агента'
+              : `${place + 1}-й по силе из ${active.rank.length}`;
+      if (active.id !== 'base') fourWhy += `. ${active.why}`;
+    }
   }
 
-  /* Двухпредметный — у сета, который не даёт четырёх. Их может не быть вовсе
-     (шесть предметов одного сета) — тогда работает 2-Pc того же самого. */
-  const twoName = Object.keys(counts).find(n => n !== four && counts[n] >= 2)
-               || (four && counts[four] >= 6 ? four : null);
-  const two = twoName ? conf.twoPc[twoName] : null;
-  let twoCredit = null, twoWhy = '';
-  if (!twoName) {
-    twoCredit = 0; twoWhy = 'двухпредметного бонуса нет — диски вразнобой';
-  } else if (!two || !two.fam) {
-    /* Бонус вроде «Increases Shield effect by 15%» статом не выражается, и
-       судить о нём нечем — выбывает из знаменателя, а не штрафует. */
-    twoWhy = two ? `${twoName}: «${two.text}» — статом не выражается, оценить нечем` : 'сет неизвестен';
-  } else {
-    const ok = bsStatUseful(two.fam, m.useful);
-    twoCredit = ok ? 1 : 0;
-    twoWhy = `${twoName}: ${two.text} — ${ok ? 'агенту полезен' : 'агенту бесполезен'}`;
-  }
+  /* Пары — ВСЕ сеты, которых надето хотя бы два куска, включая тот, что даёт
+     четвёрку: в игре четыре куска дают и двухпредметный бонус тоже. */
+  const pairs = Object.keys(counts).filter(n => counts[n] >= 2)
+    .map(n => ({ set: n, ...bsTwoPcProcs(n, data, m) }));
+  const twoProcs = pairs.reduce((a, b) => a + b.procs, 0);
 
-  const sp = conf.split;
-  const parts = [];
-  if (fourCredit !== null) parts.push([sp.fourPc, fourCredit]);
-  if (twoCredit !== null) parts.push([sp.twoPc, twoCredit]);
-  if (!parts.length) return { counted: false, value: null, four, fourWhy, twoName, twoWhy };
-  const wsum = parts.reduce((a, b) => a + b[0], 0);
-  const value = parts.reduce((a, b) => a + b[0] * b[1], 0) / wsum;
-  return { counted: true, value: bsClamp(value), four, fourCredit, fourWhy,
-           twoName, twoCredit, twoWhy,
-           offChain, best: active ? (active.rank[0] || []) : [],
+  const procs = fourProcs + twoProcs;
+  const maxProcs = T.top + 2 * cr.tier1;
+  return { counted: true, value: bsClamp(procs / maxProcs),
+           procs: Math.round(procs * 10) / 10, maxProcs,
+           four, fourProcs, fourWhy, pairs, twoProcs: Math.round(twoProcs * 10) / 10,
+           offChain, dupIn,
+           best: active ? (active.rank[0] || []) : [],
            workable: active ? active.rank.flat() : [],
            rankId: active ? active.id : null, conf: entry ? entry.conf : null };
 }
+
 function bsWengine(m, data) {
   const conf = data && data.wengine;
   const w = m.wengine;
@@ -14261,12 +14415,13 @@ function explainBuildScore(res) {
   } else lines.push('· мейн-статы: рекомендации игры для агента нет — составляющая выбыла');
 
   if (P.sets.counted) {
-    lines.push(`· сеты ${pct(P.sets.value)}: 4-Pc ${P.sets.four || '—'}${P.sets.fourWhy ? ` (${P.sets.fourWhy})` : ''}`);
-    if (P.sets.twoWhy) lines.push(`    2-Pc ${P.sets.twoWhy}`);
+    lines.push(`· сеты ${pct(P.sets.value)}: ${P.sets.procs} прокрутов из ${P.sets.maxProcs} возможных`);
+    lines.push(`    4-Pc ${P.sets.four || '—'}: ${P.sets.fourProcs} прокрутов${P.sets.fourWhy ? ` — ${P.sets.fourWhy}` : ''}`);
+    P.sets.pairs.forEach(pr => lines.push(`    2-Pc ${pr.procs} прокрутов — ${pr.why}`));
     if (P.sets.offChain)
       lines.push(`    ✕ ${P.sets.four} этому агенту не подходит вовсе. Работают только: `
         + `${P.sets.workable.join(', ')}. Лучший — ${P.sets.best.join(' или ')}; `
-        + 'пока его нет, лучше не носить никакого 4-Pc, чем мёртвый.');
+        + 'пока его нет, лучше не носить никакого 4-Pc, чем мёртвый — три пары дадут больше.');
     if (P.sets.rankId && P.sets.rankId !== 'base')
       lines.push('    рейтинг сетов здесь не базовый — включилось условие по '
         + (P.sets.rankId === 'team' ? 'составу отряда' : 'эйдосам'));
@@ -14728,6 +14883,17 @@ async function tbContext(opts) {
   /* Индекс редакторских записей — после того, как комната разрешена: он весь
      про совпадение с ней. */
   ctx.editor = recIndexFor(rec, ctx);
+  /* DEF главной цели комнаты. Правило §4.32 («ATK% встаёт вровень с бонусом
+     атрибута, когда DEF врага ниже 473») было записано числом, но в контекст
+     это число никто не клал, и ветка не могла сработать никогда — даже если бы
+     враг подходил. Берётся DEF ГЛАВНОЙ цели, а не минимальная по комнате:
+     сборка собирается против того, кто держит основную долю здоровья, и
+     смягчать правило самым слабым мобом было бы поддавками. На сезоне 55 и
+     фазе 3.1.3 порог не срабатывает нигде (минимум по всем 43 врагам — 473),
+     то есть сегодня правка ничего не меняет; она нужна, чтобы правило ожило
+     само, когда появится враг помягче. */
+  const tgt = ctx.room ? roomMainTarget(ctx.room) : null;
+  if (tgt && Number.isFinite(tgt.def)) ctx.enemyDef = tgt.def;
   return ctx;
 }
 
@@ -19227,6 +19393,7 @@ function builderOpened() {
   builderState.ran = true;
   builderFillPeriods();
   builderFillRooms();
+  sessPaint();
   builderRun();
 }
 
@@ -19336,17 +19503,26 @@ async function builderStandBuilds() {
 /* Модель карточки из пресета — та же, что строят панели профиля и пресета.
    Своей арифметики здесь нет: всё считают уже существующие функции, иначе у
    подбора и у карточки разъехались бы числа по одной и той же сборке. */
-async function builderModelFromPreset(agentKey, preset, extFile) {
+/* opts.noSheet — режим для решателя снаряжения. Лист статов нужен РОВНО одной
+   составляющей скора — капам: остальные четыре считаются от дисков, сетов,
+   мейн-статов и движка. Решателю приходится перебирать тысячи сборок, и лист
+   на каждую — это почти всё время счёта. Поэтому перебор форм идёт без листа
+   (caps честно выбывает по правилу знаменателя — это НЕ приближение «на
+   глазок», а тот же самый скор по четырём составляющим из пяти), а финалисты
+   пересчитываются полностью. Второй арифметики при этом не заводится: функция
+   одна, отличается только тем, строится лист или нет. */
+async function builderModelFromPreset(agentKey, preset, extFile, opts) {
   const discs = (preset.discs || []).slice().sort((a, b) => a.slot - b.slot);
   if (discs.length !== 6) return null;
   const lib = getAgentLibEntry(agentKey);
   const level = Number.isFinite(preset.level) ? preset.level : (lib.level || 60);
   const coreRank = Number.isFinite(preset.coreSkillEnhancement)
     ? preset.coreSkillEnhancement : (lib.coreSkillEnhancement || 0);
-  const sheet = await buildManualAgentStatSheet(agentKey, preset.wengine, discs, {
-    level, coreSkillEnhancement: coreRank,
-    wengineLevel: preset.wengineLevel ?? undefined,
-  }).catch(() => null);
+  const sheet = (opts && opts.noSheet) ? null
+    : await buildManualAgentStatSheet(agentKey, preset.wengine, discs, {
+        level, coreSkillEnhancement: coreRank,
+        wengineLevel: preset.wengineLevel ?? undefined,
+      }).catch(() => null);
   const useful = resolveUsefulSubstats(agentKey, discs);
   const setCounts = {};
   discs.forEach(d => { setCounts[d.setName] = (setCounts[d.setName] || 0) + 1; });
@@ -20036,6 +20212,7 @@ function builderPaint() {
   const info = document.getElementById('builderRoomInfo');
   const res = document.getElementById('builderResults');
   const st = builderState.last;
+  sessPaint();
   builderPinsHtml();
   /* Подсказка по напарникам живёт при закреплённых, а не при выдаче, поэтому
      рисуется до проверки на результат: закрепить агента можно и тогда, когда
@@ -20105,6 +20282,1874 @@ function builderPaintSet(st, res) {
     average ${st.avg} / 1000 · built from ${st.candidates} agents in ${st.ms} ms ·
     beam search, not an exact optimum${builderGearFootNote(st, (st.sets || []).map(x => x.team))}</div>`;
   res.innerHTML = missed + body + foot;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   БАНГБУ ПОД СОСТАВ (§4.62, §4.73)
+   ══════════════════════════════════════════════════════════════════════════
+   ЧТО ЭТО. У каждого бангбу есть дополнительный навык, включающийся ОТ СОСТАВА
+   отряда: от фракции, от класса, от атрибута или от конкретного агента.
+   Работает он не всегда, но когда работает — заметный бонус, и подбор обязан
+   это учитывать. Правило Артёма.
+
+   УСЛОВИЯ РАЗБИРАЮТСЯ ИЗ ТЕКСТА, А НЕ ПЕРЕПИСЫВАЮТСЯ ТАБЛИЦЕЙ. Соблазн был:
+   сесть и записать сорок условий в JSON. Но тексты уже лежат в BANGBOO_INFO,
+   и вторая копия разошлась бы с первой при первом же патче — ровно так же, как
+   разошлись бы две отрисовки одной сборки (§4.55) или две арифметики одного
+   скора (§4.64). Формулировки шаблонные, шаблонов всего четыре:
+     · «When there's at least N X character(s) in your/the squad»
+     · «When there are N or more X characters in your/the squad»
+     · «When another character in your squad is an X character»
+     · «When <Агент> is in the squad»
+   Внутри X бывает класс («Attack», «Attack or Anomaly»), атрибут («Fire
+   Attribute»), фракция или имя агента.
+
+   В ДАННЫХ ЛЕЖИТ ТОЛЬКО СЛОВАРЬ. Игра называет часть фракций иначе, чем наши
+   AGENT_FACTION: «Cunning Hares» против «Cunning Hares AKA Gentle House»,
+   «Hollow Special Operations Section 6» против «Section 6», а «New Eridu Public
+   Security» и вовсе покрывает два наших подразделения сразу. Эти соответствия —
+   знание, и оно в team.bangboo.factionAliases.
+
+   ЧЕГО ПРОВЕРИТЬ НЕЧЕМ, ТО НЕ ПРЕДЛАГАЕТСЯ. У Boollseye условие по типу атаки
+   («Pierce-type»), а таблицы типов атаки в проекте нет; у Ultra-Jake названа
+   фракция, которой нет в наших данных. Обе помечены поимённо с причиной, и
+   такие бангбу подбор не советует: обещать работающий бонус, не умея его
+   проверить, хуже, чем промолчать.
+
+   ПОЛНОТА РАЗБОРА НАКРЫТА ТЕСТОМ. Все сорок обязаны разобраться в условие либо
+   попасть в поимённый список «не знаю». Новый бангбу с незнакомой формулировкой
+   уронит тест, а не проскочит молча.
+
+   БАНГБУ ВЫБИРАЕТСЯ ПОСЛЕ ТРОЙКИ. Его условие проверяется по ГОТОВОМУ составу,
+   поэтому в перебор троек он не идёт и дерева не раздувает (§4.62).
+   ══════════════════════════════════════════════════════════════════════════ */
+
+const BOO_COUNT_WORDS = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5 };
+
+function booAbilityText(key) {
+  const info = BANGBOO_INFO[key];
+  return (info && info.additionalAbility && info.additionalAbility.text) || '';
+}
+function booAbilityTitle(key) {
+  const info = BANGBOO_INFO[key];
+  return (info && info.additionalAbility && info.additionalAbility.title) || '';
+}
+function booAgentKeyByName(name) {
+  const want = String(name || '').trim().toLowerCase();
+  return Object.keys(AGENT_FACTION).find(k => String(cardName(k)).toLowerCase() === want) || null;
+}
+function booAttributeExists(base) {
+  return Object.values(AGENT_ATTRIBUTE).some(a => a && a.base === base);
+}
+function booFactionsFor(name, cfg) {
+  const known = new Set(Object.values(AGENT_FACTION));
+  if (known.has(name)) return [name];
+  const al = ((cfg && cfg.factionAliases) || {})[name];
+  return Array.isArray(al) ? al.filter(f => known.has(f)) : [];
+}
+
+/* Разбор одного условия. Возвращает { type, values, n } — где type это
+   'faction' | 'specialty' | 'attribute' | 'agent' | 'none' | 'unknown'. */
+function booCondition(key, cfg) {
+  const text = booAbilityText(key);
+  const head = text.includes(':') ? text.slice(0, text.indexOf(':')).trim() : '';
+  const base = { key, text, head, title: booAbilityTitle(key), type: 'none', values: [], n: 0 };
+  const unk = ((cfg && cfg.unknown) || {})[key];
+  if (unk) return { ...base, type: 'unknown', why: unk };
+  if (!head) return base;   // условия нет вовсе — навык работает всегда
+
+  let m, what = null, n = 1;
+  if ((m = head.match(/^When there(?:'s| is) at least (\S+) (.+?) characters?(?:\(s\))? in (?:your|the) squad$/))
+   || (m = head.match(/^When there are (\S+) or more (.+?) characters?(?:\(s\))? in (?:your|the) squad$/))) {
+    const w = BOO_COUNT_WORDS[m[1].toLowerCase()];
+    n = Number.isFinite(w) ? w : parseInt(m[1], 10);
+    what = m[2].trim();
+  } else if ((m = head.match(/^When another character in your squad is an? (.+?) character$/))) {
+    /* «ещё один в отряде» — для тройки это то же самое, что «хотя бы один». */
+    n = 1; what = m[1].trim();
+  } else if ((m = head.match(/^When (.+?) is in the squad$/))) {
+    const agent = booAgentKeyByName(m[1]);
+    return agent ? { ...base, type: 'agent', values: [agent], n: 1 }
+                 : { ...base, type: 'unknown', why: `агент «${m[1]}» не опознан` };
+  } else {
+    return { ...base, type: 'unknown', why: 'формулировка условия не разобрана' };
+  }
+  if (!Number.isFinite(n) || n < 1) return { ...base, type: 'unknown', why: 'не разобрано число агентов' };
+
+  const parts = what.split(/\s+or\s+/).map(x => x.trim());
+  if (parts.length && parts.every(p => AGENT_SPECIALTIES[p]))
+    return { ...base, type: 'specialty', values: parts, n };
+  const attr = what.match(/^(.+?) Attribute$/);
+  if (attr && booAttributeExists(attr[1]))
+    return { ...base, type: 'attribute', values: [attr[1]], n };
+  const fac = booFactionsFor(what, cfg);
+  if (fac.length) return { ...base, type: 'faction', values: fac, n };
+  return { ...base, type: 'unknown',
+           why: `«${what}» не сопоставлено ни с классом, ни с атрибутом, ни с фракцией` };
+}
+
+/* Включается ли навык на этом составе. Неразобранное условие — всегда «нет»:
+   не знаем, значит не обещаем. */
+function booMatches(cond, teamKeys) {
+  const keys = (teamKeys || []).filter(Boolean);
+  if (!cond || cond.type === 'unknown') return false;
+  if (cond.type === 'none') return true;
+  if (cond.type === 'agent') return keys.some(k => cond.values.includes(k));
+  const count = keys.filter(k => {
+    if (cond.type === 'specialty') return getAgentClasses(k).some(c => cond.values.includes(c));
+    if (cond.type === 'attribute') return cond.values.includes((AGENT_ATTRIBUTE[k] || {}).base);
+    if (cond.type === 'faction') return cond.values.includes(AGENT_FACTION[k]);
+    return false;
+  }).length;
+  return count >= cond.n;
+}
+
+/* Человеческое объяснение — английское, оно идёт в интерфейс (§4.45). */
+function booWhyEn(cond, teamKeys) {
+  if (!cond) return '';
+  if (cond.type === 'unknown') return "its condition can't be checked";
+  if (cond.type === 'none') return 'always on — no squad condition';
+  const on = booMatches(cond, teamKeys);
+  const what = cond.type === 'agent' ? cond.values.map(cardName).join(' or ')
+             : cond.values.join(' / ');
+  const need = cond.type === 'agent' ? what : `${cond.n}× ${what}`;
+  return on ? `on — squad has ${need}` : `off — needs ${need}`;
+}
+
+function booOwned() {
+  return Object.keys(bangbooLibrary).filter(k => bangbooLibrary[k] && bangbooLibrary[k].enabled
+                                                 && BANGBOO_INFO[k]);
+}
+
+/* ── ВЫБОР ──
+   Сперва те, чей навык на этом составе включается: в этом всё правило. Дальше
+   тот, с которым комнату реально проходят (бангбу лежит у каждого состава в
+   zzz-meta.json) — измерение, а не догадка. Потом редкость, и в конце имя,
+   чтобы выдача была воспроизводимой. */
+function booPick(teamKeys, opts) {
+  const o = opts || {};
+  const cfg = o.cfg || null;
+  const used = o.used || new Set();
+  const pool = (o.owned || booOwned()).filter(k => !used.has(k));
+  if (!pool.length) return null;
+  const order = ((cfg && cfg.pick && cfg.pick.preferRarity) || ['S', 'A']);
+  const rank = pool.map(key => {
+    const cond = booCondition(key, cfg);
+    const active = booMatches(cond, teamKeys);
+    const rarityIdx = order.indexOf((BANGBOO_INFO[key] || {}).rarity);
+    return { key, cond, active,
+             meta: o.metaBangboo && o.metaBangboo === key ? 1 : 0,
+             rarity: rarityIdx < 0 ? order.length : rarityIdx };
+  });
+  rank.sort((a, b) => (b.active - a.active) || (b.meta - a.meta) || (a.rarity - b.rarity)
+                   || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+  const best = rank[0];
+  return { key: best.key, cond: best.cond, active: best.active,
+           fromMeta: !!best.meta, why: booWhyEn(best.cond, teamKeys) };
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   РЕШАТЕЛЬ СНАРЯЖЕНИЯ (этап 6, §4.59-4.60)
+   ══════════════════════════════════════════════════════════════════════════
+   ЧТО ЭТО. Исходная просьба Артёма и единственное, чего не сделал никто в мире
+   (§2.5): разложить библиотеку дисков и движков по девяти-двенадцати агентам
+   сессии так, чтобы ни один предмет не стоял дважды, а сумма качества сборок
+   была наибольшей. Урона тут по-прежнему нет — максимизируется buildScore,
+   который уже написан и сверен с реальными сборками (§4.39).
+
+   ЗАДАЧА РАСПАДАЕТСЯ НА ДВЕ, И ОНИ РАЗНОЙ ПРИРОДЫ.
+     · ВНУТРЕННЯЯ — «лучшая сборка ОДНОМУ агенту из этого пула». Тут
+       комбинаторика: слотов шесть, в каждом десятки дисков, полный перебор —
+       около 60^6, то есть 47 миллиардов сочетаний.
+     · ВНЕШНЯЯ — «кому какие диски достанутся». Тут конфликт: два агента хотят
+       один диск, и решает не «кому полезнее», а ЦЕНА УСТУПКИ (§4.60).
+
+   КАК СВЁРНУТА ВНУТРЕННЯЯ. Скор сборки складывается из пяти составляющих, и
+   четыре из них зависят не от конкретных дисков, а от ФОРМЫ сборки:
+     · sets    — какой 4-Pc и какой 2-Pc, то есть только имена сетов;
+     · mains   — мейн-статы слотов 4-6, то есть три значения;
+     · wengine — только движок;
+     · procs   — АДДИТИВНА ПО СЛОТАМ: полезные проки диска не зависят от того,
+                 что надето в соседних слотах.
+   Значит, зафиксировав форму — сет, его раскладку по слотам, второй сет и три
+   мейн-стата, — оптимальный выбор внутри каждого слота можно делать
+   независимо: берём диск с наибольшим числом полезных проков. Перебор
+   миллиардов превращается в перебор нескольких сотен форм.
+
+   Пятая составляющая, caps, по слотам не раскладывается: это пороги по СУММАМ
+   статов. Её и чинят локальные обмены в конце — по одному диску за раз, с
+   полным пересчётом.
+
+   ЗАЧЕМ ДВЕ СТУПЕНИ ОЦЕНКИ. Лист статов (buildManualAgentStatSheet) нужен
+   ровно составляющей caps и стоит почти всего времени счёта. Поэтому формы
+   перебираются БЕЗ листа, а полностью пересчитываются только финалисты.
+   Дешёвая оценка — это не «прикидка на глазок»: это тот же самый buildScore,
+   в котором caps честно выбыла по правилу знаменателя (§4.33), а её вес
+   разошёлся по остальным. Второй арифметики не заводится, функция модели одна
+   (builderModelFromPreset с opts.noSheet).
+
+   ПОЧЕМУ НЕ WEB WORKER, хотя в плане он записан. Воркеру пришлось бы отдать
+   ВЕСЬ стек оценки: лист статов, зоны и капы, правила полезности, скор сборки,
+   таблицы сетов и движков — то есть половину файла. Это ровно то, что проект
+   запрещает везде (§4.43, §4.55): вторая копия арифметики расходится с первой
+   всегда, вопрос только когда. Отзывчивость даётся дешевле — счёт уступает
+   управление браузеру каждые N сборок (gsTick), прогресс и отмена работают так
+   же. Если однажды перестанет хватать, правильный ход не копия в воркер, а
+   вынос всего стека оценки в отдельный файл-модуль, общий для страницы и
+   воркера.
+
+   ВЫПАСТЬ ИЗ ЦЕПОЧКИ НЕЛЬЗЯ ПО ПОСТРОЕНИЮ (§4.35). Кандидатами в 4-Pc идут
+   только сеты цепочки самого агента плюс вариант «без 4-Pc». Сет вне цепочки
+   не рассматривается вовсе — не потому, что он получил бы ноль очков, а
+   потому, что надевать его нельзя в принципе.
+
+   СНИЖЕНИЕ ПО ЦЕПОЧКЕ — ЭТО РЕЗУЛЬТАТ, А НЕ МЕХАНИЗМ (§4.60). Отдельной
+   «ступеньки вниз» в коде нет: если сильнейший сет агента разобран соседями,
+   лучшей сборкой из оставшегося окажется следующий по цепочке, и решатель
+   придёт к нему сам. От кода требуется другое — ЗАМЕТИТЬ это и сказать вслух:
+   в отчёте у каждого агента написано, какой сет он получил и на сколько
+   ступеней это ниже его одиночного лучшего.
+
+   ИЗВЕСТНАЯ ДЫРА В МОДЕЛИ, а не в решателе. §4.35 говорит: когда рабочего
+   4-Pc нет, три полезных двухпредметных бонуса лучше мёртвого
+   четырёхпредметного. bsSets этого пока не считает — он засчитывает ровно
+   один 2-Pc и даёт за отсутствие четвёрки фиксированные 0.35. Решатель
+   максимизирует то, что скор умеет мерить, и потому строит «лучший 2-Pc плюс
+   свободный выбор в остальных четырёх слотах», а не 2+2+2. Строить сборку,
+   которую собственный скор не умеет оценить, было бы хуже: выдача разошлась
+   бы с числом под ней. Вопрос вынесен Артёму.
+
+   ТОЧНОГО ОПТИМУМА НЕ ОБЕЩАЕМ и пишем это в интерфейсе — ровно как с
+   непересекающимися тройками (§4.47).
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Все пределы перебора — в данных (team.solver в zzz-buildscore.json), а не в
+   коде: это калибруемые величины, а не знание. Значения ниже нужны на случай,
+   когда файла нет, и служат документацией к тому, что вообще настраивается. */
+const GS_DEFAULTS = {
+  maxSets: 6,          // сколько сетов цепочки пробовать, сверху вниз
+  maxLayouts: 3,       // раскладок 4-Pc по слотам на каждый сет
+  maxTwoPc: 3,         // вариантов второго сета на каждую раскладку
+  maxMainsPerSlot: 2,  // мейн-статов на слот 4/5/6, лучших по зачёту mains
+  finalists: 6,        // сколько лучших форм пересчитать с листом статов
+  swapCandidates: 6,   // альтернатив на слот при локальных обменах
+  swapPasses: 2,
+  concessionRounds: 8, // сколько споров за диск разбирать
+  minGain: 5,          // спор дешевле этого выигрыша не стоит разбора, очков
+  attempts: 2,         // попыток с разным порядком агентов
+  yieldEvery: 300,     // через сколько моделей отдавать управление браузеру
+  refTimeoutMs: 8000,  // сколько ждать справочник статов, прежде чем считать без него
+};
+/* Поднялся ли справочник статов. null — ещё не спрашивали. Живёт на страницу:
+   см. объяснение в gsSolveSession. */
+let gsSheetProbe = null;
+function gsCfg(bs) {
+  const c = (bs && bs.team && bs.team.solver) || {};
+  const out = {};
+  Object.keys(GS_DEFAULTS).forEach(k => { out[k] = Number.isFinite(c[k]) ? c[k] : GS_DEFAULTS[k]; });
+  return out;
+}
+
+/* Ход счёта: один объект на запуск. Так прогресс и отмена видны отрисовке, а
+   сам счёт про интерфейс ничего не знает. */
+let gsRun = null;
+function gsSetProgress(done, total, note) {
+  if (!gsRun) return;
+  if (Number.isFinite(done)) gsRun.done = done;
+  if (Number.isFinite(total)) gsRun.total = total;
+  if (note != null) gsRun.note = note;
+  if (typeof gsRun.onProgress === 'function') gsRun.onProgress(gsRun);
+}
+function gsYield() { return new Promise(r => setTimeout(r, 0)); }
+async function gsTick() {
+  if (!gsRun) return;
+  gsRun.models++;
+  if (gsRun.models % gsRun.cfg.yieldEvery === 0) { gsSetProgress(); await gsYield(); }
+  if (gsRun.cancelled) throw new Error('GS_CANCELLED');
+}
+
+/* ── МОДЕЛЬ И СКОР ─────────────────────────────────────────────────────────
+   Единственное место, где решатель превращает «шесть дисков плюс движок» в
+   число. Считают всё уже написанные функции: своей арифметики здесь нет. */
+async function gsScore(req, discs, wengineKey, opts) {
+  await gsTick();
+  const preset = {
+    id: 'gs:auto', name: 'Auto-build', discs,
+    wengine: wengineKey || null,
+    wrank: wengineKey ? gsWengineRank(wengineKey) : 0,
+    wengineLevel: wengineKey ? (getWengineLibEntry(wengineKey).level || 60) : null,
+    level: req.level, coreSkillEnhancement: req.coreRank, mindscape: req.mindscape,
+  };
+  const m = await builderModelFromPreset(req.agentKey, preset, gsRun.extFile,
+                                         { noSheet: !(opts && opts.full && gsRun.sheetOk) });
+  if (!m) return null;
+  const res = buildScoreSync(m, {
+    data: gsRun.bs, purpose: 'builder', team: req.teamKeys, enemyDef: req.enemyDef,
+    teamFourPc: req.teamFourPc || null,
+  });
+  return { score: res.score == null ? 0 : res.score, model: m, res,
+           discs: discs.slice(), wengine: wengineKey || null };
+}
+
+/* ── ПУЛ ───────────────────────────────────────────────────────────────────
+   Владение диском хранится картой id → чей он сейчас. Тогда «пул для агента X»
+   это все ничьи диски ПЛЮС его собственные, и второго списка вести не надо.
+   reserved — то, что не трогается вовсе: снаряжение агентов с запертой
+   сборкой (§4.61, замок на снаряжении). */
+function gsPoolFor(owner, ownerMap, reserved) {
+  const bySlot = [[], [], [], [], [], []];
+  for (const d of driveDiscLibrary) {
+    if (reserved.has(d.id)) continue;
+    const own = ownerMap.get(d.id);
+    if (own !== undefined && own !== owner) continue;
+    const i = (d.slot | 0) - 1;
+    if (i >= 0 && i < 6) bySlot[i].push(d);
+  }
+  return bySlot;
+}
+function gsWengineRank(key) {
+  const e = getWengineLibEntry(key);
+  return Math.max(1, Math.min(5, e.refinement || 1));
+}
+/* Движки, которые у человека ЕСТЬ. Библиотека движков — это дикт «ключ →
+   {enabled}», по одной записи на движок: второго экземпляра одного и того же
+   движка в модели нет, поэтому и в сессии он может стоять только на одном
+   агенте. Если не отмечено ни одного, движки не раздаются вовсе — врать про
+   то, чего у человека нет, хуже, чем оставить слот пустым. */
+function gsOwnedWengines() {
+  return Object.keys(wengineLibrary).filter(k => wengineLibrary[k] && wengineLibrary[k].enabled);
+}
+
+/* Полезные проки ОДНОГО диска. Это тот же числитель, что считает
+   countUsefulProcs() (row.sum = main + flat + pen), только без построения
+   объекта на каждый вызов: решатель зовёт это десятки тысяч раз, и аллокация
+   там дороже самого счёта. Правило, которое могло бы разойтись, — какой
+   сабстат в какой зачёт идёт — не переписано, а взято той же функцией
+   usefulProcBucket(). */
+function gsDiscProcs(d, useful) {
+  let sum = 0;
+  for (const s of (d.subStats || [])) if (usefulProcBucket(s.name, useful)) sum += s.procs || 0;
+  return sum;
+}
+
+/* Мейн-статы слотов 1-3 в игре прибиты намертво, и форма сборки их не
+   выбирает. Нужны они здесь потому, что правила полезности
+   (usefulRuleMatches) смотрят на мейн-стат ЛЮБОГО слота, и без первых трёх
+   набор «полезного» определился бы неверно. */
+const GS_FIXED_MAINS = { 1: 'HP', 2: 'ATK', 3: 'DEF' };
+function gsUsefulFor(agentKey, m4, m5, m6) {
+  return resolveUsefulSubstats(agentKey, [
+    { slot: 1, mainStat: GS_FIXED_MAINS[1] }, { slot: 2, mainStat: GS_FIXED_MAINS[2] },
+    { slot: 3, mainStat: GS_FIXED_MAINS[3] }, { slot: 4, mainStat: m4 },
+    { slot: 5, mainStat: m5 }, { slot: 6, mainStat: m6 },
+  ]);
+}
+
+/* ── ИНДЕКС ПУЛА ───────────────────────────────────────────────────────────
+   Жадный выбор внутри формы всегда один и тот же вопрос: «лучший по прокам
+   диск этого слота, с таким-то сетом и таким-то мейн-статом». Ответ зависит
+   только от набора полезного, поэтому считается один раз на набор, а не на
+   каждую форму. Ключ '*' — «сет любой»: он нужен варианту без второго сета. */
+const GS_SEP = ' ';
+function gsIndex(poolBySlot, useful) {
+  const idx = [];
+  for (let i = 0; i < 6; i++) {
+    const best = new Map();
+    for (const d of poolBySlot[i]) {
+      const main = bsNorm(d.mainStat);
+      const v = gsDiscProcs(d, useful);
+      for (const set of [d.setName, '*']) {
+        const k = set + GS_SEP + main;
+        const cur = best.get(k);
+        if (!cur || v > cur.v) best.set(k, { d, v });
+      }
+    }
+    idx.push({ best });
+  }
+  return idx;
+}
+function gsPick(idx, slot, setName, main) {
+  const e = idx[slot - 1].best.get((setName || '*') + GS_SEP + main);
+  return e ? e.d : null;
+}
+function gsPickValue(idx, slot, setName, main) {
+  const e = idx[slot - 1].best.get((setName || '*') + GS_SEP + main);
+  return e ? e.v : -1;
+}
+/* Какие мейн-статы у этого сета вообще есть в этом слоте. */
+function gsMainsInSlot(idx, slot, setName) {
+  const out = [], pre = (setName || '*') + GS_SEP;
+  for (const k of idx[slot - 1].best.keys()) if (k.startsWith(pre)) out.push(k.slice(pre.length));
+  return out;
+}
+
+/* ── ЗАПАСНОЙ ВЫБОР МЕЙН-СТАТА ─────────────────────────────────────────────
+   Сначала берём мейн-стат, который выбрала форма. Если у нужного сета такого
+   диска в этом слоте нет — не выбрасываем весь сет, а берём лучший из тех, что
+   у него есть, в порядке зачёта mains. Иначе получалась бы ерунда: сильнейший
+   сет агента отвергался целиком из-за того, что в пятом слоте у него лежит не
+   тот мейн, — а живой игрок в такой ситуации просто надевает что есть.
+
+   ЧТО ЭТО СТОИТ. Набор «полезного» для жадного выбора считался по мейн-статам
+   ФОРМЫ, а не по фактическим, поэтому при срабатывании запасного выбора он
+   может слегка разойтись с итоговой сборкой. На число это не влияет: скор
+   считает builderModelFromPreset по НАСТОЯЩИМ дискам, а не по форме. Влиять
+   может только на то, какой именно диск выбран внутри слота, и ровно это
+   доправляют локальные обмены в конце. */
+function gsPickFor(idx, slot, setName, mains, rankAll) {
+  if (slot <= 3) return gsPick(idx, slot, setName, GS_FIXED_MAINS[slot]);
+  const d = gsPick(idx, slot, setName, mains[slot]);
+  if (d) return d;
+  const avail = gsMainsInSlot(idx, slot, setName);
+  if (!avail.length) return null;
+  for (const m of ((rankAll && rankAll[slot]) || [])) if (avail.includes(m)) return gsPick(idx, slot, setName, m);
+  let best = null, bv = -1;
+  for (const m of avail) {
+    const v = gsPickValue(idx, slot, setName, m);
+    if (v > bv) { bv = v; best = gsPick(idx, slot, setName, m); }
+  }
+  return best;
+}
+function gsValueFor(idx, slot, setName, mains, rankAll) {
+  const d = gsPickFor(idx, slot, setName, mains, rankAll);
+  return d ? gsPickValue(idx, slot, setName, bsNorm(d.mainStat)) : -1;
+}
+
+/* ── МЕЙН-СТАТЫ: ЧТО ВООБЩЕ СТОИТ ПРОБОВАТЬ ────────────────────────────────
+   Слоты 4-6 выбирает игрок, и вариантов там до семи на слот — перебирать все
+   175 сочетаний незачем. Зачёт составляющей mains считается по слотам
+   независимо, поэтому каждый слот ранжируется отдельно: подставляем в него по
+   очереди каждый доступный мейн-стат и спрашиваем у САМОГО bsMains, сколько он
+   за это даёт. Своей таблицы «что кому идёт» здесь не заводится намеренно: она
+   разошлась бы с правилом пятого слота, запретом чужого атрибута и реальными
+   сборками клирнувших — всё это живёт в bsMains и меняется правкой JSON. */
+async function gsMainRanking(req, poolBySlot, cfg) {
+  const commonMain = slot => {
+    const count = new Map();
+    for (const d of poolBySlot[slot - 1]) {
+      const m = bsNorm(d.mainStat);
+      count.set(m, (count.get(m) || 0) + 1);
+    }
+    let bestName = null, bestN = -1;
+    count.forEach((n, m) => { if (n > bestN) { bestN = n; bestName = m; } });
+    return bestName;
+  };
+  const seed = { 4: commonMain(4), 5: commonMain(5), 6: commonMain(6) };
+  if (!seed[4] || !seed[5] || !seed[6]) return null;
+  const idx0 = gsIndex(poolBySlot, gsUsefulFor(req.agentKey, seed[4], seed[5], seed[6]));
+
+  const base = [];
+  for (let s = 1; s <= 6; s++) {
+    const d = gsPick(idx0, s, null, s <= 3 ? GS_FIXED_MAINS[s] : seed[s]);
+    if (!d) return null;
+    base.push(d);
+  }
+
+  const rank = { all: {} };
+  for (const s of [4, 5, 6]) {
+    const scored = [];
+    for (const mo of gsMainsInSlot(idx0, s, null)) {
+      const d = gsPick(idx0, s, null, mo);
+      if (!d) continue;
+      const discs = base.slice(); discs[s - 1] = d;
+      const r = await gsScore(req, discs, req.wengine);
+      const det = r && r.res.parts.mains.counted
+        ? (r.res.parts.mains.detail || []).find(x => x.slot === s) : null;
+      /* Рекомендации игры может не быть вовсе — тогда mains выбывает по правилу
+         знаменателя, и различать мейн-статы этой составляющей нечем. Порядок в
+         таком случае задаёт сам скор: он всё равно посчитан, просто по четырём
+         составляющим из пяти. */
+      scored.push({ main: mo, credit: det ? (det.credit || 0) : 0, score: r ? r.score : 0 });
+    }
+    if (!scored.length) return null;
+    scored.sort((a, b) => (b.credit - a.credit) || (b.score - a.score) ||
+                          (a.main < b.main ? -1 : a.main > b.main ? 1 : 0));
+    /* top — что идёт в перебор форм; all — полный порядок, он нужен запасному
+       выбору: сет, который надо надеть, может не иметь в этом слоте диска с
+       желаемым мейн-статом, и тогда берётся лучший из доступных, а не
+       отбрасывается весь сет. */
+    rank[s] = scored.slice(0, Math.max(1, cfg.maxMainsPerSlot)).map(x => x.main);
+    rank.all[s] = scored.map(x => x.main);
+  }
+  return rank;
+}
+
+/* ── ЦЕПОЧКА СЕТОВ ─────────────────────────────────────────────────────────
+   Кандидаты в 4-Pc — ТОЛЬКО сеты цепочки этого агента плюс вариант «без
+   четвёрки». Цепочка берётся действующая (bsActiveRank): она зависит от
+   отряда и эйдосов, а не от агента как такового (§4.34). */
+function gsChain(req, bs) {
+  const data = bs || (gsRun && gsRun.bs) || null;
+  const entry = (data && data.sets && data.sets.fourPc[req.agentKey]) || null;
+  if (!entry) return { tiers: [], flat: [], rankId: null };
+  const active = bsActiveRank(entry, { agentKey: req.agentKey, mindscape: req.mindscape },
+                              { team: req.teamKeys });
+  const tiers = active.rank || [];
+  const flat = [];
+  tiers.forEach((tier, ti) => tier.forEach(name => flat.push({ name, tier: ti })));
+  return { tiers, flat, rankId: active.id };
+}
+/* Нестакающиеся сеты, занятые сокомандниками этого же слота. Читается из
+   данных (sets.noStack), список назвал Артём. */
+function gsForbiddenFour(req) {
+  const out = new Set();
+  const list = ((gsRun.bs && gsRun.bs.sets && gsRun.bs.sets.noStack) || {}).sets || [];
+  const worn = req.teamFourPc || {};
+  for (const [k, v] of Object.entries(worn))
+    if (k !== req.agentKey && list.includes(v)) out.add(v);
+  return out;
+}
+
+/* На какой ступени цепочки стоит надетый сет. -1 — сета нет вовсе. */
+function gsTierOf(chain, setName) {
+  if (!setName) return -1;
+  const hit = chain.flat.find(x => x.name === setName);
+  return hit ? hit.tier : -1;
+}
+
+/* ── РАСКЛАДКА СЕТА ПО СЛОТАМ ──────────────────────────────────────────────
+   Четыре куска сета встают в четыре слота из шести, и какие два останутся
+   свободными — решение, а не мелочь: в свободные идёт второй сет, и именно там
+   можно взять диск с нужным мейн-статом, если у основного сета такого нет.
+   Освобождаем те слоты, где основной сет ХУЖЕ всего против лучшего доступного
+   диска вообще: там уступка дешевле всего. */
+function gsLayouts(idx, setName, mains, rankAll, cfg) {
+  const must = [], can = [];
+  for (let s = 1; s <= 6; s++) {
+    if (!gsPickFor(idx, s, setName, mains, rankAll)) { must.push(s); continue; }
+    can.push({ slot: s, lost: gsValueFor(idx, s, null, mains, rankAll)
+                            - gsValueFor(idx, s, setName, mains, rankAll) });
+  }
+  if (must.length > 2) return [];
+  can.sort((a, b) => (b.lost - a.lost) || (a.slot - b.slot));
+  const need = 2 - must.length;
+  const combos = [];
+  if (need === 0) combos.push([]);
+  else if (need === 1) can.forEach(c => combos.push([c.slot]));
+  else for (let i = 0; i < can.length; i++)
+    for (let j = i + 1; j < can.length; j++) combos.push([can[i].slot, can[j].slot]);
+  /* Первая раскладка самая дешёвая, дальше пара соседних: разница между ними
+     обычно копеечная, а полный перебор пятнадцати раскладок на каждый сет и
+     каждое сочетание мейн-статов не окупается. */
+  return combos.slice(0, Math.max(1, cfg.maxLayouts)).map(extra => {
+    const free = must.concat(extra).sort((a, b) => a - b);
+    return { free, locked: [1, 2, 3, 4, 5, 6].filter(s => !free.includes(s)) };
+  });
+}
+
+/* ── ВТОРОЙ СЕТ ────────────────────────────────────────────────────────────
+   Двухпредметный бонус — это ровно один стат, и bsSets засчитывает его
+   двоично: полезен агенту или нет. Поэтому кандидатов немного — сеты, у
+   которых есть диск в ОБОИХ свободных слотах, отсортированные сперва по
+   «полезен ли бонус», потом по прокам. Последним идёт вариант «вразнобой»:
+   бонуса нет, зато диски лучшие, и иногда он честно выигрывает. */
+function gsTwoPcOptions(idx, freeSlots, mains, rankAll, cfg) {
+  const twoConf = (gsRun.bs && gsRun.bs.sets && gsRun.bs.sets.twoPc) || {};
+  const cands = [];
+  if (freeSlots.length === 2) {
+    const seen = new Set();
+    for (const k of idx[freeSlots[0] - 1].best.keys()) {
+      const i = k.indexOf(GS_SEP);
+      const set = k.slice(0, i);
+      if (set === '*' || seen.has(set)) continue;
+      seen.add(set);
+      if (!freeSlots.every(sl => gsPickFor(idx, sl, set, mains, rankAll))) continue;
+      const conf = twoConf[set];
+      cands.push({
+        name: set, useful: conf && conf.fam ? 1 : 0,
+        procs: freeSlots.reduce((a, sl) => a + gsValueFor(idx, sl, set, mains, rankAll), 0),
+      });
+    }
+  }
+  cands.sort((a, b) => (b.useful - a.useful) || (b.procs - a.procs) ||
+                       (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  const out = cands.slice(0, Math.max(0, cfg.maxTwoPc - 1)).map(c => c.name);
+  out.push(null);
+  return out;
+}
+
+/* Вариант «без 4-Pc». Он законный и иногда единственный: если ни один сет
+   цепочки не набирается четырьмя кусками, надевать чужой нельзя (§4.35).
+   Тогда сборка держится на одном двухпредметном бонусе, а остальные четыре
+   слота свободны — и выбираются чисто по прокам и мейн-статам. Какая пара
+   слотов отдана под 2-Pc, тут решение: отдавать надо те, где потеря по прокам
+   меньше всего. */
+function gsNoFourOptions(idx, mains, rankAll, cfg) {
+  const twoConf = (gsRun.bs && gsRun.bs.sets && gsRun.bs.sets.twoPc) || {};
+  const out = [];
+  for (let a = 1; a <= 6; a++) {
+    const seen = new Set();
+    for (const k of idx[a - 1].best.keys()) {
+      const i = k.indexOf(GS_SEP);
+      const set = k.slice(0, i);
+      if (set === '*' || seen.has(set)) continue;
+      seen.add(set);
+      for (let b = a + 1; b <= 6; b++) {
+        if (!gsPickFor(idx, b, set, mains, rankAll)) continue;
+        const conf = twoConf[set];
+        out.push({
+          two: set, twoSlots: [a, b], useful: conf && conf.fam ? 1 : 0,
+          lost: (gsValueFor(idx, a, null, mains, rankAll) - gsValueFor(idx, a, set, mains, rankAll))
+              + (gsValueFor(idx, b, null, mains, rankAll) - gsValueFor(idx, b, set, mains, rankAll)),
+        });
+      }
+    }
+  }
+  out.sort((x, y) => (y.useful - x.useful) || (x.lost - y.lost));
+  const res = out.slice(0, Math.max(1, cfg.maxTwoPc));
+  res.push({ two: null, twoSlots: [] });
+  return res;
+}
+
+/* ── ЖАДНЫЙ ВЫБОР ВНУТРИ ФОРМЫ ─────────────────────────────────────────────
+   Здесь и живёт то, ради чего форма вообще выделена: когда сет, раскладка,
+   второй сет и мейн-статы зафиксированы, составляющая procs распадается по
+   слотам, и лучший диск в каждом слоте выбирается независимо от соседей.
+   Слот, не занятый ни одним из двух сетов, ничем не связан — там берётся
+   просто лучший диск по прокам. */
+function gsShapeDiscs(idx, shape, mains, rankAll) {
+  const discs = [];
+  for (let s = 1; s <= 6; s++) {
+    const want = shape.fourSlots.includes(s) ? shape.four
+               : shape.twoSlots.includes(s) ? shape.two : null;
+    const d = gsPickFor(idx, s, want, mains, rankAll);
+    if (!d) return null;
+    discs.push(d);
+  }
+  return discs;
+}
+
+/* ── ВЫБОР ДВИЖКА ──────────────────────────────────────────────────────────
+   Движок оценивается bsWengine и от дисков почти не зависит: решают
+   сигнатурность, совпадение специальности, редкость и рефайн. Единственная
+   связь — полезен ли вторичный стат, а это набор «полезного», который здесь
+   ещё не известен точно. Поэтому движок выбирается ДО дисков по
+   предварительному набору и дальше не меняется: перебирать его вместе с
+   формами значило бы умножить счёт на десяток ради разницы в третьем знаке. */
+function gsPickWengine(agentKey, freeKeys, useful) {
+  let best = null, bestV = -1;
+  for (const key of freeKeys) {
+    const info = WENGINE_INFO[key] || null;
+    const m = {
+      agentKey, useful,
+      wengine: { key, level: getWengineLibEntry(key).level || 60, rank: gsWengineRank(key),
+                 secName: info && info.secondaryStat ? info.secondaryStat.name : null },
+    };
+    const r = bsWengine(m, gsRun.bs);
+    const v = r.counted ? (r.value || 0) : 0;
+    if (v > bestV) { bestV = v; best = key; }
+  }
+  return best;
+}
+
+/* ── ЛУЧШАЯ СБОРКА ОДНОМУ АГЕНТУ ───────────────────────────────────────────
+   Перебор форм на дешёвой оценке, полный пересчёт финалистов, локальные
+   обмены. Возвращает null, если из пула шести дисков вообще не собрать. */
+async function gsSolveAgent(req, poolBySlot, cfg) {
+  for (let i = 0; i < 6; i++) if (!poolBySlot[i].length) return null;
+
+  const rank = await gsMainRanking(req, poolBySlot, cfg);
+  if (!rank) return null;
+  const chain = gsChain(req);   // действующая цепочка сетов этого агента
+
+  const shapes = [];
+  for (const m4 of rank[4]) for (const m5 of rank[5]) for (const m6 of rank[6]) {
+    const mains = { 4: m4, 5: m5, 6: m6 };
+    const idx = gsIndex(poolBySlot, gsUsefulFor(req.agentKey, m4, m5, m6));
+    /* Сеты цепочки, а за ними «без 4-Pc». Порядок не для отсечения — считаются
+       все, — а чтобы срез по maxSets брал сильнейшие, а не случайные. */
+    /* Нестакающийся сет, уже надетый четвёркой на сокоманднике, в кандидаты
+       не идёт вовсе. Это ЗАПРЕТ, а не штраф: второй такой четырёхпредметный не
+       даёт ничего, и класть под него четыре слота — чистая потеря (§4.68). */
+    const forbidden = gsForbiddenFour(req);
+    for (const four of chain.flat.filter(x => !forbidden.has(x.name))
+                                 .slice(0, Math.max(1, cfg.maxSets)).map(x => x.name)) {
+      for (const lay of gsLayouts(idx, four, mains, rank.all, cfg)) {
+        for (const two of gsTwoPcOptions(idx, lay.free, mains, rank.all, cfg)) {
+          const shape = { four, fourSlots: lay.locked, two, twoSlots: lay.free, mains };
+          const discs = gsShapeDiscs(idx, shape, mains, rank.all);
+          if (discs) shapes.push({ shape, discs });
+        }
+      }
+    }
+    for (const nf of gsNoFourOptions(idx, mains, rank.all, cfg)) {
+      const shape = { four: null, fourSlots: [], two: nf.two, twoSlots: nf.twoSlots, mains };
+      const discs = gsShapeDiscs(idx, shape, mains, rank.all);
+      if (discs) shapes.push({ shape, discs });
+    }
+  }
+  if (!shapes.length) return null;
+
+  /* Ступень первая: дешёвая оценка всех форм. */
+  const cheap = [];
+  for (const s of shapes) {
+    const r = await gsScore(req, s.discs, req.wengine);
+    if (r) cheap.push({ ...s, cheap: r.score });
+  }
+  if (!cheap.length) return null;
+  cheap.sort((a, b) => b.cheap - a.cheap);
+
+  /* Ступень вторая: финалисты считаются полностью, с листом статов и капами. */
+  let best = null;
+  for (const c of cheap.slice(0, Math.max(1, cfg.finalists))) {
+    const r = await gsScore(req, c.discs, req.wengine, { full: true });
+    if (r && (!best || r.score > best.score)) best = { ...r, shape: c.shape };
+  }
+  if (!best) return null;
+
+  /* Ступень третья: локальные обмены. Единственная составляющая, которая по
+     слотам не раскладывается, — caps: это пороги по СУММАМ статов, и добрать
+     их можно только пересчитав сборку целиком. Меняем по одному диску, не
+     трогая ни сет, ни мейн-стат слота: форма уже выбрана, чинится начинка. */
+  for (let pass = 0; pass < cfg.swapPasses; pass++) {
+    let improved = false;
+    for (let s = 1; s <= 6; s++) {
+      const cur = best.discs[s - 1];
+      const want = cur.setName, main = bsNorm(cur.mainStat);
+      const alts = poolBySlot[s - 1]
+        .filter(d => d.id !== cur.id && d.setName === want && bsNorm(d.mainStat) === main)
+        .sort((a, b) => gsDiscProcs(b, best.model.useful) - gsDiscProcs(a, best.model.useful))
+        .slice(0, Math.max(0, cfg.swapCandidates));
+      for (const alt of alts) {
+        const discs = best.discs.slice(); discs[s - 1] = alt;
+        const r = await gsScore(req, discs, req.wengine, { full: true });
+        if (r && r.score > best.score) { best = { ...r, shape: best.shape }; improved = true; }
+      }
+    }
+    if (!improved) break;
+  }
+
+  const four = Object.keys(best.model.setCounts).find(n => best.model.setCounts[n] >= 4) || null;
+  return {
+    ...best, agentKey: req.agentKey, four,
+    tier: gsTierOf(chain, four), chainLen: chain.tiers.length, rankId: chain.rankId,
+    discIds: best.discs.map(d => d.id),
+  };
+}
+
+/* ── ЧТО РЕШАТЬ: СПИСОК СЛОТОВ СЕССИИ ──────────────────────────────────────
+   Автосборка достраивает от ЛЮБОГО состояния (§4.61): пустая команда, один
+   запертый ДД со своей сборкой, трое одетых руками. Разбор состояния и живёт
+   здесь — дальше решателю всё равно, откуда взялись ограничения.
+
+   ДВА ЗАМКА НЕЗАВИСИМЫ. Замок на АГЕНТЕ говорит «не меняй, кто здесь стоит», и
+   решателя снаряжения не касается вовсе: кто стоит, тот и одевается. Замок на
+   СНАРЯЖЕНИИ выводит агента из задачи и переводит его диски и движок в
+   «неприкосновенное»: они заняты так же честно, как если бы стояли в соседней
+   комнате. */
+function gsTargets(session, ctxByRoom, bs) {
+  const cfgTeam = (bs && bs.team) || {};
+  const dmg = new Set(cfgTeam.damageClasses || []);
+  const rw = cfgTeam.roleWeight || { damage: 1, helper: 0.7 };
+  const targets = [], reserved = new Set(), reservedWe = new Set(), lockedFour = [];
+  (session.teams || []).forEach((t, ti) => {
+    const teamKeys = t.agents.map(a => a.key).filter(Boolean);
+    const ctx = ctxByRoom ? ctxByRoom[t.roomKey] : null;
+    t.agents.forEach((a, si) => {
+      if (!a.key) return;
+      if (a.lockGear) {
+        (a.discSlots || []).forEach(id => { if (id) reserved.add(id); });
+        if (a.wengine) reservedWe.add(a.wengine);
+        /* Что за сет на нём стоит — нужно соседям по комнате: нестакающийся
+           четырёхпредметный второй раз не работает (§4.68). */
+        const cnt = {};
+        (a.discSlots || []).forEach(id => {
+          const d = id ? driveDiscLibrary.find(x => x.id === id) : null;
+          if (d) cnt[d.setName] = (cnt[d.setName] || 0) + 1;
+        });
+        const f = Object.keys(cnt).find(n => cnt[n] >= 4) || null;
+        if (f) lockedFour.push({ ti, agentKey: a.key, four: f });
+        return;
+      }
+      const cls = getAgentClasses(a.key)[0] || '';
+      const lib = getAgentLibEntry(a.key);
+      targets.push({
+        id: ti + ':' + si, ti, si, agentKey: a.key, teamKeys,
+        roleW: dmg.has(cls) ? (rw.damage ?? 1) : (rw.helper ?? 0.7),
+        isDamage: dmg.has(cls),
+        level: Number.isFinite(lib.level) ? lib.level : 60,
+        coreRank: lib.coreSkillEnhancement || 0,
+        mindscape: Number.isFinite(a.eidolons) ? a.eidolons : (lib.mindscape || 0),
+        enemyDef: ctx && Number.isFinite(ctx.enemyDef) ? ctx.enemyDef : undefined,
+        useful0: resolveUsefulSubstats(a.key, []),
+        wengine: null,
+        hadGear: !!(a.wengine || (a.discSlots || []).some(Boolean)),
+      });
+    });
+  });
+  return { targets, reserved, reservedWe, lockedFour };
+}
+
+/* ── ОДИН ЗАХОД РАСКЛАДКИ ──────────────────────────────────────────────────
+   Сперва жадный проход в заданном порядке, потом разбор споров за диски по
+   цене уступки (§4.60). Жадность одна ошиблась бы предсказуемо: первый в
+   очереди забирает лучшее, а последнему достаётся то, что осталось, — даже
+   когда для первого это была прибавка в пять очков, а для последнего потеря в
+   полтораста. */
+async function gsAttempt(order, all, cfg) {
+  const byId = new Map(all.targets.map(t => [t.id, t]));
+  const ownerMap = new Map();
+  const usedWe = new Set(all.reservedWe);
+  const cur = new Map();
+
+  /* Движок выбирается раньше дисков и потом не меняется — см. gsPickWengine.
+     Раздаётся он в том же порядке, что и диски: сигнатурный движок конфликта
+     не создаёт (он у каждого свой), а спор за общий S-ранг решается очередью,
+     а не ценой уступки. Это сознательное упрощение: движков у человека
+     единицы, и разница между вторым и третьим по пригодности мала против
+     разницы в дисках. */
+  for (const req of order) {
+    req.wengine = gsPickWengine(req.agentKey, all.weKeys.filter(k => !usedWe.has(k)), req.useful0);
+    if (req.wengine) usedWe.add(req.wengine);
+  }
+
+  /* Одиночный лучший — «сколько бы он взял, если бы библиотека была только
+     его». Это и мера недобора, и готовая цель для разбора спора. Считается
+     после раздачи движков, чтобы движок в споре не участвовал. */
+  /* Какой четырёхпредметный сет надет на ком в каждой тройке. Нужно ровно для
+     нестакающихся сетов (§4.68): решатель не должен отдавать второму агенту
+     той же комнаты сет, который на ней уже не сработает. */
+  const fourByTeam = new Map();
+  const teamCtx = ti => { if (!fourByTeam.has(ti)) fourByTeam.set(ti, {}); return fourByTeam.get(ti); };
+  const commit = (req, sol) => {
+    cur.set(req.id, sol);
+    teamCtx(req.ti)[req.agentKey] = sol.four || null;
+  };
+  /* Запертое снаряжение в задачу не входит, но на поле оно стоит — и если на
+     нём нестакающийся сет, соседу он уже не поможет. */
+  (all.lockedFour || []).forEach(({ ti, agentKey, four }) => { teamCtx(ti)[agentKey] = four; });
+
+  const soloPool = gsPoolFor('#solo', new Map(), all.reserved);
+  const solo = new Map();
+  for (const req of order) {
+    gsSetProgress(++gsRun.step, gsRun.steps, `${cardName(req.agentKey)} — best possible`);
+    req.teamFourPc = teamCtx(req.ti);
+    req.solo = await gsSolveAgent(req, soloPool, cfg);
+    solo.set(req.id, req.solo);
+  }
+
+  for (const req of order) {
+    gsSetProgress(++gsRun.step, gsRun.steps, `${cardName(req.agentKey)} — fitting`);
+    req.teamFourPc = teamCtx(req.ti);
+    const sol = await gsSolveAgent(req, gsPoolFor(req.id, ownerMap, all.reserved), cfg);
+    if (!sol) continue;
+    sol.discIds.forEach(id => ownerMap.set(id, req.id));
+    commit(req, sol);
+  }
+
+  /* ── СПОР ЗА ДИСК РЕШАЕТСЯ ЦЕНОЙ УСТУПКИ (§4.60) ──
+     Не «кому полезнее», а сколько теряет каждый из двоих, если отдаст. Тот,
+     кто недобрал больше всех против своего одиночного лучшего, просит нужные
+     ему диски; каждый держатель пересобирается без них, и его потеря
+     складывается в цену. Дороже выигрыша — спор проигран, агент помечается
+     улаженным и больше не просит. Потеря взвешивается ролью: у ДД сборка
+     конвертируется в урон напрямую, у помощника — через баффы, упирающиеся в
+     кап (team.roleWeight). */
+  const settled = new Set();
+  const traded = [];
+  for (let round = 0; round < cfg.concessionRounds; round++) {
+    gsSetProgress(++gsRun.step, gsRun.steps, 'settling disc disputes');
+    let cand = null, gain = 0;
+    for (const req of order) {
+      if (settled.has(req.id) || !req.solo || !cur.has(req.id)) continue;
+      const g = (req.solo.score - cur.get(req.id).score) * req.roleW;
+      if (g > gain) { gain = g; cand = req; }
+    }
+    if (!cand || gain < cfg.minGain) break;
+
+    /* Одиночный лучший считался ДО раздачи, и он лишь указывает, кого разбирать
+       первым. Чего именно просить, пересчитываем заново от всей библиотеки и с
+       нынешним снаряжением сокомандников: иначе агент мог бы затребовать
+       нестакающийся сет, который сосед по комнате уже надел. */
+    cand.teamFourPc = teamCtx(cand.ti);
+    const want = await gsSolveAgent(cand, soloPool, cfg);
+    if (!want) { settled.add(cand.id); continue; }
+    const realGain = (want.score - cur.get(cand.id).score) * cand.roleW;
+    if (realGain < cfg.minGain) { settled.add(cand.id); continue; }
+
+    const holders = new Set();
+    for (const id of want.discIds) {
+      const own = ownerMap.get(id);
+      if (own !== undefined && own !== cand.id) holders.add(own);
+    }
+    if (!holders.size) { settled.add(cand.id); continue; }
+
+    const trial = new Map(ownerMap);
+    for (const [id, o] of [...trial]) if (o === cand.id) trial.delete(id);
+    want.discIds.forEach(id => trial.set(id, cand.id));
+
+    let cost = 0, ok = true;
+    const fresh = new Map();
+    for (const hid of holders) {
+      const h = byId.get(hid);
+      for (const [id, o] of [...trial]) if (o === hid) trial.delete(id);
+      h.teamFourPc = teamCtx(h.ti);
+      const nb = await gsSolveAgent(h, gsPoolFor(hid, trial, all.reserved), cfg);
+      if (!nb) { ok = false; break; }
+      cost += (cur.get(hid).score - nb.score) * h.roleW;
+      nb.discIds.forEach(id => trial.set(id, hid));
+      fresh.set(hid, nb);
+    }
+
+    if (!ok || cost >= realGain) { settled.add(cand.id); continue; }
+    ownerMap.clear(); trial.forEach((v, k) => ownerMap.set(k, v));
+    commit(cand, want);
+    fresh.forEach((v, k) => commit(byId.get(k), v));
+    settled.add(cand.id);
+    traded.push({
+      to: cand.agentKey, gain: Math.round(realGain),
+      from: [...holders].map(h => cardName(byId.get(h).agentKey)), cost: Math.round(cost),
+    });
+  }
+
+  let total = 0;
+  cur.forEach((sol, id) => { total += sol.score * byId.get(id).roleW; });
+  /* solo и движки уносим снимком: заходов несколько, они пишут в те же req, и
+     отчёт должен рассказывать про ПОБЕДИВШИЙ заход, а не про последний. */
+  return { cur, total, traded, solo,
+           wengines: new Map(order.map(r => [r.id, r.wengine])) };
+}
+
+/* ── ГЛАВНАЯ ФУНКЦИЯ ───────────────────────────────────────────────────────
+   Несколько заходов с разным порядком агентов и лучший из них. Это дешёвая
+   страховка от того, чем плоха любая жадность: порядок решает, и один порядок
+   легко оказывается неудачным. Два захода стоят вдвое дольше и почти всегда
+   дают либо то же самое, либо лучше — хуже не бывает по построению. */
+async function gsSolveSession(session, opts) {
+  const o = opts || {};
+  const t0 = Date.now();
+  const [bs, extFile] = await Promise.all([
+    getBuildScoreFile(), getAgentDataFile().catch(() => null),
+  ]);
+  const cfg = gsCfg(bs);
+  gsRun = { cfg, bs, extFile, sheetOk: true, models: 0, step: 0, steps: 1, done: 0, total: 0,
+            note: '', cancelled: false, onProgress: o.onProgress || null };
+
+  /* ── ПРОВЕРКА СПРАВОЧНИКА ДО СЧЁТА, А НЕ ВО ВРЕМЯ ──
+     Лист статов строится из справочника Enka, а тот тянется по сети и на
+     неудаче СБРАСЫВАЕТ свой промис — то есть каждая следующая сборка ходила бы
+     в сеть заново. Для решателя это тысячи попыток вместо одной, и на
+     заблокированном CDN счёт встал бы намертво (§4.46 — та же болезнь, только
+     тише). Поэтому справочник проверяется РОВНО ОДИН раз и с ограничением по
+     времени: не поднялся — считаем без листа, составляющая caps честно выбывает
+     по правилу знаменателя (§4.33), и об этом прямо написано в отчёте. Молчать
+     нельзя: без капов скор меряет не то же самое, и человек должен это видеть.
+
+     Неудача запоминается на время жизни страницы, чтобы вторая автосборка не
+     ждала снова. Перезагрузка сбрасывает — сеть могла и вернуться. */
+  if (gsSheetProbe === null) {
+    gsSetProgress(0, 1, 'checking stat reference data…');
+    try {
+      await Promise.race([
+        getEnkaAvatarsRefData(),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), cfg.refTimeoutMs)),
+      ]);
+      gsSheetProbe = true;
+    } catch (err) { gsSheetProbe = false; }
+  }
+  gsRun.sheetOk = gsSheetProbe;
+  if (gsRun.cancelled) { gsRun = null; return { ok: false, reason: 'cancelled' }; }
+
+  const all = gsTargets(session, o.ctxByRoom || null, bs);
+  all.weKeys = gsOwnedWengines();
+  if (!all.targets.length) { gsRun = null; return { ok: false, reason: 'nothing-to-solve' }; }
+  if (!driveDiscLibrary.length) { gsRun = null; return { ok: false, reason: 'no-discs' }; }
+
+  const damageFirst = all.targets.slice().sort((a, b) =>
+    (b.isDamage - a.isDamage) || (a.ti - b.ti) || (a.si - b.si));
+  const orders = [damageFirst];
+  if (cfg.attempts > 1) orders.push(damageFirst.slice().reverse());
+  gsRun.steps = orders.length * (all.targets.length * 2 + cfg.concessionRounds);
+
+  let best = null;
+  try {
+    for (let i = 0; i < orders.length; i++) {
+      const r = await gsAttempt(orders[i], all, cfg);
+      if (!best || r.total > best.total) best = r;
+    }
+  } catch (err) {
+    gsRun = null;
+    if (String(err && err.message) === 'GS_CANCELLED') return { ok: false, reason: 'cancelled' };
+    throw err;
+  }
+
+  /* Бангбу — последним, когда составы уже известны (§4.62). */
+  let bangboos = [];
+  try { bangboos = await gsPickBangboos(session, o.ctxByRoom || null, (bs && bs.team && bs.team.bangboo) || null); }
+  catch (err) { bangboos = []; }
+
+  const byId = new Map(all.targets.map(t => [t.id, t]));
+  const agents = [];
+  best.cur.forEach((sol, id) => {
+    const req = byId.get(id);
+    const bestSolo = best.solo.get(id);
+    const soloTier = bestSolo ? bestSolo.tier : sol.tier;
+    agents.push({
+      id, ti: req.ti, si: req.si, agentKey: req.agentKey,
+      score: sol.score, soloScore: bestSolo ? bestSolo.score : sol.score,
+      four: sol.four, tier: sol.tier, soloTier, chainLen: sol.chainLen,
+      steps: (sol.tier >= 0 && soloTier >= 0) ? sol.tier - soloTier : 0,
+      offChain: sol.tier < 0 && !!sol.four,
+      wengine: best.wengines.get(id) || null,
+      discIds: sol.discIds, discs: sol.discs, res: sol.res, model: sol.model,
+    });
+  });
+  agents.sort((a, b) => (a.ti - b.ti) || (a.si - b.si));
+
+  const out = {
+    ok: true, agents, traded: best.traded,
+    ms: Date.now() - t0, models: gsRun.models,
+    total: Math.round(best.total),
+    unsolved: all.targets.filter(t => !best.cur.has(t.id)).map(t => t.agentKey),
+    bangboos,
+    noBangboo: !booOwned().length,
+    noWengines: !all.weKeys.length,
+    noSheet: !gsRun.sheetOk,
+    discCount: driveDiscLibrary.length,
+  };
+  gsRun = null;
+  return out;
+}
+
+/* ── БАНГБУ НА ВСЮ СЕССИЮ ──────────────────────────────────────────────────
+   Считается ПОСЛЕ троек: условие доп. навыка проверяется по готовому составу
+   (§4.62). Неповторение то же, что у дисков и движков — один бангбу не может
+   стоять в двух комнатах одного захода. Порядок обхода — от самой «включающей»
+   комнаты к остальным? Нет: по порядку комнат, потому что тут спор редкий
+   (бангбу у человека обычно больше, чем команд), а предсказуемость выдачи
+   дороже лишнего процента. */
+async function gsPickBangboos(session, ctxByRoom, cfg) {
+  const owned = booOwned();
+  const out = [];
+  if (!owned.length) return out;
+  const used = new Set();
+  for (let ti = 0; ti < session.teams.length; ti++) {
+    const t = session.teams[ti];
+    const keys = t.agents.map(a => a.key).filter(Boolean);
+    if (!keys.length) continue;
+    /* С каким бангбу эту комнату реально проходят именно этой тройкой. */
+    let metaBoo = null;
+    const ctx = ctxByRoom ? ctxByRoom[t.roomKey] : null;
+    if (ctx && ctx.roomKey != null) {
+      try {
+        const rows = await metaComps(ctx.mode === 'da' ? 'da' : 'sd', ctx.roomKey);
+        const want = keys.slice().sort().join('|');
+        const hit = rows.find(r => r.team.slice().sort().join('|') === want);
+        metaBoo = hit ? hit.bangboo : null;
+      } catch (err) { metaBoo = null; }
+    }
+    const pick = booPick(keys, { cfg, used, owned, metaBangboo: metaBoo });
+    if (!pick) continue;
+    used.add(pick.key);
+    out.push({ ti, ...pick });
+  }
+  return out;
+}
+
+/* ── ПРИМЕНЕНИЕ К СЕССИИ ───────────────────────────────────────────────────
+   Кладём результат в те же поля, что и ручная сборка: discSlots по id и
+   wengine с рангом. Никакой связи «сборка ↔ решатель» не заводится — ровно как
+   с пресетом (§4.61), это просто надетое снаряжение, и следующий запуск вправе
+   его поменять. */
+function gsApply(session, report) {
+  if (!session || !report || !report.ok) return 0;
+  let n = 0;
+  for (const a of report.agents) {
+    const team = session.teams[a.ti];
+    const slot = team && team.agents[a.si];
+    if (!slot || slot.lockGear) continue;
+    slot.discSlots = [null, null, null, null, null, null];
+    a.discs.forEach(d => { slot.discSlots[(d.slot | 0) - 1] = d.id; });
+    for (let i = 0; i < 6; i++) syncDiscDerivedFields(slot, i);
+    slot.wengine = a.wengine || null;
+    slot.wrank = a.wengine ? gsWengineRank(a.wengine) : 0;
+    slot.from = 'auto';
+    n++;
+  }
+  for (const b of (report.bangboos || [])) {
+    const team = session.teams[b.ti];
+    if (!team) continue;
+    team.bangboo = b.key;
+    team.booMindscape = getBangbooLibEntry(b.key).mindscape || 0;
+  }
+  return n;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   СЕССИЯ СБОРКИ (§4.61)
+   ══════════════════════════════════════════════════════════════════════════
+   ЧТО ЭТО. Билдер — не выдача списка, а РАБОЧЕЕ ОКНО. Человек выбирает цель
+   (комнату, этаж или весь режим), и внутри сессии живут одна-четыре команды,
+   которые он собирает: сам, по рекомендациям или автосборкой.
+
+   ГЛАВНОЕ ПРАВИЛО: НЕПОВТОРЕНИЕ ЖИВЁТ ВНУТРИ СЕССИИ. Агент, движок и диск не
+   могут стоять дважды в пределах одной сессии — но закрытая сессия не занимает
+   ничего. Библиотека не «расходуется» глобально: конфликт реален только внутри
+   одного захода на этаж, где ты физически не можешь надеть один диск на двоих.
+
+   ПРЕСЕТ — РАЗОВОЕ ДЕЙСТВИЕ, А НЕ СВЯЗЬ. Применили — агент надел движок и шесть
+   дисков, и на этом роль пресета кончилась. Дальше это просто надетое
+   снаряжение, и автосборка вправе его поменять. Никакой живой связи
+   «сборка ↔ пресет» не заводится намеренно: она создала бы у человека ложное
+   ощущение, что правка пресета что-то меняет в собранной команде.
+
+   ЗАМКОВ ДВА, И ОНИ НЕЗАВИСИМЫ. Замок на агенте говорит «не меняй, кто здесь
+   стоит», замок на снаряжении — «не трогай, что на нём надето». Их можно
+   ставить по отдельности: запереть агента, но разрешить переодеть, и наоборот.
+
+   КОМАНДА СЕССИИ — ЭТО ОБЫЧНАЯ КОМАНДА. Внутри лежат ровно те же объекты, что
+   создаёт newTeam(): те же слоты, те же discSlots по id. Так сохранение в сетку
+   становится копированием, а не преобразованием, и снаряжение не может
+   разъехаться между «командой в билдере» и «командой в списке».
+
+   ЗАЧЕМ ХРАНИТЬ В localStorage. Сессия — это работа человека, иногда на десяток
+   минут. Потерять её от случайной перезагрузки нельзя, а сервер для этого не
+   нужен: она живёт ровно до тех пор, пока не сохранена в сетку или не сброшена.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+const BUILDER_SESSION_KEY = 'zzz_builder_session';
+let builderSession = null;
+let sessLoaded = false;
+/* Состояние автосборки: живёт рядом с сессией, потому что sessHtml() читает его
+   при первой же отрисовке. Подробнее — в шапке блока автосборки ниже. */
+let sessAutoState = { busy: false, report: null, note: '', pct: 0 };
+
+function sessLoad() {
+  if (sessLoaded) return builderSession;
+  sessLoaded = true;
+  try {
+    const raw = localStorage.getItem(BUILDER_SESSION_KEY);
+    builderSession = raw ? JSON.parse(raw) : null;
+  } catch (err) { builderSession = null; }
+  return builderSession;
+}
+function sessStore() {
+  try {
+    if (builderSession) localStorage.setItem(BUILDER_SESSION_KEY, JSON.stringify(builderSession));
+    else localStorage.removeItem(BUILDER_SESSION_KEY);
+  } catch (err) { console.info('[zzz] session not saved:', err && err.message); }
+}
+
+/* Цель читается из тулбара, а не хранится отдельно: тулбар и есть тот экран,
+   на котором человек её выбирает, и вторая копия рано или поздно разъедется. */
+function sessTarget() {
+  const mode = document.getElementById('tbBuilderMode').value === 'da' ? 'da' : 'shiyu';
+  let task = document.getElementById('tbBuilderTask').value;
+  if (task === 'floor' && mode === 'da') task = 'da';
+  if (task === 'da' && mode !== 'da') task = 'floor';
+  return {
+    mode, task,
+    period: document.getElementById('tbBuilderPeriod').value,
+    floor: +document.getElementById('tbBuilderFloor').value,
+    side: document.getElementById('tbBuilderSide').value,
+    stage: document.getElementById('tbBuilderStage').value,
+  };
+}
+function sessTargetKey(t) {
+  return [t.mode, t.period, t.task,
+          t.task === 'room' ? (t.mode === 'da' ? t.stage : t.floor + t.side) : ''].join('|');
+}
+function sessTargetLabel(t) {
+  if (t.mode === 'da') return t.task === 'da' ? `Deadly Assault ${t.period} — all stages`
+                                              : `Deadly Assault ${t.period} — ${t.stage === 'adv' ? 'Adversity' : 'Stage ' + t.stage}`;
+  return t.task === 'floor' ? `Shiyu S${t.period} — Floor ${t.floor}`
+                            : `Shiyu S${t.period} — Floor ${t.floor}, Room ${t.side === 'A' ? 1 : t.side === 'B' ? 2 : 3}`;
+}
+
+/* Команда сессии = обычная команда newTeam() плюс привязка к комнате, флаг
+   «сохранять» и два замка на каждом слоте. */
+function sessMakeTeam(target, room) {
+  const t = newTeam(target.mode === 'da' ? 'da' : 'shiyu');
+  t.name = room.label;
+  t.roomKey = room.key;
+  t.roomLabel = room.label;
+  t.include = true;
+  t.agents.forEach(a => { a.lockAgent = false; a.lockGear = false; a.from = null; });
+  return t;
+}
+
+async function sessStart() {
+  const target = sessTarget();
+  const opts = target.mode === 'da'
+    ? { mode: 'da', phase: target.period, stage: target.stage, roomKey: target.stage }
+    : { mode: 'shiyu', season: target.period, floor: target.floor, side: target.side,
+        roomKey: shiyuRoomKey(target.floor, target.side) };
+  let rooms;
+  try {
+    const ctxs = await tbContexts(target.task, opts);
+    rooms = ctxs.map(c => ({ key: c.key, label: c.label }));
+  } catch (err) {
+    /* Данных комнат может не быть — сессия всё равно должна открыться: собирать
+       команды руками можно и без них. */
+    rooms = [{ key: String(opts.roomKey || ''), label: 'Team' }];
+  }
+  if (!rooms.length) rooms = [{ key: '', label: 'Team' }];
+  builderSession = {
+    id: uid(), createdAt: Date.now(), target, key: sessTargetKey(target),
+    teams: rooms.map(r => sessMakeTeam(target, r)),
+  };
+  sessLoaded = true;
+  sessAutoState.report = null;
+  sessStore();
+  sessPaint();
+}
+
+function sessClear() {
+  builderSession = null;
+  sessAutoState.report = null;
+  sessStore();
+  sessPaint();
+}
+
+/* ── НЕПОВТОРЕНИЕ В ПРЕДЕЛАХ СЕССИИ ──
+   Три множества, одна причина: один физический предмет нельзя надеть дважды.
+   Исключение — сам слот, который сейчас правят. */
+function sessEachSlot(fn) {
+  if (!builderSession) return;
+  builderSession.teams.forEach((t, ti) => t.agents.forEach((a, si) => fn(a, ti, si)));
+}
+function sessUsedAgents(exT, exS) {
+  const set = new Set();
+  sessEachSlot((a, ti, si) => { if (a.key && !(ti === exT && si === exS)) set.add(a.key); });
+  return set;
+}
+function sessUsedWengines(exT, exS) {
+  const set = new Set();
+  sessEachSlot((a, ti, si) => { if (a.wengine && !(ti === exT && si === exS)) set.add(a.wengine); });
+  return set;
+}
+function sessWhoUsesDisc(discId, exT, exS) {
+  let who = null;
+  sessEachSlot((a, ti, si) => {
+    if (who || (ti === exT && si === exS)) return;
+    if ((a.discSlots || []).includes(discId)) who = a.key ? cardName(a.key) : `Team ${ti + 1}`;
+  });
+  return who;
+}
+
+function sessSlot(ti, si) {
+  return builderSession && builderSession.teams[ti] ? builderSession.teams[ti].agents[si] : null;
+}
+
+function sessSetAgent(ti, si, key) {
+  const a = sessSlot(ti, si);
+  if (!a || a.lockAgent) return;
+  if (key && sessUsedAgents(ti, si).has(key)) {
+    showToast(`${cardName(key)} is already in this session — one agent can't be in two rooms.`, 'error');
+    return;
+  }
+  const same = a.key === key;
+  a.key = same ? null : key;
+  a.from = same ? null : 'manual';
+  if (a.key && libraryHasEnabledAgents()) {
+    const entry = agentLibrary[a.key];
+    if (entry && entry.enabled) a.eidolons = entry.mindscape || 0;
+  }
+  if (!a.key) sessStripGear(a);
+  sessAutoState.report = null;
+  sessStore(); sessPaint();
+}
+
+function sessStripGear(a) {
+  a.wengine = null; a.wrank = 0;
+  a.discSlots = [null, null, null, null, null, null];
+  a.discs = [null, null, null];
+  a.icons = [null, null, null];
+}
+
+function sessClearSlot(ti, si) {
+  const a = sessSlot(ti, si);
+  if (!a) return;
+  if (a.lockAgent && a.lockGear) { showToast('This slot is locked.', 'error'); return; }
+  if (!a.lockGear) sessStripGear(a);
+  if (!a.lockAgent) { a.key = null; a.from = null; }
+  sessAutoState.report = null;
+  sessStore(); sessPaint();
+}
+
+function sessToggleLock(ti, si, kind) {
+  const a = sessSlot(ti, si);
+  if (!a) return;
+  if (kind === 'agent') a.lockAgent = !a.lockAgent;
+  else a.lockGear = !a.lockGear;
+  sessStore(); sessPaint();
+}
+
+function sessToggleInclude(ti) {
+  const t = builderSession && builderSession.teams[ti];
+  if (!t) return;
+  t.include = !t.include;
+  sessStore(); sessPaint();
+}
+
+/* ── ПРИМЕНЕНИЕ ПРЕСЕТА ──
+   Тот же разбор снимков, что и в редакторе команд (evaluatePresetApplicability),
+   но конфликт ищется ПО ВСЕЙ СЕССИИ, а не по одной тройке: диск, занятый в
+   соседней комнате того же захода, занят так же честно, как в своей.
+   Применить можно только СВОЮ сборку (§4.49) — presetIsMine. */
+function sessApplyPreset(ti, si, presetId) {
+  const a = sessSlot(ti, si);
+  if (!a || !a.key) return;
+  if (a.lockGear) { showToast('Gear is locked on this agent — unlock it first.', 'error'); return; }
+  const preset = getPresetById(a.key, presetId);
+  if (!preset) return;
+  if (!presetIsMine(preset)) {
+    showToast("That build isn't yours — you can keep it, but only your own builds can be equipped.", 'error');
+    return;
+  }
+  const resolved = [], problems = [];
+  (preset.discs || []).forEach(snap => {
+    const id = findLibraryDiscIdForSnapshot(snap);
+    if (!id) { problems.push(`"${snap.setName}" [slot ${snap.slot}] is no longer in your Drive Disc Library.`); return; }
+    const who = sessWhoUsesDisc(id, ti, si);
+    if (who) { problems.push(`"${snap.setName}" [slot ${snap.slot}] is already equipped on ${who} in this session.`); return; }
+    resolved.push({ slot: snap.slot, id });
+  });
+  if (problems.length) {
+    showToast(`Preset "${preset.name}" can't be applied: ${problems[0]}`, 'error');
+    return;
+  }
+  if (preset.wengine && sessUsedWengines(ti, si).has(preset.wengine)) {
+    showToast(`That W-Engine is already used elsewhere in this session.`, 'error');
+    return;
+  }
+  a.wengine = preset.wengine;
+  a.wrank = preset.wrank || 1;
+  if (!a.discSlots) a.discSlots = [null, null, null, null, null, null];
+  resolved.forEach(r => { a.discSlots[r.slot - 1] = r.id; syncDiscDerivedFields(a, r.slot - 1); });
+  a.from = 'preset';
+  sessAutoState.report = null;
+  sessStore(); sessPaint();
+  showToast(`Preset "${preset.name}" applied.`, 'success');
+}
+
+/* ── СОХРАНЕНИЕ В СЕТКУ ──
+   Команды одной сессии сохраняются ГРУППОЙ (§4.63): у каждой проставляется
+   общий sessionId, по которому сетка их и выделяет. Привязка к комнате идёт из
+   цели сессии, остальное человек дозаполняет сам — время, очко, заметку. */
+function sessBindRoom(t, target, roomKey) {
+  if (target.mode === 'da') {
+    t.daPhase = target.period;
+    t.daStage = String(roomKey || target.stage || '1');
+  } else {
+    t.shiyu = target.period;
+    const m = String(roomKey || '').match(/^(\d+)-(\d+)$/);
+    if (m) { t.floor = m[1]; t.side = ['A', 'B', 'C'][+m[2] - 1] || 'A'; }
+    else { t.floor = String(target.floor); t.side = target.side; }
+  }
+}
+
+function sessSaveSelected() {
+  if (!builderSession) return;
+  const chosen = builderSession.teams.filter(t => t.include && t.agents.some(a => a.key));
+  if (!chosen.length) { showToast('Nothing to save — tick at least one team with an agent in it.', 'error'); return; }
+  pushUndo();
+  const groupId = builderSession.id;
+  const label = sessTargetLabel(builderSession.target);
+  chosen.forEach(src => {
+    const t = JSON.parse(JSON.stringify(src));
+    t.id = uid();
+    t.sessionId = groupId;
+    t.sessionLabel = label;
+    delete t.include; delete t.roomKey; delete t.roomLabel;
+    t.agents.forEach(a => { delete a.lockAgent; delete a.lockGear; delete a.from; });
+    sessBindRoom(t, builderSession.target, src.roomKey);
+    teams.push(t);
+  });
+  localStorage.setItem('zzz_teams', JSON.stringify(teams));
+  renderTeams();
+  showToast(`${chosen.length} team${chosen.length === 1 ? '' : 's'} saved — they stay grouped in the list.`, 'success');
+}
+
+/* ── ОТРИСОВКА ──
+   Плоско и без украшений: это каркас, дизайн Артём доводит сам. Задача разметки
+   здесь — показать ровно то, что решает: кто стоит, что надето, что заперто и
+   что занято в другой комнате той же сессии. */
+function sessGearSummary(a) {
+  const discs = (a.discSlots || []).filter(Boolean).length;
+  const we = a.wengine ? escapeHtml(prettyName(a.wengine)) + (a.wrank ? ` P${a.wrank}` : '') : 'no W-Engine';
+  return `<span class="ses-gear">${we} · ${discs}/6 discs</span>`;
+}
+
+/* ── СОХРАНЕНИЕ СОБРАННОГО В ПРЕСЕТ (§4.61) ──
+   Автоподборщик собрал хорошее — человек жмёт «save build» и получает обычный
+   пресет на будущее. Категория `manual`, БЕЗ источника, и это не мелочь: только
+   такие пресеты подбор разрешает применять как свои (§4.49). Выдать
+   автосборку за `verified` значило бы соврать — это не снимок подтверждённого
+   стенда, а то, что предложил алгоритм.
+
+   Снимок делает та же createAgentPreset(), что и редактор команд: второй
+   функции «сохранить сборку» в проекте не заводится, иначе однажды одна и та
+   же сборка сохранилась бы двумя разными способами. */
+async function sessSaveAsPreset(ti, si) {
+  const a = sessSlot(ti, si);
+  if (!a || !a.key) return;
+  if (!a.wengine) { showToast('Pick a W-Engine first — a preset needs one.', 'error'); return; }
+  const entries = (a.discSlots || []).map(id => id ? driveDiscLibrary.find(d => d.id === id) : null).filter(Boolean);
+  if (entries.length !== 6) {
+    showToast(`${cardName(a.key)} has ${entries.length} of 6 discs on — a preset needs all six.`, 'error');
+    return;
+  }
+  const name = await customPrompt('Preset name:', nextPresetName(a.key));
+  if (name === null) return;
+  const preset = createAgentPreset(a.key, a.wengine, a.wrank || 1, entries, name);
+  if (!preset) return;
+  sessPaint();
+  showToast(`Preset "${preset.name}" saved for ${cardName(a.key)}.`, 'success');
+}
+
+/* ── КАРТОЧКА АГЕНТА ПО ТРЕБОВАНИЮ (§4.61) ──
+   «Нажал на агента и выбрал посмотреть — карточка в том же виде, что во вкладке
+   профиля. Пока не нажал — не рисуем: это тяжёлая отрисовка, и держать её
+   постоянно на экране значит грузить сайт впустую.»
+
+   Рисует presetDetailHtml — ТОТ ЖЕ рендерер, что показывает пресеты и стенд.
+   Сборка в сессии превращается для него во временный пресет: своей отрисовки
+   здесь не заводится, иначе одна и та же сборка показывала бы разные числа в
+   двух местах сайта (§4.55). */
+async function sessShowAgentCard(ti, si) {
+  const a = sessSlot(ti, si);
+  if (!a || !a.key) return;
+  const entries = (a.discSlots || []).map(id => id ? driveDiscLibrary.find(d => d.id === id) : null).filter(Boolean);
+  document.getElementById('sesCardTitle').textContent = `${cardName(a.key)} — build in this session`;
+  document.getElementById('sesCardBody').innerHTML = '<div class="empty-state">Building the card…</div>';
+  document.getElementById('sesCardBg').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  if (entries.length !== 6 || !a.wengine) {
+    document.getElementById('sesCardBody').innerHTML =
+      `<div class="empty-state">Nothing to show yet — ${cardName(a.key)} has `
+      + `${entries.length} of 6 discs and ${a.wengine ? 'a W-Engine' : 'no W-Engine'}.<br>`
+      + 'Finish the build (or press Auto-build gear) and open this again.</div>';
+    return;
+  }
+  const pseudo = {
+    id: 'ses:view', name: 'Build in this session',
+    wengine: a.wengine, wrank: a.wrank || 1,
+    discs: entries.slice().sort((x, y) => x.slot - y.slot).map(discToSnapshot),
+    mindscape: a.eidolons || 0,
+  };
+  try {
+    document.getElementById('sesCardBody').innerHTML =
+      await presetDetailHtml(a.key, pseudo, { readOnly: true, hideActions: true });
+  } catch (err) {
+    console.error('[zzz] session card failed:', err);
+    document.getElementById('sesCardBody').innerHTML =
+      `<div class="empty-state">Couldn't build the card: ${escapeHtml(err && err.message || 'unknown error')}</div>`;
+  }
+}
+function sessCloseCard() {
+  document.getElementById('sesCardBg').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+function sessCardBgClick(e) { if (e.target === document.getElementById('sesCardBg')) sessCloseCard(); }
+
+/* ── ЖИВЫЕ РЕКОМЕНДАЦИИ РЯДОМ СО СЛОТАМИ (§4.61) ──
+   Требование Артёма: «поставил первого агента — тут же рядом обновился список
+   рекомендуемых составов ПОД ЭТУ комнату с участием этого агента. Они не
+   применяются сами, просто показываются, и любой берётся в один клик».
+
+   ПОЧЕМУ КЭШ, А НЕ ПРЯМОЙ ВЫЗОВ. Статистика клиров лежит в файле и читается
+   асинхронно, а отрисовка панели синхронная. Гонять await внутри отрисовки
+   нельзя — панель перерисовывается на каждое действие. Поэтому ключ «комната
+   плюс кто уже стоит» считается один раз, кладётся в кэш, и панель
+   перерисовывается уже с готовым ответом. Ключ включает состав, потому что
+   список сужается с каждым поставленным агентом — в этом весь смысл слова
+   «живые».
+
+   ЧЕСТНОСТЬ ВАЖНЕЕ ПОЛНОТЫ. У каждой строки написано, кого из состава у тебя
+   нет и кто уже занят в соседней комнате этого же захода. Показать состав,
+   который человек собрать не может, и промолчать об этом — худшее, что тут
+   можно сделать: он потратит время на выяснение. */
+let sessRecoCache = {};
+let sessRecoBusy = {};
+
+function sessRecoKey(t) {
+  const placed = t.agents.map(a => a.key).filter(Boolean).slice().sort().join(',');
+  return `${builderSession && builderSession.target.mode}|${t.roomKey}|${placed}`;
+}
+
+async function sessLoadReco(ti) {
+  const t = builderSession && builderSession.teams[ti];
+  if (!t) return;
+  const key = sessRecoKey(t);
+  if (sessRecoCache[key] || sessRecoBusy[key]) return;
+  sessRecoBusy[key] = true;
+  try {
+    const mode = builderSession.target.mode === 'da' ? 'da' : 'sd';
+    const rows = await metaComps(mode, t.roomKey);
+    const placed = t.agents.map(a => a.key).filter(Boolean);
+    sessRecoCache[key] = rows
+      .filter(r => placed.every(k => r.team.includes(k)))
+      .slice(0, 5);
+  } catch (err) {
+    sessRecoCache[key] = [];
+  } finally {
+    delete sessRecoBusy[key];
+    sessPaint();
+  }
+}
+
+/* Кого из состава человек взять не может: нет в библиотеке или уже стоит в
+   соседней комнате этого же захода. */
+function sessRecoBlockers(ti, keys) {
+  const missing = [], taken = [];
+  const used = sessUsedAgents(-1, -1);
+  const own = libraryHasEnabledAgents();
+  const here = new Set((builderSession.teams[ti].agents || []).map(a => a.key).filter(Boolean));
+  keys.forEach(k => {
+    if (here.has(k)) return;
+    if (own && !(agentLibrary[k] && agentLibrary[k].enabled)) missing.push(k);
+    else if (used.has(k)) taken.push(k);
+  });
+  return { missing, taken };
+}
+
+function sessRecoHtml(ti, t) {
+  if (!t.roomKey) return '';
+  const key = sessRecoKey(t);
+  const rows = sessRecoCache[key];
+  if (!rows) { sessLoadReco(ti); return '<div class="ses-reco"><span class="ses-reco-empty">Looking up how players clear this…</span></div>'; }
+  if (!rows.length) return '';
+  const body = rows.map((r, i) => {
+    const b = sessRecoBlockers(ti, r.team);
+    const note = [];
+    if (b.missing.length) note.push(`you don't have ${b.missing.map(cardName).join(', ')}`);
+    if (b.taken.length) note.push(`${b.taken.map(cardName).join(', ')} already in another room here`);
+    const can = !b.missing.length && !b.taken.length;
+    return `<div class="ses-reco-row">
+      <button class="ses-chip" ${can ? '' : 'disabled'} title="Put this squad into the empty slots"
+              onclick="sessApplyComp(${ti},${i})">use</button>
+      <span class="ses-reco-team">${r.team.map(k => escapeHtml(cardName(k))).join(' · ')}</span>
+      <span class="ses-reco-num">${r.appRate}%${r.avgScore ? ` · ${r.avgScore.toLocaleString('en-US')} pts` : ''}</span>
+      <span class="ses-reco-note">${escapeHtml(note.join('; '))}</span>
+    </div>`;
+  }).join('');
+  return `<div class="ses-reco"><div class="ses-reco-head">How players clear this room</div>${body}</div>`;
+}
+
+/* Состав встаёт в СВОБОДНЫЕ слоты, запертые и занятые не трогаются. */
+function sessApplyComp(ti, idx) {
+  const t = builderSession && builderSession.teams[ti];
+  const rows = sessRecoCache[sessRecoKey(t)];
+  const row = rows && rows[idx];
+  if (!row) return;
+  const here = new Set(t.agents.map(a => a.key).filter(Boolean));
+  const used = sessUsedAgents(-1, -1);
+  let put = 0, skipped = [];
+  for (const k of row.team) {
+    if (here.has(k)) continue;
+    if (used.has(k)) { skipped.push(cardName(k)); continue; }
+    const si = t.agents.findIndex(a => !a.key && !a.lockAgent);
+    if (si < 0) { skipped.push(cardName(k)); continue; }
+    t.agents[si].key = k;
+    t.agents[si].from = 'meta';
+    const lib = agentLibrary[k];
+    if (lib && lib.enabled) t.agents[si].eidolons = lib.mindscape || 0;
+    here.add(k); used.add(k); put++;
+  }
+  sessAutoState.report = null;
+  sessStore(); sessPaint();
+  showToast(put ? `${put} agent${put === 1 ? '' : 's'} placed${skipped.length ? `; no room for ${skipped.join(', ')}` : ''}.`
+                : 'Nothing to place — those slots are taken or locked.', put ? 'success' : 'error');
+}
+
+/* ── БАНГБУ В ШАПКЕ КОМАНДЫ ──
+   Считается ЖИВЬЁМ, на каждой отрисовке: доп. навык бангбу зависит от состава,
+   и если человек поменял агента, он должен сразу увидеть, что навык погас.
+   Хранить рядом с командой посчитанный однажды ответ значило бы врать ровно в
+   тот момент, когда правда важнее всего. Счёт тут копеечный — разбор одной
+   строки текста. */
+function sessBooLine(t, ti) {
+  const keys = t.agents.map(a => a.key).filter(Boolean);
+  if (!t.bangboo) {
+    return keys.length
+      ? `<button class="ses-lock" title="Pick a Bangboo whose extra ability this squad turns on"
+                 onclick="sessPickBangboo(${ti})">+ Bangboo</button>` : '';
+  }
+  const cfg = (buildScoreDataFile && buildScoreDataFile.team && buildScoreDataFile.team.bangboo) || null;
+  const cond = booCondition(t.bangboo, cfg);
+  const on = booMatches(cond, keys);
+  return `<span class="ses-boo${on ? ' on' : ''}" title="${escapeHtml(cond.text || '')}">
+      ${escapeHtml(prettyName(t.bangboo))}${cond.title ? ` · ${escapeHtml(cond.title)}` : ''}
+      <span class="ses-boo-why">${escapeHtml(booWhyEn(cond, keys))}</span>
+    </span>
+    <button class="ses-lock" title="Pick again for the current squad"
+            onclick="sessPickBangboo(${ti})">re-pick</button>`;
+}
+
+/* Пересобрать бангбу одной команде, не трогая всё остальное. Нужен ровно
+   потому, что состав меняют чаще, чем собирают заново. */
+async function sessPickBangboo(ti) {
+  sessLoad();
+  const t = builderSession && builderSession.teams[ti];
+  if (!t) return;
+  const keys = t.agents.map(a => a.key).filter(Boolean);
+  if (!keys.length) { showToast('Put an agent in the squad first.', 'error'); return; }
+  const bs = await getBuildScoreFile();
+  const cfg = (bs && bs.team && bs.team.bangboo) || null;
+  const used = new Set(builderSession.teams.filter((_, i) => i !== ti).map(x => x.bangboo).filter(Boolean));
+  const pick = booPick(keys, { cfg, used });
+  if (!pick) { showToast('No Bangboo marked as owned in your library.', 'error'); return; }
+  t.bangboo = pick.key;
+  t.booMindscape = getBangbooLibEntry(pick.key).mindscape || 0;
+  sessStore(); sessPaint();
+  showToast(`${prettyName(pick.key)} — ${pick.why}.`, pick.active ? 'success' : 'error');
+}
+
+function sessPresetChips(ti, si, a) {
+  if (!a.key) return '';
+  const mine = getAgentPresets(a.key).filter(p => presetIsMine(p));
+  if (!mine.length) return '';
+  return `<div class="ses-presets">${mine.slice(0, 4).map(p =>
+    `<button class="ses-chip" title="Apply this build" onclick="sessApplyPreset(${ti},${si},'${escapeHtml(p.id)}')">${escapeHtml(p.name)}</button>`
+  ).join('')}</div>`;
+}
+
+function sessSlotHtml(ti, si, a) {
+  const face = a.key
+    ? `<img src="${agentSquareUrl(a.key)}" alt="" onerror="this.style.opacity=.25">`
+    : `<span class="ses-empty">+</span>`;
+  return `<div class="ses-slot${a.key ? '' : ' empty'}">
+    <button class="ses-face" title="${a.lockAgent ? 'Agent locked' : 'Pick an agent'}"
+            onclick="sessPickAgent(${ti},${si})">${face}</button>
+    <div class="ses-slot-body">
+      <div class="ses-name">${a.key ? escapeHtml(cardName(a.key)) : 'Empty slot'}</div>
+      ${a.key ? sessGearSummary(a) : '<span class="ses-gear">pick an agent to start</span>'}
+      ${sessPresetChips(ti, si, a)}
+    </div>
+    <div class="ses-locks">
+      <button class="ses-lock${a.lockAgent ? ' on' : ''}" title="Lock the agent in this slot"
+              onclick="sessToggleLock(${ti},${si},'agent')">${a.lockAgent ? '🔒' : '🔓'} agent</button>
+      <button class="ses-lock${a.lockGear ? ' on' : ''}" title="Lock this agent's gear"
+              onclick="sessToggleLock(${ti},${si},'gear')">${a.lockGear ? '🔒' : '🔓'} gear</button>
+      ${a.key ? `<button class="ses-lock" title="Show the full build card"
+              onclick="sessShowAgentCard(${ti},${si})">view</button>
+      <button class="ses-lock" title="Save this gear as a preset"
+              onclick="sessSaveAsPreset(${ti},${si})">save build</button>` : ''}
+      <button class="ses-lock" title="Clear this slot" onclick="sessClearSlot(${ti},${si})">clear</button>
+    </div>
+  </div>`;
+}
+
+function sessHtml() {
+  const S = builderSession;
+  const target = sessTarget();
+  if (!S) {
+    return `<div class="ses-head">
+        <span class="ses-title">Build session</span>
+        <span class="ses-sub">${escapeHtml(sessTargetLabel(target))}</span>
+        <button class="bd-save" onclick="sessStart()">Start building</button>
+      </div>
+      <div class="ses-note">A session is one run at this target. Agents, W-Engines and discs can't repeat inside it —
+        but a session you close holds nothing: your library is free again.</div>`;
+  }
+  const stale = S.key !== sessTargetKey(target);
+  const cards = S.teams.map((t, ti) => `<div class="ses-team">
+      <div class="ses-team-head">
+        <label class="ses-inc"><input type="checkbox" ${t.include ? 'checked' : ''}
+               onchange="sessToggleInclude(${ti})"> save</label>
+        <span class="ses-team-name">${escapeHtml(t.roomLabel || t.name || 'Team')}</span>
+        ${sessBooLine(t, ti)}
+      </div>
+      ${t.agents.map((a, si) => sessSlotHtml(ti, si, a)).join('')}
+      ${sessRecoHtml(ti, t)}
+    </div>`).join('');
+  return `<div class="ses-head">
+      <span class="ses-title">Build session</span>
+      <span class="ses-sub">${escapeHtml(sessTargetLabel(S.target))}</span>
+      <button class="bd-save" ${sessAutoState.busy ? 'disabled' : ''}
+              onclick="sessAutoBuild()">Auto-build gear</button>
+      <button class="bd-save" onclick="sessSaveSelected()">Save ticked teams</button>
+      <button class="bd-save" onclick="sessClear()">Clear session</button>
+    </div>
+    ${sessAutoReportHtml()}
+    ${stale ? `<div class="ses-note warn">This session was built for <b>${escapeHtml(sessTargetLabel(S.target))}</b>,
+        and the toolbar now points somewhere else. Nothing is lost — press
+        <button class="bd-save" onclick="sessStart()">start a new session</button> when you want to move.</div>` : ''}
+    <div class="ses-teams">${cards}</div>`;
+}
+
+function sessPaint() {
+  const el = document.getElementById('builderSession');
+  if (!el) return;
+  sessLoad();
+  el.innerHTML = sessHtml();
+  el.classList.remove('hidden');
+}
+
+/* Выбор агента идёт через общий модал — тот же, что у редактора команд, с теми
+   же фильтрами и поиском. Отдельный тип 'ses-agent' нужен только чтобы pickItem
+   знал, куда класть результат. */
+function sessPickAgent(ti, si) {
+  const a = sessSlot(ti, si);
+  if (!a) return;
+  if (a.lockAgent) { showToast('This agent is locked in place — unlock it to change.', 'error'); return; }
+  sessModalTarget = { ti, si };
+  openModal('ses-agent', 0, 0);
+}
+let sessModalTarget = null;
+
+/* ── АВТОСБОРКА В ОКНЕ СЕССИИ (§4.61) ──────────────────────────────────────
+   Кнопка одна, а не режим: решатель достраивает от ЛЮБОГО состояния — от
+   пустой команды до троих одетых руками. Всё, чем управляет человек, — это два
+   замка на каждом слоте; никаких «собрать с нуля / дособрать» в интерфейсе
+   нет, потому что это одно и то же действие.
+
+   ПРЕДУПРЕЖДЕНИЕ ДО, А НЕ ЖАЛОБА ПОСЛЕ. Требование Артёма дословно: человек
+   должен быть поставлен в известность до того, как с агента снимут уже
+   надетое. Поэтому перед запуском мы пересчитываем, у кого снаряжение есть и
+   не заперто, и называем их поимённо. Пустая сессия проходит без вопросов —
+   спрашивать там не о чем.
+
+   Состояние автосборки (sessAutoState) объявлено ВЫШЕ, рядом с самой сессией, а
+   не здесь: sessHtml() читает его при первой же отрисовке, а объявление let
+   ниже точки чтения — это ошибка доступа до инициализации. Ровно такой ценой
+   уже разъезжался весь скрипт (§4.46), и повторять её незачем. */
+
+function sessAutoCancel() {
+  if (gsRun) gsRun.cancelled = true;
+  sessAutoState.note = 'stopping…';
+  sessPaint();
+}
+
+async function sessAutoBuild() {
+  if (sessAutoState.busy) return;
+  sessLoad();
+  if (!builderSession) return;
+
+  const willStrip = [];
+  builderSession.teams.forEach(t => t.agents.forEach(a => {
+    if (a.key && !a.lockGear && (a.wengine || (a.discSlots || []).some(Boolean)))
+      willStrip.push(cardName(a.key));
+  }));
+  if (willStrip.length) {
+    const ok = await customConfirm(
+      `Auto-build will take the gear off ${willStrip.length} agent${willStrip.length === 1 ? '' : 's'} `
+      + `that already have some on — ${willStrip.join(', ')} — and equip whatever scores best instead.\n\n`
+      + 'It also picks a Bangboo for every squad.\n\n'
+      + 'Anything you locked with the gear lock is never touched.',
+      { okLabel: 'Re-equip', danger: true });
+    if (!ok) return;
+  }
+
+  sessAutoState = { busy: true, report: null, note: 'reading the library…', pct: 0 };
+  sessPaint();
+
+  /* Контексты комнат нужны решателю ровно за одним: DEF главной цели идёт в
+     правило пятого слота (§4.32). Комнат может не быть вовсе — тогда сборки
+     считаются без неё, и это законное состояние, а не ошибка. */
+  let ctxByRoom = null;
+  try {
+    const target = builderSession.target;
+    const opts = target.mode === 'da'
+      ? { mode: 'da', phase: target.period, stage: target.stage, roomKey: target.stage }
+      : { mode: 'shiyu', season: target.period, floor: target.floor, side: target.side,
+          roomKey: shiyuRoomKey(target.floor, target.side) };
+    const ctxs = await tbContexts(target.task, opts);
+    ctxByRoom = {};
+    ctxs.forEach(c => { ctxByRoom[c.key] = c.ctx; });
+  } catch (err) { ctxByRoom = null; }
+
+  let report = null;
+  try {
+    report = await gsSolveSession(builderSession, {
+      ctxByRoom,
+      onProgress: run => {
+        sessAutoState.note = run.note || '';
+        sessAutoState.pct = run.steps ? Math.min(99, Math.round(run.step / run.steps * 100)) : 0;
+        const el = document.getElementById('sesAutoLine');
+        if (el) el.textContent = `Building… ${sessAutoState.pct}% · ${sessAutoState.note}`;
+      },
+    });
+  } catch (err) {
+    console.error('[zzz] gear solver failed:', err);
+    sessAutoState = { busy: false, report: { ok: false, reason: 'error', message: err && err.message }, note: '', pct: 0 };
+    sessPaint();
+    return;
+  }
+
+  if (report && report.ok) {
+    const n = gsApply(builderSession, report);
+    sessStore();
+    showToast(`Gear built for ${n} agent${n === 1 ? '' : 's'}.`, 'success');
+  }
+  sessAutoState = { busy: false, report, note: '', pct: 0 };
+  sessPaint();
+}
+
+/* ── ОТЧЁТ ─────────────────────────────────────────────────────────────────
+   §4.60 требует прямо: писать, кого и на сколько ступеней пришлось опустить.
+   Число «812» само по себе тут бесполезно ровно так же, как в подборе троек
+   (§4.55): человеку нужно знать не «сколько», а «почему столько и что с этим
+   делать». Поэтому у каждой строки написано, какой сет надет, где он стоит в
+   цепочке агента и сколько тот же агент набрал бы, будь библиотека только
+   его. Разница между этими двумя числами — и есть цена соседей по сессии. */
+function sessAutoReportHtml() {
+  const st = sessAutoState;
+  if (st.busy) {
+    return `<div class="ses-note"><span id="sesAutoLine">Building… ${st.pct}% · ${escapeHtml(st.note)}</span>
+      <button class="bd-save" onclick="sessAutoCancel()">Cancel</button></div>`;
+  }
+  const r = st.report;
+  if (!r) return '';
+  if (!r.ok) {
+    const why = r.reason === 'no-discs'
+        ? 'Your Drive Disc Library is empty — import a scan or add discs by hand first.'
+      : r.reason === 'nothing-to-solve'
+        ? 'Nothing to build: put an agent in a slot, or unlock the gear lock on the ones you have.'
+      : r.reason === 'cancelled' ? 'Stopped. Nothing was changed.'
+      : `Auto-build failed: ${escapeHtml(r.message || 'unknown error')}`;
+    return `<div class="ses-note warn">${why}</div>`;
+  }
+
+  const rows = r.agents.map(a => {
+    const bits = [];
+    if (a.four) {
+      bits.push(a.tier < 0 ? `${escapeHtml(a.four)} (not in this agent's chain)`
+        : `${escapeHtml(a.four)} (${a.tier + 1} of ${a.chainLen} in its chain)`);
+    } else {
+      bits.push('no 4-Pc — nothing from its chain came together');
+    }
+    /* «alone it reached N» — именно найденное в одиночку, а не доказанный
+       потолок: поиск эвристический, и обещать оптимум мы не вправе (§4.47). */
+    if (a.steps > 0) bits.push(`<b>${a.steps} step${a.steps === 1 ? '' : 's'} down the chain</b>, alone it reached ${a.soloScore}`);
+    else if (a.soloScore > a.score) bits.push(`alone it reached ${a.soloScore}`);
+    bits.push(a.wengine ? escapeHtml(prettyName(a.wengine)) : 'no W-Engine');
+    return `<div class="ses-rep-row">
+      <span class="ses-rep-name">${escapeHtml(cardName(a.agentKey))}</span>
+      <span class="ses-rep-score">${a.score} / 1000</span>
+      <span class="ses-rep-why">${bits.join(' · ')}</span>
+    </div>`;
+  }).join('');
+
+  const boos = (r.bangboos || []).map(b => `<div class="ses-rep-row">
+      <span class="ses-rep-name">Bangboo</span>
+      <span class="ses-rep-score">${escapeHtml(prettyName(b.key))}</span>
+      <span class="ses-rep-why">${escapeHtml(b.cond.title || '')}${b.cond.title ? ' · ' : ''}${escapeHtml(b.why)}${b.fromMeta ? ' · what clearers of this room actually run' : ''}</span>
+    </div>`).join('');
+
+  const trades = r.traded.map(t =>
+    `<div class="ses-rep-note">${escapeHtml(t.from.join(', '))} gave discs up to ${escapeHtml(cardName(t.to))} — worth ${t.gain} there against ${t.cost} lost here.</div>`
+  ).join('');
+
+  const used = new Set();
+  r.agents.forEach(a => a.discIds.forEach(id => used.add(id)));
+  const warn = [];
+  if (r.noWengines) warn.push('No W-Engines are marked as owned in your library, so none were handed out.');
+  if (r.noBangboo) warn.push('No Bangboo are marked as owned in your library, so none were picked.');
+  if (r.noSheet) warn.push('Stat reference data would not load, so stat caps were left out of the score — the builds were judged on procs, main stats, sets and W-Engines only.');
+  if (r.unsolved.length) warn.push(`Not enough discs to dress ${r.unsolved.map(cardName).join(', ')}.`);
+
+  return `<div class="ses-report">
+    <div class="ses-rep-head">Auto-build</div>
+    ${rows}
+    ${boos}
+    ${trades}
+    ${warn.map(w => `<div class="ses-rep-note warn">${escapeHtml(w)}</div>`).join('')}
+    <div class="ses-rep-foot">${used.size} of ${r.discCount} discs used ·
+      ${r.agents.length} agent${r.agents.length === 1 ? '' : 's'} dressed · ${r.ms} ms ·
+      a good arrangement found by search, not a proven optimum</div>
+  </div>`;
 }
 
 /* ── RENDER LIST ──
@@ -20202,7 +22247,7 @@ function renderTeamGrid(mode) {
       : '';
 
     const selCls = selectedTeamIds.has(t.id) ? ' selected' : '';
-    return `<div class="team-card${selCls}" draggable="true" data-id="${t.id}" onclick="if(!window.__justDragged) selectTeam('${t.id}', event.shiftKey)">
+    return `<div class="team-card${selCls}${t.sessionId ? ' from-session' : ''}" draggable="true" data-id="${t.id}" data-session="${escapeHtml(t.sessionId || '')}" title="${t.sessionLabel ? escapeHtml('Built in one session: ' + t.sessionLabel) : ''}" onclick="if(!window.__justDragged) selectTeam('${t.id}', event.shiftKey)">
       <div class="tc-bar${displayOptions.name ? '' : ' tc-bar-noname'}">
         ${displayOptions.name ? `<div class="tc-name">${escapeHtml(t.name || '')}</div>` : ''}
         ${tagHtml}
@@ -21346,16 +23391,16 @@ function sortWenginesForPresetAgent(agentKey) {
 }
 function openModal(type,agentIdx,discIdx) {
   modalCtx={type,agentIdx,discIdx};
-  const titles={agent:'Select Agent','preset-agent':'Select Agent',wengine:'Select W-Engine','preset-wengine':'Select W-Engine',disc:'Select Drive Disc',bangboo:'Select Bangboo',icon:'Select Icon'};
+  const titles={agent:'Select Agent','preset-agent':'Select Agent','ses-agent':'Select Agent',wengine:'Select W-Engine','preset-wengine':'Select W-Engine',disc:'Select Drive Disc',bangboo:'Select Bangboo',icon:'Select Icon'};
   document.getElementById('modalTitle').textContent=titles[type];
   document.getElementById('modalSearch').value='';
-  modalItems = type==='agent'?sortAgentsForSlot(agentIdx):type==='preset-agent'?sortAgentsByRarity(AGENTS_FULL):type==='wengine'?sortWenginesForAgent(agentIdx):type==='preset-wengine'?sortWenginesForPresetAgent(presetDraft?.agentKey):type==='disc'?DISCS:type==='icon'?(ICONS_BY_SLOT[discIdx]||ICONS_BY_SLOT[0]):bangbooPoolForModal();
+  modalItems = type==='agent'?sortAgentsForSlot(agentIdx):type==='ses-agent'?sortAgentsByRarity(agentPoolForModal()):type==='preset-agent'?sortAgentsByRarity(AGENTS_FULL):type==='wengine'?sortWenginesForAgent(agentIdx):type==='preset-wengine'?sortWenginesForPresetAgent(presetDraft?.agentKey):type==='disc'?DISCS:type==='icon'?(ICONS_BY_SLOT[discIdx]||ICONS_BY_SLOT[0]):bangbooPoolForModal();
   activeSpec = null;
   activeAttr = null;
   document.querySelectorAll('.spec-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('modalSpec').classList.toggle('visible', type==='agent' || type==='preset-agent');
+  document.getElementById('modalSpec').classList.toggle('visible', type==='agent' || type==='preset-agent' || type==='ses-agent');
   document.getElementById('modalSpecWE').classList.toggle('visible', type==='wengine' || type==='preset-wengine');
-  document.getElementById('modalAttr').classList.toggle('visible', type==='agent' || type==='preset-agent');
+  document.getElementById('modalAttr').classList.toggle('visible', type==='agent' || type==='preset-agent' || type==='ses-agent');
   renderGrid(modalItems);
   document.getElementById('modalBg').classList.remove('hidden');
   document.getElementById('modalSearch').focus();
@@ -21393,11 +23438,11 @@ function toggleAttr(btn) {
 function filterModal() {
   const q = document.getElementById('modalSearch').value.toLowerCase();
   let items = modalItems.filter(k=>k.includes(q)||prettyName(k).toLowerCase().includes(q));
-  if (activeSpec && (modalCtx.type === 'agent' || modalCtx.type === 'preset-agent')) {
+  if (activeSpec && (modalCtx.type === 'agent' || modalCtx.type === 'preset-agent' || modalCtx.type === 'ses-agent')) {
     const pool = AGENT_SPECIALTIES[activeSpec] || [];
     items = items.filter(k => pool.includes(k));
   }
-  if (activeAttr && (modalCtx.type === 'agent' || modalCtx.type === 'preset-agent')) {
+  if (activeAttr && (modalCtx.type === 'agent' || modalCtx.type === 'preset-agent' || modalCtx.type === 'ses-agent')) {
     items = items.filter(k => getAgentAttributes(k).includes(activeAttr));
   }
   if (modalCtx.type === 'agent') {
@@ -21476,6 +23521,11 @@ function pickItem(key) {
        Менять его тут же в форме по-прежнему можно. */
     presetDraft.wengineLevel = presetDraft.wengine ? (getWengineLibEntry(presetDraft.wengine).level || 60) : null;
   }
+  else if(type==='ses-agent') {
+    /* Слот сессии, а не редактора команд: цель лежит в sessModalTarget, потому
+       что modalCtx умеет адресовать только currentTeam. */
+    if (sessModalTarget) sessSetAgent(sessModalTarget.ti, sessModalTarget.si, key);
+  }
   else if(type==='preset-agent') { /* nothing to toggle — just browsing to this agent's presets, handled below */ }
   else if(type==='disc')    { const s=currentTeam.agents[agentIdx].discs[discIdx]===key; currentTeam.agents[agentIdx].discs[discIdx]=s?null:key; }
   else if(type==='bangboo') {
@@ -21493,6 +23543,10 @@ function pickItem(key) {
   }
   if (type === 'preset-wengine') { renderPresetDraftEditor(); closeModal(); }
   else if (type === 'preset-agent') { closeModal(); openPresetCreateForm(key); }
+  /* Слот сессии рисует себя сам, и renderAgents() ему не только не нужен, но и
+     вреден: на вкладке билдера редактор команд может быть не открыт вовсе, и
+     currentTeam там пуст — общий хвост падал бы на нём. */
+  else if (type === 'ses-agent') { closeModal(); }
   else { renderAgents(); closeModal(); }
 }
 
