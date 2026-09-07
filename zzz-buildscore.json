@@ -69,11 +69,11 @@
     "builder": {
       "caps": 30,
       "procs": 25,
-      "mains": 15,
+      "mains": 14,
       "sets": 11,
       "wengine": 15
     },
-    "_derived": "Вес sets ВЫВОДИТСЯ, а не назначается (§4.68). Лучшая раскладка сетов стоит 23.6 прокрутов при бюджете сборки в 54, значит sets относится к procs как эти числа: sets = round(maxSetProcs / budget * procs). Меняешь цену сета в прокрутах — обязан пересчитать вес, иначе одни и те же прокруты будут стоить в двух составляющих по-разному. Проверяется тестом."
+    "_derived": "Вес sets ВЫВОДИТСЯ, а не назначается (§4.68). Лучшая раскладка сетов стоит 23.6 прокрутов при бюджете сборки в 54, значит sets относится к procs как эти числа: sets = round(maxSetProcs / budget * procs). Меняешь цену сета в прокрутах — обязан пересчитать вес, иначе одни и те же прокруты будут стоить в двух составляющих по-разному. Проверяется тестом. ТО ЖЕ И С mains, с 2026-09-05 (§4.79). Артём назвал цену мейн-стата его же арифметикой: мейн-стат слота 4-6 даёт +30 ATK%, один прокрут ATK% даёт 3, значит мейн-стат стоит ровно 10 прокрутов — и так по всем статам, «так разработчик изначально сделал». Слотов с выбором мейн-стата три, значит mains = round(3 * mainProcs / budget * procs) = round(3 * 10 / 54 * 25) = 14 в билдере (было 15 назначенных). В лидерборде вес ОСТАВЛЕН нулём намеренно — это отдельное решение Артёма, отложенное до этапа 8, а не результат этой формулы; включать его надо тем же round(3 * 10 / 54 * 40) = 22. ВАЖНО, что этим числом НЕ измеряется: одинаковая ЦЕНА мейн-статов не значит одинаковую ПОЛЬЗУ. Какой мейн-стат кому идёт, решает bsMains по реальным клирам и правилам игры; 10 прокрутов — это размер ставки, а не подсказка, на что её ставить."
   },
   "eligibility": {
     "_note": "§4.13. Уровни кнопок не проверяются намеренно — в сообществе слишком много расхождений.",
@@ -2491,7 +2491,9 @@
       "rare": 0.4,
       "minSample": 300,
       "sampleNote": "Ниже minSample данным не верим и откатываемся на рекомендацию игры: у Бена в выборке 7 человек, у Сета 5, у Энби 5, у Билли 2."
-    }
+    },
+    "_mainProcs": "Сколько полезных прокрутов стоит ОДИН мейн-стат слота 4-6. Число Артёма (2026-09-05), выведенное из самой игры: мейн +30 ATK% при цене прокрута ATK% в 3 единицы даёт ровно 10 прокрутов, и по остальным статам разработчик выдержал ту же величину. Отсюда считается вес mains — см. weights._derived.",
+    "mainProcs": 10
   },
   "sets": {
     "_note": "Сет считается двумя половинами: какой надет 4-Pc и что даёт оставшийся 2-Pc. Вес между ними — split.",
@@ -2607,14 +2609,14 @@
       }
     },
     "noStack": {
-      "_why": "Сеты, чей ЧЕТЫРЁХПРЕДМЕТНЫЙ бонус не стакается между двумя агентами одного отряда: надели на двоих — работает только один. Список назвал Артём 2026-09-02. Двухпредметный бонус это не затрагивает, он личный. Для подбора это ЗАПРЕТ, а не штраф: второй такой четырёхпредметный не даёт ничего, и класть под него четыре слота — чистая потеря.",
+      "_why": "Сеты, чей ЧЕТЫРЁХПРЕДМЕТНЫЙ бонус не стакается САМ С СОБОЙ: два агента одной тройки в ОДНОМ И ТОМ ЖЕ сете отсюда получают его бонус один раз, а не вдвое. Правило про один и тот же сет, а не про список целиком: два РАЗНЫХ сета отсюда работают оба и друг другу не мешают. Двухпредметный бонус это не затрагивает, он личный. Для подбора это ЗАПРЕТ, а не штраф. СПИСОК ИСПРАВЛЕН 2026-09-05: раньше тут стоял Chaos Jazz вместо Swing Jazz, и ошибку нашли тексты сетов — «не стакается» стоит ровно у тех шести, что льют в ОТРЯД, а у Chaos Jazz командного бонуса нет вовсе, весь его бонус личный. Артём подтвердил: должен быть Swing Jazz. ТЕПЕРЬ ЭТО НЕ СПИСОК, А СЛЕДСТВИЕ: множество нестакающихся сетов обязано совпадать с множеством тех, у кого sets.fx.to == 'squad', и это накрыто тестом — разойдутся, тест упадёт.",
       "sets": [
         "Astral Voice",
         "Bunny in Wonderland",
-        "Chaos Jazz",
         "King of the Summit",
         "Moonlight Lullaby",
-        "Proto Punk"
+        "Proto Punk",
+        "Swing Jazz"
       ]
     },
     "twoPc": {
@@ -4473,6 +4475,656 @@
         }
       ],
       "why": "Доля использования — это не сила сета: люди носят то, что нафармили. Сила меряется очком, а там, где выборка велика, очко всюду подтверждает цепочки Артёма."
+    },
+    "fx": {
+      "_why": "ЧЕТЫРЁХПРЕДМЕТНЫЕ БОНУСЫ ЧИСЛАМИ (§4.82). Цепочка сетов (sets.fourPc) говорит, КОТОРЫЙ сет лучше кому — это знание Артёма. Здесь лежит другое: ЧТО сет делает, СКОЛЬКО, КОМУ и ПРИ КАКОМ УСЛОВИИ. Без этого подбор не может зависеть от команды и врага: ситуативность приходится записывать руками (whenTeam у 13 агентов), а это та самая дорога в «сотни файлов условий», которой проект не хочет (§4.80). ИСТОЧНИК: тексты бонусов из игры. Перед тем как взять отсюда хоть одно число, источник проверен ДВУХПРЕДМЕТНЫМИ бонусами — они у нас записаны давно и независимо сверены с Enka: совпало 29 из 29, включая все четыре, чей бонус не выражается статом. conf: derived значит «взято из описания сета, Артёмом не выверено»; uptime: null — величина, которую может назвать только он, потому что она про игру, а не про текст. ГРУППЫ в gives — множительные группы урона, по которым берётся производная (§4.80): atk%, dmg% (общий множитель), attrDmg%, critRate, critDmg, ap, anomalyDmg%, penRatio; и отдельно негруппы — daze, shield, dmgTaken, basicDmg%, ultDmg%, sheerDmg%, buildupResShred: на выбор мейн-стата они не влияют, но записаны, чтобы сет не выглядел пустым. ПОЛЯ УСЛОВИЯ: trigger — от чего включается; wearerClass / wearerAttribute — требование к носителю; extra — требование к САМОЙ СБОРКЕ (крит-шанс, контроль аномалии), и только такие условия способны продиктовать мейн-стат; cd — откат, то есть ограничение частоты, а не условие. АПТАЙМ ПРОСТАВЛЕН АРТЁМОМ 2026-09-05 — прозой, по каждому сету отдельно; uptimeWhy хранит его объяснение своими словами, потому что число без объяснения нечем перепроверить. Два сета он не разбирал: Hormone Punk (аптайм назначает сама игра — 10 с на 20 с отката) и Soul Rock (носит один Бен, которым никто не играет), у них conf: derived. Тексты бонусов он прислал с zzz.nanoka.cc — того же источника, откуда проект берёт комнаты, — и они совпали с тем, что было записано ранее, кроме Thorned Rose, которого раньше не было вовсе.",
+      "Astral Voice": {
+        "text": "Whenever any squad member enters the field using a Quick Assist, all squad members gain 1 stack of Astral, up to 3 stacks, lasting 15s. Each stack increases the DMG dealt by the character entering the field using a Quick Assist by 8%. Only one of this effect can be active at a time in the same squad.",
+        "to": "squad",
+        "gives": [
+          {
+            "group": "dmg%",
+            "amount": 24,
+            "note": "8% x 3 стака"
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "быстрый ассист любого члена отряда",
+          "text": "работает на любом носителе"
+        },
+        "dur": 15,
+        "note": "бьёт по тому, кто выходит быстрым ассистом, а не по всем сразу",
+        "uptime": 0.9,
+        "conf": "verified",
+        "uptimeWhy": "Самый СЛОЖНЫЙ сет игры, и сложность вся в удержании. Три стака, каждый 15 с, новый стак сбрасывает время всем. Не вышел по быстрой помощи в течение 15 с — теряешь ВСЕ ТРИ разом и стакаешь заново. Опытный игрок, выходящий по быстрой помощи каждые 15 с, держит 100%; остальные — рвано."
+      },
+      "King of the Summit": {
+        "text": "When the equipper is a Stun character and uses an EX Special Attack or Chain Attack, increases CRIT DMG of all squad members by 15%, and when the equipper's CRIT Rate is >= 50%, further increases CRIT DMG by 15%, lasting 15s. Passive effects of the same name do not stack.",
+        "to": "squad",
+        "gives": [
+          {
+            "group": "critDmg",
+            "amount": 15,
+            "note": "база"
+          },
+          {
+            "group": "critDmg",
+            "amount": 15,
+            "note": "ещё столько же, если крит-шанс носителя >= 50%"
+          }
+        ],
+        "cond": {
+          "wearerClass": "Stun",
+          "trigger": "ешка или цепная атака носителя",
+          "extra": "крит-шанс носителя >= 50% удваивает бонус",
+          "text": "носитель обязан быть станером; импульс в шестом слоте НЕ условие сета — это то, что станер и так носит (поправка Артёма 2026-09-05)"
+        },
+        "dur": 15,
+        "uptime": 1.0,
+        "conf": "verified",
+        "uptimeWhy": "Условия лёгкие: собрал 50% крит-шанса — половина сета включена навсегда; нажал ешку или цепочку — вторая половина на 15 с. На станере ешка жмётся перед станом, и 15 с накрывают весь стан целиком; можно добавить и во время стана."
+      },
+      "Moonlight Lullaby": {
+        "text": "When the equipper is a Support character and uses an EX Special Attack or Ultimate, the DMG dealt by all squad members increases by 18% for 25s. Passive effects of the same name do not stack.",
+        "to": "squad",
+        "gives": [
+          {
+            "group": "dmg%",
+            "amount": 18
+          }
+        ],
+        "cond": {
+          "wearerClass": "Support",
+          "trigger": "ешка или ульта носителя",
+          "text": "носитель обязан быть саппортом"
+        },
+        "dur": 25,
+        "uptime": 1.0,
+        "conf": "verified",
+        "uptimeWhy": "Самый лёгкий саппорт-сет: ешка или ульта саппорта — и 25 с на весь отряд. Даёт меньше Astral Voice, но за счёт элементарного условия и длинного баффа его часто предпочитают именно из-за того, что Astral Voice сложный."
+      },
+      "Swing Jazz": {
+        "text": "Launching a Chain Attack or Ultimate increases all squad members' DMG by 15% for 12s. Passive effects of the same name do not stack.",
+        "to": "squad",
+        "gives": [
+          {
+            "group": "dmg%",
+            "amount": 15
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "цепная атака или ульта носителя"
+        },
+        "dur": 12,
+        "uptime": 0.4,
+        "conf": "verified",
+        "uptimeWhy": "Сет устарел, и по двум причинам сразу. Работает всего 12 с — короче, чем стан у многих врагов и короче стан-ротации. И аптаймится только цепочкой или ультой, а цепочку на носителя тратить не хочется: он не дамажит, цепочку отдают ДД."
+      },
+      "Proto Punk": {
+        "text": "When any squad member triggers a Defensive Assist or Evasive Assist, all squad members deal 15% increased DMG, lasting 10s. Passive effects of the same name do not stack.",
+        "to": "squad",
+        "gives": [
+          {
+            "group": "dmg%",
+            "amount": 15
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "защитный или уклоняющийся ассист ЛЮБОГО члена отряда"
+        },
+        "dur": 10,
+        "uptime": 0.7,
+        "conf": "verified",
+        "uptimeWhy": "Бафф всего 10 с, и держится он действиями, которые игрок может не хотеть делать: сет часто ломает ротацию. При идеальной игре 100%, кроме времени, когда враг застанен и парировать нечего. Самый слабый саппорт-сет."
+      },
+      "Bunny in Wonderland": {
+        "text": "When the equipper is a Defense character: when the equipper launches an EX Special Attack or any squad member triggers a Defensive/Evasive Assist, all squad members' DMG increases by 6%, stacking up to 3 times, lasting 25s.",
+        "to": "squad",
+        "gives": [
+          {
+            "group": "dmg%",
+            "amount": 18,
+            "note": "6% x 3 стака"
+          }
+        ],
+        "cond": {
+          "wearerClass": "Defense",
+          "trigger": "ешка носителя или ассист любого",
+          "text": "носитель обязан быть классом Защита"
+        },
+        "dur": 25,
+        "uptime": 1.0,
+        "conf": "verified",
+        "uptimeWhy": "Стаки набиваются ешкой носителя, парированием или помощью в уклонении, каждый стак продлевает время всем. Спадают по одному, а не разом — в отличие от Astral Voice. При нормальной игре легко держится на максимуме."
+      },
+      "Woodpecker Electro": {
+        "text": "Triggering a critical hit with a Basic Attack, Dodge Counter or EX Special Attack increases the equipper's ATK by 9% for 6s. The buff duration for different skills is calculated separately.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "atk%",
+            "amount": 27,
+            "note": "9% за каждый из трёх типов атак — таймеры раздельные, поэтому накладываются; 9% с одного типа"
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "крит базовой, контратакой с доджа или ешкой"
+        },
+        "dur": 6,
+        "uptime": 0.9,
+        "conf": "verified",
+        "uptimeWhy": "«Работает по сути всегда: как только один раз попал базовой — уже работает». Вся сложность не в удержании, а в НАСТАКИВАНИИ: таймеры трёх типов атак идут раздельно, и агент, который умеет крутить все три, держит куда больше, чем тот, кто умеет одну."
+      },
+      "Hormone Punk": {
+        "text": "Upon entering combat or switching in, the user's ATK is increased by 25% for 10s. This effect can be triggered once every 20s.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "atk%",
+            "amount": 25
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "выход на поле",
+          "cd": "откат 20 с"
+        },
+        "dur": 10,
+        "note": "аптайм задан самой игрой: 10 с работы на 20 с отката — ровно то, что Артём описал как «10 работает, 10 нет»",
+        "uptime": 0.5,
+        "conf": "verified",
+        "uptimeWhy": "Аптайм назначен самой игрой: 10 с работы на 20 с отката. Совпадает с тем, что Артём сказал ещё 2026-09-03 — «10 секунд работает, 10 нет»."
+      },
+      "Puffer Electro": {
+        "text": "Ultimate DMG increases by 20%. Launching an Ultimate increases the equipper's ATK by 15% for 12s.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "ultDmg%",
+            "amount": 20,
+            "note": "только урон ульты"
+          },
+          {
+            "group": "atk%",
+            "amount": 15
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "ульта носителя"
+        },
+        "dur": 12,
+        "uptime": 0.5,
+        "conf": "verified",
+        "uptimeWhy": "Целиком висит на ульте: нажал — 12 секунд. С Диалин, которая выдаёт отряду лишнюю ульту, аптайм заметно выше — потому Puffer Electro с ней и поднимается в цепочке (whenTeam)."
+      },
+      "Thunder Metal": {
+        "text": "As long as an enemy in combat is Shocked, the equipper's ATK is increased by 28%.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "atk%",
+            "amount": 28
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "враг под шоком"
+        },
+        "note": "длительности нет — держится, пока держится шок",
+        "uptime": 1.0,
+        "conf": "verified",
+        "uptimeWhy": "Аналогия Inferno Metal, но БЕЗ хвоста: работает ровно пока враг под шоком. У агентов, которые закрывают электро-аномалию постоянно, это 100% с первого кружка."
+      },
+      "Inferno Metal": {
+        "text": "Upon hitting a Burning enemy, the equipper's CRIT Rate is increased by 28% for 8s.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "critRate",
+            "amount": 28
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "удар по горящему врагу"
+        },
+        "dur": 8,
+        "uptime": 0.95,
+        "conf": "verified",
+        "uptimeWhy": "Тут не 8 секунд, а 18: горение висит на враге ещё 10 с после закрытия кружка, и только когда оно кончилось, стартует восьмисекундный таймер сета. Носители из цепочки закрывают огненную аномалию регулярно, поэтому держится почти всегда.",
+        "note": "фактическое окно с момента закрытия кружка — 18 с (10 с горения + 8 с сета), поправка Артёма"
+      },
+      "Fanged Metal": {
+        "text": "Whenever a squad member inflicts Assault on an enemy, the equipper deals 35% increased DMG to that target for 12s.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "dmg%",
+            "amount": 35
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "кто угодно из отряда навесил физическую аномалию"
+        },
+        "dur": 12,
+        "uptime": 0.85,
+        "conf": "verified",
+        "uptimeWhy": "Таймер 12 с стартует с закрытия кружка физической аномалии. Аптайм равен способности отряда закрывать Assault."
+      },
+      "Chaotic Metal": {
+        "text": "The equipper's CRIT DMG increases by 20%. When any character in the squad triggers Corruption's additional DMG, this further increases by 5.5% for 8s, stacking up to 6 times.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "critDmg",
+            "amount": 20,
+            "note": "база, без условия"
+          },
+          {
+            "group": "critDmg",
+            "amount": 33,
+            "note": "5.5% x 6 стаков"
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "доп. урон Corruption от кого угодно из отряда"
+        },
+        "dur": 8,
+        "uptime": 0.9,
+        "conf": "verified",
+        "uptimeWhy": "Стакается сам, если агент бьёт эфиром: у носителей эфирного урона держится всё время.",
+        "note": "53% крит-урона на максимуме подтверждены Артёмом 2026-09-05: 20% базовых плюс 5.5% × 6 стаков. Он называл 33% и сам поправился — не упомянул базовые. ПОЧЕМУ ЖЕ The Sky Ablaze выше в цепочке Джу Юань, хотя крит-урона даёт меньше: у неё крит-урон уже насыщен китом и движком, и следующая его единица стоит дешевле единицы атаки. Это ДЕГРАДАЦИЯ СТАТОВ, слово Артёма; посчитано на реальных статах клирнувших в §4.84 и tools/stat-value.mjs."
+      },
+      "Polar Metal": {
+        "text": "Increases the DMG of Basic Attack and Dash Attack by 20%. When any squad member inflicts Freeze or Shatter, this effect increases by an additional 20% for 12s.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "basicDmg%",
+            "amount": 40,
+            "note": "20% база + 20% по условию; только базовая и рывок"
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "заморозка или шаттер от кого угодно из отряда"
+        },
+        "dur": 12,
+        "uptime": 0.85,
+        "conf": "verified",
+        "uptimeWhy": "Базовые 20% висят всегда без условия. Вторые 20% дают заморозка или шаттер от кого угодно из отряда, на 12 с — тут аптайм и упирается в способность команды морозить и ломать."
+      },
+      "Chaos Jazz": {
+        "text": "Fire DMG and Electric DMG are increased by 15%. When off-field, the DMG caused by EX Special Attacks and Assist Attacks is increased by 20%. When switching back onto the field this buff continues for 5s; triggerable once every 7.5s.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "attrDmg%",
+            "amount": 15,
+            "note": "только огонь и электро"
+          },
+          {
+            "group": "dmg%",
+            "amount": 20,
+            "note": "только ешки и ассисты со скамейки"
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "без условия на базовые 15%; 20% — за пределами поля"
+        },
+        "note": "В ОТРЯД НЕ ЛЬЁТ: весь бонус личный. Отсюда вопрос к Артёму — почему он в noStack (§4.82) · подтверждено Артёмом 2026-09-05: в отряд не льёт, весь бонус личный — потому и из noStack убран",
+        "uptime": 1.0,
+        "conf": "verified",
+        "uptimeWhy": "15% огня и электро висят ВСЕГДА, без условия. Вторые 20% (ешки и ассисты со скамейки) держатся выходами на поле, и при правильной игре сет аптаймится всегда."
+      },
+      "Branch & Blade Song": {
+        "text": "When Anomaly Mastery >= 115, the equipper's CRIT DMG increases by 30%. When any squad member applies Freeze or triggers Shatter, the equipper's CRIT Rate increases by 12% for 15s.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "critDmg",
+            "amount": 30,
+            "note": "при контроле аномалии >= 115"
+          },
+          {
+            "group": "critRate",
+            "amount": 12
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "заморозка или шаттер от кого угодно",
+          "extra": "контроль аномалии носителя >= 115"
+        },
+        "dur": 15,
+        "note": "условие на контроль аномалии — второй после King of the Summit случай, когда сет диктует сборку · порог 115 читается ИЗ МЕНЮ, то есть из итогового листа статов. Именно он и объясняет, почему сет носит только Мияби: ставить кусок или целый диск в контроль аномалии ради 30% крит-урона больше никто не хочет — и это ровно тот случай, когда сет диктует мейн-стат",
+        "uptime": 1.0,
+        "conf": "verified",
+        "uptimeWhy": "30% крит-урона висят ПОСТОЯННО, если контроль аномалии в меню ≥ 115. Вторые 12% крит-шанса дают заморозка или шаттер от кого угодно, и держатся 15 с — это очень долго, отсюда и сила сета на Мияби."
+      },
+      "Shadow Harmony": {
+        "text": "Upon hitting an enemy with an Aftershock or Dash Attack, if the DMG matches the equipper's attribute, gain 1 stack (at most once per skill use). Each stack: ATK +4%, CRIT Rate +4%. Up to 3 stacks, 15s.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "atk%",
+            "amount": 12,
+            "note": "4% x 3"
+          },
+          {
+            "group": "critRate",
+            "amount": 12,
+            "note": "4% x 3"
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "афтершок или атака с рывка своим атрибутом"
+        },
+        "dur": 15,
+        "uptime": 0.95,
+        "conf": "verified",
+        "uptimeWhy": "Логика стаков как у Astral Voice, но набивается легко: нужно попадать афтершоком или атакой с рывка своим атрибутом. Те, кто его носят, стакают его без труда."
+      },
+      "Yunkui Tales": {
+        "text": "When using EX Special Attack, Chain Attack or Ultimate, CRIT Rate increases by 4%, stacking up to 3 times, lasting 15s. At 3 stacks, Sheer DMG increases by 10%.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "critRate",
+            "amount": 12,
+            "note": "4% x 3"
+          },
+          {
+            "group": "sheerDmg%",
+            "amount": 10,
+            "note": "только на трёх стаках"
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "ешка, цепная или ульта носителя"
+        },
+        "dur": 15,
+        "uptime": 1.0,
+        "conf": "verified",
+        "uptimeWhy": "Единственный сет шир-форсеров. Три стака набиваются сами по ходу нормальной игры и дальше держатся постоянно."
+      },
+      "The Sky Ablaze": {
+        "text": "When the equipper is an Ether attribute Agent, their CRIT DMG increases by 30%. When the equipper uses an EX Special Attack or Ultimate, their ATK increases by 10% for 30s.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "critDmg",
+            "amount": 30,
+            "note": "только эфирным"
+          },
+          {
+            "group": "atk%",
+            "amount": 10
+          }
+        ],
+        "cond": {
+          "wearerAttribute": "Ether",
+          "trigger": "ешка или ульта носителя"
+        },
+        "dur": 30,
+        "uptime": 1.0,
+        "conf": "verified",
+        "uptimeWhy": "30% крит-урона висят сразу, если агент эфирный. Ешка или ульта добавляют 10% атаки на 30 с — держится легко.",
+        "note": "ПОЧЕМУ он выше Chaotic Metal у Джу Юань, словами Артёма: у Chaotic Metal при максимуме одна только стаковая часть крит-урона, а тут к сравнимому крит-урону идёт ЕЩЁ и 10% атаки. Это объяснение порядка в цепочке, а не отдельное правило"
+      },
+      "Shining Aria": {
+        "text": "When the equipper's Basic Attack hits, their Anomaly Proficiency increases by 36 for 8s. When any enemy on the field is Stunned, the equipper's DMG increases by 25% for 18s.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "ap",
+            "amount": 36
+          },
+          {
+            "group": "dmg%",
+            "amount": 25,
+            "note": "пока враг в стане"
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "базовая атака носителя; отдельно — стан на враге"
+        },
+        "dur": 18,
+        "uptime": 1.0,
+        "conf": "verified",
+        "uptimeWhy": "Первая часть (36 знания аномалии) висит от попадания базовой атакой — то есть всегда, пока играешь агентом. Вторая (25% урона на 18 с) привязана к стану, а станов длиннее 18 с в игре нет, так что во время стана она работает целиком.",
+        "note": "может УСТУПАТЬ Phaeton’s Melody на Арии: 36 знания аномалии против 45. Но условие Phaeton’s Melody (ешка) для Арии не всегда удобно, поэтому в среднем они равны — а у игрока, который умеет её аптаймить, Phaeton’s Melody сильнее. Ровно это и записано в цепочке: у Арии они на одной ступени"
+      },
+      "Phaeton's Melody": {
+        "text": "When any squad member uses an EX Special Attack, the equipper's Anomaly Proficiency increases by 45 for 8s. If the EX user is not the equipper, the equipper's Ether DMG increases by 25%.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "ap",
+            "amount": 45
+          },
+          {
+            "group": "attrDmg%",
+            "amount": 25,
+            "note": "только эфир, и только если ешку нажал не носитель"
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "ешка любого члена отряда"
+        },
+        "dur": 8,
+        "uptime": 1.0,
+        "conf": "verified",
+        "uptimeWhy": "Ешка ЛЮБОГО сокомандника даёт 45 знания аномалии на 8 с. Жать ешку кем-то из напарников каждые 8 секунд — не проблема, отсюда 100%. Вторые 25% эфирного урона идут, только если ешку нажал НЕ носитель."
+      },
+      "Notes From the Chained": {
+        "text": "When the equipper triggers Abloom, Anomaly Proficiency increases by 48 for 30s. When the equipper triggers Freeze, All-Attribute Anomaly DMG and Disorder DMG increase by 16% for 30s.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "ap",
+            "amount": 48
+          },
+          {
+            "group": "anomalyDmg%",
+            "amount": 16
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "Abloom и заморозка от носителя"
+        },
+        "dur": 30,
+        "uptime": 1.0,
+        "conf": "verified",
+        "uptimeWhy": "Сигнатурный сет Промеи, играется на ней одной, и на ней держится всё время."
+      },
+      "Wuthering Salon": {
+        "text": "When the equipper uses an EX Special Attack, Anomaly Proficiency increases by 25, stacking up to 2 times, lasting 40s. When the equipper triggers Windswept, their DMG increases by 18% for 40s.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "ap",
+            "amount": 50,
+            "note": "25 x 2 стака"
+          },
+          {
+            "group": "dmg%",
+            "amount": 18
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "ешка носителя; отдельно — Windswept"
+        },
+        "dur": 40,
+        "uptime": 1.0,
+        "conf": "verified",
+        "uptimeWhy": "Узко под Велину; после набора стаков работает у неё постоянно."
+      },
+      "Feathered Fate": {
+        "text": "When the equipper enters the battlefield or is switched in: Anomaly Proficiency +50; if the equipper is a Lumiflux character, Attribute Anomaly DMG +15%, lasting 15s. Remains active while off-field.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "ap",
+            "amount": 50
+          },
+          {
+            "group": "anomalyDmg%",
+            "amount": 15,
+            "note": "только Lumiflux"
+          }
+        ],
+        "cond": {
+          "wearerAttribute": "Lumiflux",
+          "trigger": "выход на поле"
+        },
+        "dur": 15,
+        "uptime": 1.0,
+        "conf": "verified",
+        "uptimeWhy": "Сигнатурный сет Ремиэль; на ней работает целиком и всегда, и других носителей у него, скорее всего, не появится."
+      },
+      "White Water Ballad": {
+        "text": "When the equipper is within any Ether Veil, CRIT Rate +10%; after leaving, remains 15s. If the equipper is an Attack character, activating or extending an Ether Veil grants CRIT Rate +10% and ATK +10% for 30s.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "critRate",
+            "amount": 20,
+            "note": "10% в вуали + 10% атакеру"
+          },
+          {
+            "group": "atk%",
+            "amount": 10,
+            "note": "только атакеру"
+          }
+        ],
+        "cond": {
+          "wearerClass": "Attack",
+          "trigger": "нахождение в Ether Veil",
+          "text": "первые 10% крит-шанса без условия на класс, вторые — только атакеру"
+        },
+        "dur": 30,
+        "uptime": 1.0,
+        "conf": "verified",
+        "uptimeWhy": "Носит ровно один агент, и на нём после первой активации условий держится буквально всегда."
+      },
+      "Dawns Bloom": {
+        "text": "Increases Basic Attack DMG by 20%. When equipped by an Attack character, using an EX Special Attack or Ultimate further increases Basic Attack DMG by 20% for 25s.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "basicDmg%",
+            "amount": 40,
+            "note": "20% база + 20% атакеру; только базовая атака"
+          }
+        ],
+        "cond": {
+          "wearerClass": "Attack",
+          "trigger": "ешка или ульта носителя для второй половины"
+        },
+        "dur": 25,
+        "uptime": 1.0,
+        "conf": "verified",
+        "uptimeWhy": "«Максимально chill сет»: прожал ешку или ульту — и 25 секунд бонуса. Огромное время, держится всегда у тех, кому сет подходит по киту."
+      },
+      "Freedom Blues": {
+        "text": "When an EX Special Attack hits an enemy, reduce the target's Anomaly Buildup RES to the equipper's attribute by 20% for 8s. Does not stack with others of the same attribute.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "buildupResShred",
+            "amount": 20,
+            "note": "скорость накопления аномалии, не урон"
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "ешка носителя по врагу"
+        },
+        "dur": 8,
+        "note": "урона не даёт вовсе — ровно как Артём и написал в about",
+        "uptime": 0.8,
+        "conf": "verified",
+        "uptimeWhy": "Таймер 8 с стартует с анимации ешки. Держится ешками, не более того."
+      },
+      "Shockstar Disco": {
+        "text": "Basic Attacks, Dash Attacks and Dodge Counters inflict 20% more Daze upon the main target.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "daze",
+            "amount": 20,
+            "note": "даз, не урон"
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "без условия"
+        },
+        "uptime": 1.0,
+        "conf": "verified",
+        "uptimeWhy": "«Аптаймится вообще всегда абсолютно»: станер какими атаками ни бей — даз растёт. Но отряду не даёт НИЧЕГО, и это его главный минус."
+      },
+      "Soul Rock": {
+        "text": "Upon receiving an enemy attack and losing HP, the equipper takes 40% less DMG for 2.5s. Triggerable once every 15s.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "dmgTaken",
+            "amount": -40,
+            "note": "выживаемость, не урон"
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "получение урона",
+          "cd": "откат 15 с"
+        },
+        "dur": 2.5,
+        "uptime": 0.17,
+        "conf": "derived",
+        "uptimeWhy": "Артём этот сет не разбирал — он назвал его «самым позорным сетом игры», носить его может один Бен, а Беном никто не играет. Число взято из текста: 2.5 с защиты на 15 с отката."
+      },
+      "Thorned Rose": {
+        "text": "The equipper's DMG increases by 15%. When the equipper's initial DEF is at least 1,000/1,800, CRIT Rate increases by 8/16%.",
+        "to": "self",
+        "gives": [
+          {
+            "group": "dmg%",
+            "amount": 15,
+            "note": "без условия"
+          },
+          {
+            "group": "critRate",
+            "amount": 16,
+            "note": "при начальной защите ≥ 1800; при ≥ 1000 только 8%"
+          }
+        ],
+        "cond": {
+          "wearerClass": null,
+          "trigger": "без условия — работает от факта надетой четвёрки",
+          "extra": "начальная защита носителя ≥ 1000 даёт 8% крит-шанса, ≥ 1800 — 16%",
+          "text": "условие на САМУ СБОРКУ и по защите, а не по криту или аномалии — третий такой сет в игре"
+        },
+        "uptime": 1.0,
+        "uptimeWhy": "Условия элементарные: собрал фиксированную защиту выше порога — сет работает всегда, ничего нажимать не надо.",
+        "note": "будущий сигнатурный сет Клэрэт; описание продиктовал Артём 2026-09-05, когда сет ещё не вышел",
+        "conf": "verified"
+      }
     }
   },
   "wengine": {
@@ -4611,6 +5263,13 @@
     ],
     "gear": {
       "weakBelow": 550,
+      "solve": {
+        "candidates": 8,
+        "show": 6,
+        "_why": "Пределы режима «Build from my library» (§4.89): сколько верхних троек списка решать решателем и сколько из них показывать. Это КАЛИБРУЕМЫЕ величины, размен времени против глубины, как и team.solver. Замер 2026-09-07: шесть троек, решённых полностью, — 3.1 с на библиотеке в 700 дисков и 3.9 с на 2000, около полусекунды на тройку; восемь стоят примерно 4.1 с.",
+        "_whyEight": "Считать надо БОЛЬШЕ, чем показывать. Порядок до подсчёта строится по пяти сигналам, снаряжение — шестой, и тройка, стоявшая восьмой, после подсчёта может обойти шестую. Отрезав ровно на шести, мы её не увидим никогда — отрежем до того, как узнаем. Секунда за то, чтобы верхушка не зависела от места ножа.",
+        "_independent": "Тройки решаются НЕЗАВИСИМО, каждая против полной библиотеки: они альтернативы, играть человек будет одну. Следствие названо в интерфейсе: две соседние строки могут хотеть один и тот же диск, и число под каждой значит «вот что выйдет, если собрать ЭТУ». Набор на этаж — противоположный случай: команды идут в одном заходе и решаются одной сессией без повторов (§4.61)."
+      },
       "_why": "Порог, ниже которого лучшая имеющаяся сборка агента считается слабой и человеку советуют собрать новую из библиотеки, а не тасовать те же диски. Это КАЛИБРУЕМАЯ величина, а не знание: 550 из 1000 — первое приближение «половина капов и проков не набрана». Проверять по сборкам тех, кто комнату реально закрывает (этап 8), и двигать по факту.",
       "_ownership": "Применять можно только свои сборки: manual без source (собрано руками) и verified (снимок собственного подтверждённого стенда). imported и копии чужих публикаций сохраняются, но не применяются — это не твои диски. Правило задано Артёмом и живёт в presetIsMine().",
       "sources": [
@@ -4620,7 +5279,7 @@
         "both"
       ],
       "_sources": "none — снаряжение не учитывается вовсе (ассисты выключены, полноправный режим, а не заглушка); presets — свои сохранённые пресеты; stand — своя витрина Enka; both — и то и другое.",
-      "_mixedRanking": "ОТКРЫТЫЙ ВОПРОС К АРТЁМУ. Когда снаряжение включено, в одном списке оказываются тройки двух видов: собранные целиком (считаются по шести сигналам) и те, где хоть у одного сборки нет (составляющая выбывает, её вес расходится по остальным пяти). У вторых сумма выходит выше просто потому, что про их снаряжение ничего не известно, — то есть собранная, но средняя тройка встаёт НИЖЕ неизвестной. Внутри тройки та же беда решена правилом «все трое или никто», между тройками так не выйдет: судить состав по снаряжению, которого нет, невозможно. Варианты: (1) один список с честной пометкой — сделано сейчас; (2) две группы, «с учётом сборок» и «по составу»; (3) достраивать несобранным агентам средний скор сборки тех, кто комнату реально закрывает (данные появятся на этапе 8). Решает Артём — это игровая семантика, а не код."
+      "_mixedRanking": "ЗАКРЫТО 2026-09-07 (§4.89) — не компромиссом, а тем, что у вопроса убрана причина. Было: когда снаряжение включено, в одном списке оказываются тройки, собранные целиком (шесть сигналов), и тройки, где сборки нет ни у кого (составляющая builds выбывает по правилу знаменателя, её вес расходится по остальным пяти) — и у вторых сумма выходит ВЫШЕ, то есть незнание читается как достоинство. Стало: источник «library» решает снаряжение решателем для team.gear.solve.candidates верхних троек и показывает solve.show — в списке не остаётся троек без снаряжения, и смешивать нечего. Три прежних варианта («оставить как есть», «две группы», «достроить средним») отпали все три: они были способами ужиться с причиной. В режимах presets/stand/both смешение остаётся возможным и по-прежнему честно помечено подписью под списком: там сборку взять неоткуда, если человек её не сохранил."
     },
     "editor": {
       "room": 1.0,
@@ -4647,7 +5306,7 @@
     "bangboo": {
       "_why": "Условия дополнительных навыков бангбу НЕ переписываются таблицей — они разбираются из самого текста BANGBOO_INFO (§4.73). Вторая копия сорока формулировок разошлась бы с первой при первом же патче. Здесь лежит только словарь: имена, которые игра пишет иначе, чем наши данные, и поимённые «не знаю» с причиной. Полнота разбора накрыта тестом: если новый бангбу принесёт формулировку, которой парсер не знает, тест упадёт, а не промолчит.",
       "factionAliases": {
-        "_why": "Слева — как фракцию называет текст навыка, справа — как она называется в AGENT_FACTION. Одно имя может покрывать несколько наших фракций: игра иногда называет зонтичную организацию, а мы храним подразделения.",
+        "_why": "Слева — как фракцию называет текст навыка бангбу, справа — как она называется в AGENT_FACTION. Одно имя часто покрывает НЕСКОЛЬКО наших фракций: игра называет зонтичную организацию, а мы храним подразделения. Список не выдуман: поле camp в zzz-agents.json — это ровно те зонтичные имена, которыми пользуется игра, и тест сверяет эту таблицу с ним. Так уже поймана ошибка: у «Defense Force» стоял один Silver Squad, и условие Mercury «двое из Defense Force» не могло сработать никогда, потому что в Silver Squad всего один агент.",
         "Hollow Special Operations Section 6": [
           "Section 6"
         ],
@@ -4655,17 +5314,20 @@
           "Cunning Hares AKA Gentle House"
         ],
         "Defense Force": [
-          "Defense Force - Silver Squad"
+          "Defense Force - Silver Squad",
+          "Obol Squad"
         ],
         "New Eridu Public Security": [
           "Criminal Investigation Special Response Team",
           "Metropolitan Order Division"
+        ],
+        "Roscaelifer": [
+          "Airspace Patrol Department",
+          "External Strategy Department"
         ]
       },
       "unknown": {
-        "_why": "Условия, которые проверить нечем. Бангбу отсюда подбор не предлагает: обещать работающий бонус, не умея его проверить, хуже, чем промолчать.",
-        "boollseye": "«Pierce-type character» — это тип атаки агента (Slash / Strike / Pierce), а такой таблицы в проекте нет вовсе. Вопрос Артёму.",
-        "ultra-jake": "Фракция «Roscaelifer» в наших AGENT_FACTION не встречается ни разу. Вопрос Артёму: чья это фракция."
+        "_why": "Условия, которые проверить нечем. Бангбу отсюда подбор не предлагает: обещать работающий бонус, не умея его проверить, хуже, чем промолчать. Сейчас список ПУСТ — оба прежних «не знаю» закрыты (Ultra-Jake выводом из camp, Boollseye таблицей типов атаки AGENT_ATTACK_TYPE, продиктованной Артёмом 2026-09-03). Механизм оставлен: новый патч принесёт формулировку, которой парсер не знает, и тогда её место здесь."
       },
       "pick": {
         "_why": "Порядок выбора. Сперва те, чей доп. навык на этом составе ВКЛЮЧАЕТСЯ — в этом весь смысл правила Артёма. Дальше тот, с которым эту комнату реально проходят (zzz-meta.json знает бангбу каждого состава) — это измерение, а не догадка. Потом редкость, и в конце имя, чтобы выдача была воспроизводимой.",

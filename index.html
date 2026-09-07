@@ -2753,6 +2753,7 @@ select {
       <option value="presets">My presets</option>
       <option value="stand">My showcase</option>
       <option value="both">Presets + showcase</option>
+      <option value="library">Build from my library</option>
     </select>
     <select id="tbBuilderTop" onchange="builderRun()" title="How many teams to show">
       <option value="5">Top 5</option>
@@ -5895,6 +5896,58 @@ const AGENT_FACTION = {
   'remielle': 'Covenant of Dayat',
   'sigrid': 'Airspace Patrol Department',
 };
+
+// ── AGENT ATTACK TYPE ──
+// Тип атаки (Slash / Strike / Pierce) — единственное свойство агента, которого НЕТ ни
+// в zzz-agents.json, ни в zzz-skills.json, ни в одном другом источнике проекта. Поиск
+// по всем данным даёт ровно одно вхождение слова «Pierce» — и то это имя эйдоса, а не
+// тип атаки. Поэтому таблица продиктована Артёмом целиком (2026-09-03) — это выверенное
+// знание, а не выведенное, и единственный способ её пополнить — спросить его снова.
+//
+// ПОЧЕМУ ОНА ВООБЩЕ НУЖНА. Ради одного бангбу: у Boollseye доп. навык включается
+// от «at least 1 Pierce-type character in your squad», и без этой таблицы его проверить было
+// нечем (§4.73). Артём выбрал полную таблицу, а не один список Pierce: тип атаки —
+// это ещё и уязвимости врагов (комнаты их уже хранят), то есть знание пригодится дальше,
+// и собрать его один раз целиком дешевле, чем возвращаться за ним третий раз.
+//
+// ДВА БИЛЛИ — РАЗНЫЕ АГЕНТЫ И РАЗНЫЕ ТИПЫ. В первом списке Артёма «Billy» стоял
+// и в Slash, и в Pierce; уточнение: `starlight billy` — Slash, `billy-kid` — Pierce. Это
+// единственное место, где два агента с одним именем расходятся по типу атаки.
+//
+// ПОКА НЕ ЗАВЕДЕНЫ: Claret и Roxy — Артём назвал их типы (Slash и Strike
+// соответственно), но самих агентов в ростере ещё нет. Ключи появятся — дописать
+// сюда две строки; тест полноты напомнит сам, если забыть.
+const AGENT_ATTACK_TYPE = {
+  // Slash (29)
+  'alice': 'Slash', 'anby-demara': 'Slash', 'caesar': 'Slash', 'cissia': 'Slash',
+  'corin': 'Slash', 'dialyn': 'Slash', 'ellen': 'Slash', 'evelyn': 'Slash',
+  'hugo': 'Slash', 'jane-doe': 'Slash', 'manato': 'Slash', 'miyabi': 'Slash',
+  'nekomata': 'Slash', 'piper': 'Slash', 'promeia': 'Slash', 'pulchra': 'Slash',
+  'pyrois': 'Slash', 'remielle': 'Slash', 'seed': 'Slash', 'seth': 'Slash',
+  'soldier 0': 'Slash', 'soldier 11': 'Slash', 'soukaku': 'Slash',
+  'starlight billy': 'Slash', 'velina': 'Slash', 'vivian': 'Slash',
+  'yanagi': 'Slash', 'ye shunguang': 'Slash', 'zhao': 'Slash',
+  // Strike (20)
+  'aria': 'Strike', 'astra-yao': 'Strike', 'banyue': 'Strike', 'ben': 'Strike',
+  'ju fufu': 'Strike', 'koleda': 'Strike', 'lighter': 'Strike', 'lucia': 'Strike',
+  'lucy': 'Strike', 'lycaon': 'Strike', 'nangong yu': 'Strike',
+  'nicole-demara': 'Strike', 'norma': 'Strike', 'pan yinhu': 'Strike',
+  'qingyi': 'Strike', 'rina': 'Strike', 'sunna': 'Strike', 'yidhari': 'Strike',
+  'yixuan': 'Strike', 'yuzuha': 'Strike',
+  // Pierce (9)
+  'anton': 'Pierce', 'billy-kid': 'Pierce', 'burnice': 'Pierce',
+  'grace-howard': 'Pierce', 'harumasa': 'Pierce', 'orphie-and-magus': 'Pierce',
+  'sigrid': 'Pierce', 'trigger': 'Pierce', 'zhu yuan': 'Pierce',
+};
+const ATTACK_TYPES = ['Slash', 'Strike', 'Pierce'];
+
+/* Типы атаки агента списком — как getAgentClasses для классов. Сегодня у каждого
+   ровно один, но вызывающая сторона написана под список: появится агент двух
+   типов — поменяется одна запись в таблице, а не все места, где она читается. */
+function getAgentAttackTypes(key) {
+  const v = AGENT_ATTACK_TYPE[key];
+  return v == null ? [] : (Array.isArray(v) ? v : [v]);
+}
 
 // ── ADDITIONAL ABILITY ──
 // Defensive Assist is a separate agent category (independent of the 6 combat classes above):
@@ -12582,7 +12635,13 @@ function teamSynergyWith(d, agentKeys) {
 
   const vocab = d._meta.needsVocabulary;
   const out = { ...empty, roles: {}, blockers: [], buffs: [], met: [], unmet: [], mechanics: [] };
-  const described = keys.filter(k => d[k]);
+  /* ОПИСАННЫМ СЧИТАЕТСЯ ТОТ, У КОГО РАЗОБРАНА МЕХАНИКА, А НЕ ТОТ, КТО ЕСТЬ В
+     ФАЙЛЕ. С 2026-09-07 в файле лежат агенты, у которых записаны ТОЛЬКО числа
+     собственного кита (partial: true) — их взяли под модель мейн-статов, а
+     требования к отряду и то, что они дают другим, не разбирали. Числа их
+     баффов настоящие и считаются наравне, но говорить «кит описан» про них
+     нельзя: подпись под выдачей обещала бы разбор, которого нет. */
+  const described = keys.filter(k => d[k] && !d[k].partial);
   out.coverage = { described: described.length, total: keys.length };
   out.confidence = described.length === keys.length ? 'full'
                  : described.length ? 'partial' : 'none';
@@ -13964,11 +14023,125 @@ function bsAtkParity(rule, ctx) {
   return null;
 }
 
-/* Суммарный срез защиты, который отряд даёт всем. Читается из уже собранной
-   механики синергий, чтобы не заводить вторую таблицу. Файл не загружен —
-   ноль, и ветка паритета просто не включится: это осторожная сторона ошибки,
-   ATK% получит меньше, а не больше. */
-function bsTeamDefShred(keys) {
+/* ── БАФФЫ СИНЕРГИЙ: КОГДА ОНИ ВООБЩЕ СЧИТАЮТСЯ (§4.85) ───────────────────
+   Два барьера, и оба про честность, а не про точность.
+
+   ПЕРВЫЙ — ПРОБУЖДЕНИЕ. У 17 строк в zzz-synergy.json стоит src `m1`..`m6`:
+   это бонус, который появляется только с соответствующим пробуждением. Считать
+   его игроку, у которого пробуждения нет, — врать в его пользу. Ошибка была
+   живой и молчащей: bsTeamDefShred складывал ВСЕ defIgnore подряд, а оба
+   defIgnore в файле как раз от M2, и отряд с Джейн на M0 получал 15% среза
+   защиты из воздуха. Юнит-тесты этого не видели структурно: в их окружении
+   synergyDataFile не поднимается вовсе, и функция всегда возвращала ноль.
+
+   ВТОРОЙ — УСЛОВИЕ. Часть баффов висит на условии, которое проверяется составом
+   (класс, атрибут, фракция получателя), а часть — на состоянии боя, которого мы
+   не знаем вовсе: `enemy-state`, `state`, `in-ether-veil`, `squad-triggers`,
+   `anomaly-count`. Первое проверяем, второе НЕ СЧИТАЕМ — то же правило «не
+   знаем, значит не обещаем», по которому подбор молчит про непонятного бангбу
+   (§4.73). Осторожная сторона ошибки здесь та же, что была записана раньше:
+   срез получится меньше, а не больше, и ветка паритета ATK% просто не включится.
+
+   ЧЕГО ЗДЕСЬ ПОКА НЕТ. У сетов уже есть `uptime` — доля времени, когда бонус
+   реально работает (§4.83). Баффам синергий такое поле тоже нужно: условие
+   вроде «пока враг Gnawed» у Джейн в аномальном отряде выполняется почти всегда,
+   и считать его нулём — занижать. Но выдумывать число нельзя, поэтому пока ноль,
+   а величина вынесена Артёму (§6). */
+function bsMindscapeOf(key, ctx) {
+  const fromCtx = ctx && ctx.mindscapes && ctx.mindscapes[key];
+  if (Number.isFinite(fromCtx)) return fromCtx;
+  try {
+    const e = typeof getAgentLibEntry === 'function' ? getAgentLibEntry(key) : null;
+    return e && Number.isFinite(e.mindscape) ? e.mindscape : null;
+  } catch { return null; }
+}
+
+/* Условия делятся на ДВА рода, и путать их нельзя.
+
+   ПРОВЕРЯЕМЫЕ СОСТАВОМ — класс, атрибут, фракция получателя, число аномальщиков
+   в отряде. Тут ответ двоичный и точный: посмотрели и знаем.
+
+   СИТУАТИВНЫЕ — состояние боя: своё состояние агента, вуаль, аномалия на враге,
+   срабатывание у отряда. Их код проверить не может НИКОГДА, сколько данных ни
+   добавляй, потому что они про течение боя, а не про состав. Для них ответ не
+   «да/нет», а ДОЛЯ ВРЕМЕНИ — то же поле uptime, что закрыло сеты (§4.83). Не
+   названа — бонус не считается вовсе (§4.85).
+
+   Возвращается { ok, uptime, why }: ok — прошло ли условие, uptime — на что
+   домножить величину (1 для проверяемых), why — причина отказа словами. */
+function bsSynergyCondOk(cond, recipientKey, team) {
+  if (!cond) return { ok: true, uptime: 1, why: null };
+  const t = cond.type;
+  /* «И»: проверяются ВСЕ части, а не до первого отказа. Иначе порядок в данных
+     решал бы за нас — у Ремиэль стоит and[класс Anomaly, состояние врага], и
+     если бы разбор останавливался на ситуативной части, проверка класса просто
+     не выполнилась бы. Ситуативная часть не отказ, она откладывается на uptime. */
+  if (t === 'and' || t === 'all') {
+    let up = 1, situ = false, fail = null;
+    for (const c of (cond.value || [])) {
+      const r = bsSynergyCondOk(c, recipientKey, team);
+      if (r.situational) { situ = true; continue; }
+      if (!r.ok && !fail) fail = r;
+      up = Math.min(up, r.uptime);
+    }
+    if (fail) return fail;
+    return { ok: true, uptime: up, situational: situ, why: null };
+  }
+  if (t === 'any' || t === 'or') {
+    const parts = (cond.value || []).map(c => bsSynergyCondOk(c, recipientKey, team));
+    const hit = parts.filter(r => r.ok && !r.situational);
+    if (hit.length) return { ok: true, uptime: Math.max(...hit.map(r => r.uptime)), why: null };
+    if (parts.some(r => r.situational))
+      return { ok: true, uptime: 1, situational: true, why: null };
+    return { ok: false, uptime: 0, why: parts[0] ? parts[0].why : 'ни одно из условий' };
+  }
+  if (t === 'class')
+    return { ok: getAgentClasses(recipientKey).includes(cond.value), uptime: 1,
+             why: `получатель не ${cond.value}` };
+  if (t === 'attribute')
+    return { ok: (AGENT_ATTRIBUTE[recipientKey] || {}).base === cond.value, uptime: 1,
+             why: `атрибут получателя не ${cond.value}` };
+  if (t === 'faction')
+    return { ok: AGENT_FACTION[recipientKey] === cond.value, uptime: 1,
+             why: `фракция получателя не ${cond.value}` };
+  /* Число аномальщиков в отряде — это СОСТАВ, а не течение боя, и аптайма ему
+     не нужно. Порог берётся наименьший из перечисленных: величина у такого
+     баффа обычно ступенчатая (у Ремиэль 6/12/40% на 1/2/3 аномальщика), и выбор
+     нужной ступени — отдельная работа, она понадобится, когда начнём складывать
+     атаку. Сейчас честно проверяется только сам факт, что условие выполнимо. */
+  if (t === 'anomaly-count') {
+    const need = Math.min(...[].concat(cond.value || [1]));
+    const have = (team || []).filter(k => getAgentClasses(k).includes('Anomaly')).length;
+    return { ok: have >= need, uptime: 1, why: `аномальщиков в отряде меньше ${need}` };
+  }
+  /* Ситуативное — это НЕ отказ, а «решится не здесь». Ответ на него живёт в
+     uptime самого баффа, поэтому множитель тут нейтральный. Вернуть ok:false
+     значило бы отказать до того, как посмотрели долю времени. */
+  return { ok: true, uptime: 1, situational: true,
+           why: `условие «${t}» про течение боя — решается долей времени, не проверкой` };
+}
+
+/* Сколько этот бафф реально стоит: величина, умноженная на долю времени. Ноль
+   означает «не считаем» — либо условие не выполнено, либо ситуативное условие
+   без названного аптайма. */
+function bsSynergyBuffWeight(b, ownerKey, recipientKey, team, ctx) {
+  if (b.m != null) {
+    const ms = bsMindscapeOf(ownerKey, ctx);
+    if (!Number.isFinite(ms) || ms < b.m) return 0;      // пробуждения нет — бонуса нет
+  }
+  const c = bsSynergyCondOk(b.cond, recipientKey, team);
+  if (!c.ok) return 0;
+  /* Ситуативная часть условия решается не «выполнено ли», а долей времени из
+     данных. Не названа — не считаем вовсе. Проверяемая часть при этом уже
+     проверена выше и могла отказать. */
+  if (c.situational) return Number.isFinite(b.uptime) ? b.uptime * c.uptime : 0;
+  return c.uptime;
+}
+
+/* Суммарный срез защиты, который отряд даёт ПОЛУЧАТЕЛЮ. Читается из уже
+   собранной механики синергий, чтобы не заводить вторую таблицу. Файл не
+   загружен — ноль, и ветка паритета просто не включится. */
+function bsTeamDefShred(keys, recipientKey, ctx) {
   const d = (typeof synergyDataFile === 'object' && synergyDataFile) || null;
   if (!d) return 0;
   let sum = 0;
@@ -13976,7 +14149,16 @@ function bsTeamDefShred(keys) {
     for (const b of ((d[k] && d[k].buffs) || [])) {
       if (b.stat !== 'defIgnore') continue;
       if (b.target !== 'squad' && b.target !== 'others') continue;
-      sum += b.value || 0;
+      /* ЧАСТИЧНЫЙ БОНУС БЕЗ ДОЛИ НЕ СЧИТАЕТСЯ. У Орфеи с Магусом игнор защиты
+         висит только на afterhock-уроне тех, на ком Zeroed In, а какую долю
+         урона отряда это составляет, текст не называет (scope: 'part',
+         share: null). Положить его сюда целиком значило бы обещать срез на
+         ВСЁМ уроне отряда — и правило §4.32 включилось бы от числа, которого
+         в бою нет. То же «не знаем — не обещаем», что у аптайма (§4.86). */
+      if (b.scope === 'part' && !Number.isFinite(b.share)) continue;
+      const w = bsSynergyBuffWeight(b, k, recipientKey, keys, ctx);
+      if (!w) continue;
+      sum += (b.value || 0) * w;
     }
   }
   return sum;
@@ -14344,9 +14526,20 @@ function buildScoreSync(m, ctx) {
   const c = {
     team,
     enemyDef: Number.isFinite(ctx.enemyDef) ? ctx.enemyDef : NaN,
-    defShred: Number.isFinite(ctx.defShred) ? ctx.defShred : bsTeamDefShred(team.filter(k => k !== m.agentKey)),
+    defShred: Number.isFinite(ctx.defShred) ? ctx.defShred
+              : bsTeamDefShred(team.filter(k => k !== m.agentKey), m.agentKey, ctx),
     recommend: ctx.recommend
       || (m.ext && m.ext.recommend ? m.ext.recommend.mainBySlot : null),
+    /* КТО В ОТРЯДЕ КАКОЙ ЧЕТЫРЁХПРЕДМЕТНЫЙ НОСИТ (§4.68). Поле пробрасывается
+       дальше в bsSets, и до 2026-09-07 оно сюда просто не переписывалось —
+       запрет на второй такой же командный сет был написан, накрыт тестами и
+       МЁРТВ на этом пути: bsSets получал контекст `c`, в котором ключа не было
+       вовсе. В решателе правило работало отсечением кандидатов, поэтому молчало
+       незаметно; в списке троек, где сборки приходят из пресетов человека, два
+       агента в одном Astral Voice получали командный бонус дважды. Тесты этого
+       не видели по той же причине, что и §4.85: они звали bsSets напрямую,
+       минуя место склейки. */
+    teamFourPc: ctx.teamFourPc || null,
   };
 
   const parts = {
@@ -14809,15 +15002,53 @@ function tbSynergyPart(syn, cfg) {
    считались по разным формулам и клались в один список.
    Поэтому знаменателя нет, пока сборки не найдены на всех троих. Сколько
    нашлось — остаётся в разборе (haveFor / of), чтобы человек видел, ПОЧЕМУ
-   снаряжение не учтено, и мог дособрать пресеты. */
+   снаряжение не учтено, и мог дособрать пресеты.
+
+   ЗДЕСЬ СБОРКИ ВСЕЙ ТРОЙКИ ИЗВЕСТНЫ — значит и считать их надо как тройку, а
+   не как трёх одиночек. Отсюда две вещи в контексте скора, которых тут раньше
+   не было, и обе не новое знание, а уже записанные правила, до которых не
+   доходил вызов:
+     · enemyDef комнаты. Правило §4.32 («ATK% встаёт вровень с бонусом атрибута,
+       когда DEF врага ниже 473») живёт в скоре сборки, и выбор лучшего пресета
+       его учитывает (builderPickGear), а зачёт в тройке — нет. Одна и та же
+       сборка считалась по-разному в двух шагах подряд; на сезоне 55 порог не
+       срабатывает нигде, то есть сегодня число не меняется — но расхождение
+       было настоящее и ждало первого мягкого врага;
+     · teamFourPc. Шесть сетов раздают бонус ОТРЯДУ и вторым таким же
+       четырёхпредметным не работают вовсе (§4.68). Решатель это учитывает
+       (ctx.teamFourPc), а список — нет: двое в тройке в одном и том же
+       командном сете получали его дважды. Знание тут выводится из самих
+       моделей, а не спрашивается у вызывающего. */
 function tbBuilds(keys, ctx, cfg) {
   const models = ctx.builds || {};
   const have = keys.filter(k => models[k]);
   if (have.length < keys.length)
     return { counted: false, value: null, haveFor: have.length, of: keys.length };
+  /* Кто в тройке носит какой четырёхпредметный — по надетому, а не по желаемому. */
+  const fourBy = {};
+  for (const k of have) {
+    const cnt = (models[k] && models[k].setCounts) || {};
+    const four = Object.keys(cnt).find(n => cnt[n] >= 4);
+    if (four) fourBy[k] = four;
+  }
+  /* Общая часть контекста одна на тройку: она от агента не зависит, а тройка
+     считается десятки тысяч раз. enemyDef кладётся, только когда он есть, —
+     иначе undefined перетёр бы значение, пришедшее снаружи в buildCtx. */
+  const bctx = { ...ctx.buildCtx, purpose: 'builder', team: keys, data: ctx.bs };
+  if (Number.isFinite(ctx.enemyDef)) bctx.enemyDef = ctx.enemyDef;
   let sum = 0, wsum = 0; const per = {};
   for (const k of have) {
-    const r = buildScoreSync(models[k], { ...ctx.buildCtx, purpose: 'builder', team: keys, data: ctx.bs });
+    /* НЕ СТАКАЕТСЯ — ЗНАЧИТ ПРОПАДАЕТ У ОДНОГО, А НЕ У ОБОИХ. bsNoStackClash
+       спрашивает «есть ли такой же сет на ком-то ещё», и от полной карты оба
+       носителя оказались бы «вторыми» и потеряли бонус оба. В игре работает
+       один. Поэтому агенту показываются только те, кто стоит в тройке ДО него:
+       бонус остаётся первому, теряет следующий — та же очередь, что у
+       решателя, который раздаёт снаряжение по одному. Кого из двоих считать
+       первым, модель не выбирает и выбрать не может: она не знает, кого из них
+       человек переоденет, а знает только, что вторая четвёрка пропадает. */
+    const teamFourPc = {};
+    for (const o of have) { if (o === k) break; if (fourBy[o]) teamFourPc[o] = fourBy[o]; }
+    const r = buildScoreSync(models[k], { ...bctx, teamFourPc });
     if (r.score === null) continue;
     const kind = tbDamageKind(k, cfg);
     const w = (kind === 'helper') ? cfg.roleWeight.helper : cfg.roleWeight.damage;
@@ -19440,7 +19671,7 @@ function builderOpened() {
    десятка показанных троек и пересчитать их; это дёшево и стоит следующим
    шагом.
    ══════════════════════════════════════════════════════════════════════════ */
-const BUILDER_GEAR_SOURCES = ['none', 'presets', 'stand', 'both'];
+const BUILDER_GEAR_SOURCES = ['none', 'presets', 'stand', 'both', 'library'];
 
 /* Ручные назначения: agentKey → presetId | 'stand' | 'skip' | undefined(авто).
    Живут в состоянии вкладки, а не в localStorage: это решение про КОНКРЕТНЫЙ
@@ -19562,6 +19793,14 @@ function builderGearFingerprint(keys, source) {
    идёт отдельно, в builderPickGear. */
 async function builderGearModels(keys, source) {
   if (!source || source === 'none') return null;
+  /* Библиотека — третий источник рядом с пресетами и витриной (§4.89), и он
+     устроен иначе: моделей заранее нет вовсе. Сборку решает решатель, и она
+     зависит от ТРОЙКИ (трое дерутся за одни диски), а тройки на этом шаге ещё
+     не перебраны. Поэтому здесь только метка «источник такой», а вся работа —
+     после перебора, в gsRankWithGear. */
+  if (source === 'library')
+    return { byKey: {}, source, library: true, standMine: false,
+             discs: driveDiscLibrary.length, wengines: gsOwnedWengines().length };
   const fp = builderGearFingerprint(keys, source);
   if (builderGearCache && builderGearCache.fp === fp) return builderGearCache.data;
 
@@ -19594,7 +19833,7 @@ async function builderGearModels(keys, source) {
    применяются ручные назначения человека — они СИЛЬНЕЕ автоподбора, потому
    что человек знает про свои сборки то, чего в данных нет. */
 function builderPickGear(models, ctx) {
-  if (!models) return null;
+  if (!models || models.library) return null;
   const out = { map: {}, notes: [], weak: [], skipped: [], asked: 0, covered: 0, source: models.source };
   const cfg = (ctx.bs && ctx.bs.team) || null;
   const weakBelow = (cfg && cfg.gear && Number.isFinite(cfg.gear.weakBelow)) ? cfg.gear.weakBelow : 0;
@@ -19700,9 +19939,40 @@ function builderDiscsHtml(m) {
    Отдельная строка — про непокрытых. Составляющая «снаряжение» включается
    только когда собраны все трое (см. tbBuilds), поэтому человеку важно видеть
    не «сколько сборок есть», а «скольким тройкам это вообще помогло». */
+/* Панель Gear в режиме библиотеки. Рядов «выбери пресет» здесь нет вовсе, и
+   это не упрощение: пресета нет ни одного, сборка считается решателем на
+   КАЖДУЮ тройку отдельно и живёт в её строке. Панель говорит ровно три вещи —
+   из чего собираем, для скольких троек считаем и почему две соседние строки
+   могут хотеть один и тот же диск (§4.63, §4.89). */
+function builderLibraryGearHtml(models, st) {
+  const solve = st && st.solve;
+  const cfg = (st && st.ctx && st.ctx.bs && st.ctx.bs.team && st.ctx.bs.team.gear && st.ctx.bs.team.gear.solve) || {};
+  if (!models.discs) {
+    return `<div class="bd-gear"><div class="bd-gear-head">Gear</div>
+      <div class="bd-note">Your Drive Disc Library is empty, so there is nothing to build from — import a scan
+      or add discs by hand on the Drive Discs tab. Until then the teams below are judged on the roster, not the gear.</div></div>`;
+  }
+  const shared = !!(solve && solve.shared);
+  const line = shared
+    ? `All ${solve ? solve.considered : ''} squads are solved in <b>one run</b>: they are played in the same clear, so no disc is used twice.`
+    : `Each team is solved <b>against your whole library, on its own</b> — they are alternatives, and you will play one of them.
+       That means two rows below can want the same disc: the number under a team says «this is what you get if you build <i>this</i> one»,
+       not «this is what you have equipped at once».`;
+  const budget = shared ? '' :
+    ` Gear is solved for the top ${Number.isFinite(cfg.candidates) ? cfg.candidates : 8} teams and the best
+      ${Number.isFinite(cfg.show) ? cfg.show : 6} are shown — solving the whole list would take hours, and its tail is not worth it.`;
+  return `<div class="bd-gear"><div class="bd-gear-head">Gear</div>
+    <div class="bd-note">Built from your library: ${models.discs.toLocaleString('en-US')} discs${
+      models.wengines ? `, ${models.wengines} W-Engines` : ', no W-Engines enabled'}.
+      ${line}${budget}${solve && solve.ok ? ` Took ${(solve.ms / 1000).toFixed(1)} s.` : ''}</div>
+    <div class="bd-note">Per-agent picks in this panel apply to saved presets only — here every build is made from scratch,
+      so there is nothing to choose between. Switch the source back to <b>My presets</b> to pin a build by hand.</div></div>`;
+}
+
 function builderGearHtml(gear, models, shown) {
   const src = document.getElementById('tbBuilderGear');
   if (!src || src.value === 'none' || !models) return '';
+  if (models.library) return builderLibraryGearHtml(models, builderState.last);
   const keys = Object.keys(models.byKey).sort((a, b) => cardName(a).localeCompare(cardName(b)));
   if (!keys.length) {
     const why = models.source === 'stand'
@@ -19800,6 +20070,30 @@ function builderGearHtml(gear, models, shown) {
 function builderGearFootNote(st, teams) {
   const src = document.getElementById('tbBuilderGear');
   if (!src || src.value === 'none') return ' · gear not taken into account';
+  /* Режим библиотеки говорит о себе иначе: тут важно не «скольким тройкам
+     хватило сборок», а сколько троек мы вообще посчитали, из скольких выбрали
+     и какой ценой. Ножницы названы вслух — человек должен знать, что список
+     обрезан НАМИ, а не кончился (§4.89). */
+  if (src.value === 'library') {
+    const s = st && st.solve;
+    if (!s) return ' · gear from your library · nothing to solve here';
+    if (!s.ok) {
+      return s.reason === 'no-discs' ? ' · your disc library is empty, so gear was left out'
+        : s.reason === 'busy' ? ' · the gear solver was busy with the build session, so gear was left out'
+        : ' · gear could not be built from your library here';
+    }
+    const took = ` in ${(s.ms / 1000).toFixed(1)} s`;
+    if (s.shared) return ` · gear solved for all ${s.solved} squads in one run${took} · no disc used twice`;
+    /* Ничья на месте отсечения — про честность списка, а не про снаряжение:
+       если за ножом остались тройки с тем же скором, значит восемь верхних
+       выбраны из равных произвольно. */
+    const tie = s.tied
+      ? ` · ${s.tiedCapped ? 'at least ' : ''}${s.tied} more team${s.tied === 1 ? '' : 's'} tied`
+        + ' with the last one solved — among equals the cut is arbitrary'
+      : '';
+    return ` · gear solved from your library for ${s.solved} of the top ${s.considered} teams${took} · best `
+      + `${(teams || []).length} shown · each solved on its own, so two rows can want the same disc${tie}`;
+  }
   const hit = (teams || []).filter(t => t && t.parts && t.parts.builds && t.parts.builds.counted).length;
   return hit
     ? ` · gear counted in ${hit} of ${teams.length}`
@@ -19874,16 +20168,39 @@ async function builderRun() {
     });
 
     const t0 = performance.now();
+    /* Библиотека считается ПОСЛЕ перебора и только для верхушки (§4.89). */
+    const fromLibrary = !!(gearModels && gearModels.library);
     if (task === 'room') {
       const ctx = await tbContext(opts);
       const gear = builderPickGear(gearModels, ctx);
       if (gear) ctx.builds = gear.map;
-      const found = findTeamsSync(cand, ctx, { ...opts, include: pins });
+      /* Перебору нужен ЗАПАС: снаряжение — шестой сигнал, и восьмая тройка,
+         посчитанная с ним, может обойти шестую. Отрезать ровно на шести значило
+         бы отрезать ДО того, как узнаем. */
+      const sc = (ctx.bs && ctx.bs.team && ctx.bs.team.gear && ctx.bs.team.gear.solve) || {};
+      const nSolve = Number.isFinite(sc.candidates) ? sc.candidates : 8;
+      /* Запас берётся ШИРЕ, чем решаем: лишние строки не считаются решателем,
+         они нужны, чтобы увидеть ничью за отсечением. Сортировка всё равно уже
+         сделана по всему перебору, так что срез побольше не стоит ничего. */
+      const found = findTeamsSync(cand, ctx, { ...opts, include: pins,
+                                               top: fromLibrary ? Math.max(opts.top, nSolve * 5) : opts.top });
+      let solve = null;
+      if (fromLibrary && found.teams.length) {
+        solve = await gsRankWithGear(found.teams, ctx, {
+          candidates: nSolve,
+          show: Math.min(opts.top, Number.isFinite(sc.show) ? sc.show : 6),
+          onTeam: (i, n) => {
+            res.innerHTML = `<div class="bd-empty">Building gear from your library — team ${i + 1} of ${n}…<br>
+              Each one is solved against your whole library on its own.</div>`;
+          },
+        });
+        found.teams = solve.teams;
+      }
       /* gearByRoom — карта «комната → что взято», по ней карточка тройки
          разворачивает сборки. Ключ обязателен даже когда комната одна: карточка
          не знает, из какой задачи её позвали, и одинаковый доступ по roomKey
          избавляет от второй ветки, которая рано или поздно разъедется. */
-      builderState.last = { kind: 'room', ...found, ctx, opts, task, gear, gearModels,
+      builderState.last = { kind: 'room', ...found, ctx, opts, task, gear, gearModels, solve,
                             gearByRoom: gear ? { [String(ctx.roomKey)]: gear } : null,
                             ms: Math.round(performance.now() - t0), candidates: cand.length };
     } else {
@@ -19897,7 +20214,45 @@ async function builderRun() {
         if (g) { c.ctx.builds = g.map; gearByRoom[String(c.ctx.roomKey)] = g; if (!gear) gear = g; }
       }
       const found = findTeamSetsSync(cand, ctxs, { ...opts, mustUse: pins });
-      builderState.last = { kind: 'set', ...found, ctxs, ctx: ctxs[0] && ctxs[0].ctx, opts, task, gear, gearModels,
+      /* НАБОР РЕШАЕТСЯ ОДНОЙ СЕССИЕЙ, а не тройка за тройкой. Команды этажа
+         идут в ОДНОМ заходе: диск, надетый в первой комнате, во второй уже не
+         наденешь. Это ровно задача решателя (§4.61-4.67), и второй её постановки
+         тут не заводится — та же gsSolveSession, просто команды приходят из
+         подбора, а не из окна сборки. Снаряжение считается для УЖЕ выбранного
+         набора: перебирать наборы вместе со сборками дороже на порядки, и об
+         этом честно сказано подписью «beam search, not an exact optimum». */
+      let solve = null;
+      if (fromLibrary && found.ok && (found.sets || []).length) {
+        const byKey = {};
+        ctxs.forEach(c => { byKey[String(c.key)] = c.ctx; });
+        const tg = Date.now();
+        const solved = await gsSolveForTeams(
+          found.sets.map(sec => ({ keys: sec.team.keys, roomKey: sec.key, ctx: byKey[String(sec.key)] })),
+          { shared: true,
+            onTeam: () => {
+              res.innerHTML = `<div class="bd-empty">Building gear for all ${found.sets.length} squads at once —
+                one run, no disc used twice…</div>`;
+            } });
+        let done = 0;
+        found.sets = found.sets.map((sec, i) => {
+          const g = solved[i];
+          if (!g || !Object.keys(g.map).length) return sec;
+          done++;
+          const cx = byKey[String(sec.key)] || (ctxs[0] && ctxs[0].ctx);
+          const scored = teamScoreSync(sec.team.keys, { ...cx, builds: g.map });
+          const team = { ...((scored.ok && scored.score !== null) ? scored : sec.team),
+                         gear: g.map, gearReport: g.report };
+          return { ...sec, team };
+        });
+        if (done) {
+          found.total = found.sets.reduce((a, sec) => a + (sec.team.score || 0), 0);
+          found.avg = Math.round(found.total / found.sets.length);
+        }
+        solve = { ok: done > 0, shared: true, solved: done, considered: found.sets.length,
+                  show: found.sets.length, ms: Date.now() - tg,
+                  reason: done ? null : (driveDiscLibrary.length ? 'busy' : 'no-discs') };
+      }
+      builderState.last = { kind: 'set', ...found, ctxs, ctx: ctxs[0] && ctxs[0].ctx, opts, task, gear, gearModels, solve,
                             gearByRoom: Object.keys(gearByRoom).length ? gearByRoom : null,
                             ms: Math.round(performance.now() - t0), candidates: cand.length };
     }
@@ -19984,18 +20339,29 @@ function builderTeamHtml(t, i, roomKey) {
      общая карта показала бы под второй комнатой сборку, выбранную для первой.
      Показываются, только когда снаряжение реально вошло в скор: если оно
      выбыло, строка разбора выше уже объяснила почему, и разворачивать нечего. */
-  const gear = (builderState.last && builderState.last.gearByRoom)
+  /* СБОРКА ЛЕЖИТ У САМОЙ ТРОЙКИ, если её посчитал решатель по библиотеке
+     (§4.89): тройки решаются независимо, и у каждой строки списка своя карта
+     «агент → сборка». Общая карта по комнате осталась для пресетов и витрины —
+     там сборка выбирается из готовых и от соседей по тройке не зависит. */
+  const roomGear = (builderState.last && builderState.last.gearByRoom)
     ? builderState.last.gearByRoom[String(roomKey || '')] : null;
-  const gearBody = (gear && t.parts && t.parts.builds && t.parts.builds.counted)
+  const gearMap = t.gear || (roomGear ? roomGear.map : null);
+  const gearBody = (gearMap && t.parts && t.parts.builds && t.parts.builds.counted)
     ? t.keys.map(k => {
-        const m = gear.map[k];
+        const m = gearMap[k];
         if (!m) return '';
+        /* «Один он набрал бы столько» — цена соседей ПО ЭТОЙ ЖЕ тройке: трое
+           дерутся за одни диски даже когда список считает тройки порознь.
+           Молчать об этом нельзя: иначе разрыв выглядит как слабость агента. */
+        const solo = (m._from === 'library' && Number.isFinite(m._solo) && m._solo > m._score)
+          ? `<div class="bd-note">Alone this agent would reach ${m._solo} — the gap is what the other two took.</div>`
+          : '';
         return `<details class="bd-team-gear"><summary>
             <img src="${agentSquareUrl(k)}" alt="" onerror="this.style.opacity=.25">
             <span class="bd-tg-name">${escapeHtml(cardName(k))}</span>
-            <span class="bd-tg-preset">${escapeHtml(m._presetName || 'Preset')}${m._from === 'stand' ? ' \u00b7 showcase' : ''}${m._auto === false ? ' \u00b7 your pick' : ''}</span>
+            <span class="bd-tg-preset">${escapeHtml(m._presetName || 'Preset')}${m._from === 'stand' ? ' \u00b7 showcase' : ''}${m._from === 'library' ? ' \u00b7 solved now' : ''}${m._auto === false ? ' \u00b7 your pick' : ''}</span>
             <span class="bd-tg-score">${m._score}</span>
-          </summary>${builderDiscsHtml(m)}</details>`;
+          </summary>${builderDiscsHtml(m)}${solo}</details>`;
       }).join('')
     : '';
   return `<div class="bd-team${isMeta ? ' meta' : ''}">
@@ -20302,19 +20668,30 @@ function builderPaintSet(st, res) {
      · «When another character in your squad is an X character»
      · «When <Агент> is in the squad»
    Внутри X бывает класс («Attack», «Attack or Anomaly»), атрибут («Fire
-   Attribute»), фракция или имя агента.
+   Attribute»), ТИП АТАКИ («Pierce-type»), фракция или имя агента.
 
-   В ДАННЫХ ЛЕЖИТ ТОЛЬКО СЛОВАРЬ. Игра называет часть фракций иначе, чем наши
-   AGENT_FACTION: «Cunning Hares» против «Cunning Hares AKA Gentle House»,
-   «Hollow Special Operations Section 6» против «Section 6», а «New Eridu Public
-   Security» и вовсе покрывает два наших подразделения сразу. Эти соответствия —
-   знание, и оно в team.bangboo.factionAliases.
+   В ДАННЫХ ЛЕЖИТ ТОЛЬКО СЛОВАРЬ, И ОН СВЕРЯЕТСЯ С ИГРОЙ. Игра называет фракции
+   ЗОНТИЧНО, а мы храним подразделения: «Cunning Hares» против «Cunning Hares AKA
+   Gentle House», «Hollow Special Operations Section 6» против «Section 6», а
+   «New Eridu Public Security», «Defense Force» и «Roscaelifer» покрывают по два
+   наших подразделения каждое. Соответствия лежат в team.bangboo.factionAliases —
+   но НЕ на веру: поле camp в zzz-agents.json это ровно те зонтичные имена,
+   которыми пользуется игра, и тест выводит из него всю таблицу целиком и
+   сличает. Проверка не теоретическая: она уже поймала ошибку. У «Defense Force»
+   стояло одно подразделение из двух, и условие Mercury «двое из Defense Force»
+   не могло сработать НИКОГДА — в Silver Squad ровно один агент, а четверо
+   остальных сидят в Obol Squad и в условие не попадали.
 
-   ЧЕГО ПРОВЕРИТЬ НЕЧЕМ, ТО НЕ ПРЕДЛАГАЕТСЯ. У Boollseye условие по типу атаки
-   («Pierce-type»), а таблицы типов атаки в проекте нет; у Ultra-Jake названа
-   фракция, которой нет в наших данных. Обе помечены поимённо с причиной, и
-   такие бангбу подбор не советует: обещать работающий бонус, не умея его
-   проверить, хуже, чем промолчать.
+   ЧЕГО ПРОВЕРИТЬ НЕЧЕМ, ТО НЕ ПРЕДЛАГАЕТСЯ — и на сегодня список пуст. Оба
+   «не знаю» закрылись, и по-разному. Ultra-Jake закрылся выводом: «Roscaelifer»
+   оказался не пропуском в данных, а зонтичным именем над двумя подразделениями
+   (Sigrid, Norma, Velina). Boollseye закрылся знанием, которого вывести было
+   неоткуда: его «Pierce-type» — тип атаки агента, а такого свойства в проекте не
+   было вовсе, и таблицу AGENT_ATTACK_TYPE Артём продиктовал целиком. Механизм
+   поимённых «не знаю» (team.bangboo.unknown) при этом ОСТАВЛЕН пустым, а не
+   удалён: следующий патч принесёт бангбу с формулировкой, которой мы не знаем,
+   и тогда правильный ход — пометить его причиной и не советовать, а не выдумать
+   ответ. Обещать работающий бонус, не умея его проверить, хуже, чем промолчать.
 
    ПОЛНОТА РАЗБОРА НАКРЫТА ТЕСТОМ. Все сорок обязаны разобраться в условие либо
    попасть в поимённый список «не знаю». Новый бангбу с незнакомой формулировкой
@@ -20382,6 +20759,11 @@ function booCondition(key, cfg) {
   const attr = what.match(/^(.+?) Attribute$/);
   if (attr && booAttributeExists(attr[1]))
     return { ...base, type: 'attribute', values: [attr[1]], n };
+  /* Тип атаки: «Pierce-type», «Slash-type», «Strike-type». Пятый шаблон, и
+     пришёл он с таблицей AGENT_ATTACK_TYPE — до неё проверить это было нечем. */
+  const at = what.match(/^(.+?)-type$/);
+  if (at && ATTACK_TYPES.includes(at[1]))
+    return { ...base, type: 'attackType', values: [at[1]], n };
   const fac = booFactionsFor(what, cfg);
   if (fac.length) return { ...base, type: 'faction', values: fac, n };
   return { ...base, type: 'unknown',
@@ -20399,6 +20781,7 @@ function booMatches(cond, teamKeys) {
     if (cond.type === 'specialty') return getAgentClasses(k).some(c => cond.values.includes(c));
     if (cond.type === 'attribute') return cond.values.includes((AGENT_ATTRIBUTE[k] || {}).base);
     if (cond.type === 'faction') return cond.values.includes(AGENT_FACTION[k]);
+    if (cond.type === 'attackType') return getAgentAttackTypes(k).some(t => cond.values.includes(t));
     return false;
   }).length;
   return count >= cond.n;
@@ -20411,6 +20794,7 @@ function booWhyEn(cond, teamKeys) {
   if (cond.type === 'none') return 'always on — no squad condition';
   const on = booMatches(cond, teamKeys);
   const what = cond.type === 'agent' ? cond.values.map(cardName).join(' or ')
+             : cond.type === 'attackType' ? cond.values.map(t => t + '-type').join(' / ')
              : cond.values.join(' / ');
   const need = cond.type === 'agent' ? what : `${cond.n}× ${what}`;
   return on ? `on — squad has ${need}` : `off — needs ${need}`;
@@ -21273,10 +21657,14 @@ async function gsSolveSession(session, opts) {
     throw err;
   }
 
-  /* Бангбу — последним, когда составы уже известны (§4.62). */
+  /* Бангбу — последним, когда составы уже известны (§4.62). Список
+     рекомендаций их не показывает и потому не заказывает: skipBangboo экономит
+     по обращению к эмпирике на каждую из восьми решаемых троек (§4.89). */
   let bangboos = [];
-  try { bangboos = await gsPickBangboos(session, o.ctxByRoom || null, (bs && bs.team && bs.team.bangboo) || null); }
-  catch (err) { bangboos = []; }
+  if (!o.skipBangboo) {
+    try { bangboos = await gsPickBangboos(session, o.ctxByRoom || null, (bs && bs.team && bs.team.bangboo) || null); }
+    catch (err) { bangboos = []; }
+  }
 
   const byId = new Map(all.targets.map(t => [t.id, t]));
   const agents = [];
@@ -21344,6 +21732,203 @@ async function gsPickBangboos(session, ctxByRoom, cfg) {
     out.push({ ti, ...pick });
   }
   return out;
+}
+
+/* ── СНАРЯЖЕНИЕ ДЛЯ СПИСКА ТРОЕК (§4.89) ───────────────────────────────────
+   ЗАЧЕМ. В списке рекомендаций тройка БЕЗ сохранённых пресетов выглядела лучше
+   собранной: составляющая `builds` выбывала по правилу знаменателя (§4.33), её
+   вес расходился по остальным пяти сигналам, и сумма выходила ВЫШЕ. Незнание
+   читалось как достоинство. Причина не в формуле, а в том, что снаряжение этих
+   троек никто не пробовал считать: builderGearModels() читает сохранённые
+   пресеты и витрину, а пути «собрать из библиотеки» в ней не было вовсе.
+
+   ПОЧЕМУ ВОПРОС РЕШАЕТСЯ, А НЕ УЖИВАЕТСЯ. Считать снаряжение ВСЕМ тройкам
+   нельзя: полный перебор даёт 4060 сочетаний на комнату при тридцати агентах,
+   решатель на каждую — часы. Но столько и не нужно. Слов Артёма: «зачем считать
+   так много, если можно пересчитать 6 полных команд по сборкам сразу по факту».
+   На живом аккаунте столько сильных троек одновременно не набирается, хвост
+   списка — мусор. Решаем восемь верхних, показываем шесть — и в списке НЕ
+   ОСТАЁТСЯ троек без снаряжения: смешивать нечего, вопрос исчезает вместе с
+   причиной, а не разменивается на компромисс.
+
+   ПОЧЕМУ РЕШАЕМ ВОСЕМЬ, А ПОКАЗЫВАЕМ ШЕСТЬ. Порядок ДО подсчёта строится по
+   пяти сигналам, снаряжение — шестой, и восьмая тройка после подсчёта может
+   обойти шестую. Отрезав ровно на шести, мы её не увидим никогда — отрежем до
+   того, как узнаем. Пределы лежат в `team.gear.solve`, а не в коде: это
+   калибруемые величины, размен времени против глубины, ровно как team.solver.
+
+   ДВА РОДА ЗАДАЧ, И ОНИ ПРОТИВОПОЛОЖНЫ.
+     · АЛЬТЕРНАТИВЫ (список на одну комнату). Тройки решаются НЕЗАВИСИМО, каждая
+       против ПОЛНОЙ библиотеки: они альтернативы, играть человек будет одну, и
+       делить между ними диски незачем. Следствие названо вслух в интерфейсе:
+       две соседние строки могут хотеть один и тот же диск, и число под каждой
+       значит «вот что выйдет, если собрать ЭТУ», а не «вот что собрано
+       одновременно». Ровно то правило, что уже задано для сессий (§4.63).
+     · НАБОР (этаж, вся фаза DA). Здесь наоборот: команды идут в ОДНОМ заходе, и
+       один диск не может стоять в двух комнатах. Значит набор решается ОДНОЙ
+       сессией — тем же gsSolveSession с несколькими командами, что и автосборка.
+
+   КОМНАТА, КОТОРУЮ СМОТРЯТ, А НЕ ВЕСЬ ЭТАЖ СРАЗУ. Три комнаты по восемь троек
+   — это уже за десяток секунд, а смотрит человек одну.
+
+   КЭШ ПО ОТПЕЧАТКУ. Ключ — комната, состав тройки и параметры агентов;
+   действителен, пока не менялись библиотеки дисков и движков. Список человек
+   гоняет по многу раз подряд (тумблеры, Top N, источник снаряжения), и платить
+   четыре секунды за каждый щелчок незачем. */
+let gsGearCache = { fp: '', map: new Map() };
+
+/* Отпечаток библиотек. Длины мало: удалить один диск и добавить другой — это
+   та же длина и другая библиотека. Хэш дешёвый (FNV-1a по id), считается раз
+   на запуск списка. */
+function gsLibFingerprint() {
+  let h = 2166136261;
+  const eat = str => {
+    const t = String(str || '');
+    for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); }
+  };
+  for (const d of driveDiscLibrary) eat(d.id);
+  for (const k of gsOwnedWengines()) eat(k);
+  return driveDiscLibrary.length + ':' + (h >>> 0).toString(36);
+}
+
+/* Ключ тройки в кэше. Пробуждение здесь не украшение: с него считаются баффы
+   синергий (§4.85), и та же тройка на M0 и на M2 — это разные сборки. */
+function gsTeamCacheKey(keys, roomKey) {
+  return String(roomKey == null ? '' : roomKey) + '|' + keys.slice().sort().map(k => {
+    const lib = getAgentLibEntry(k);
+    return k + ':' + (lib.level || 60) + ':' + (lib.coreSkillEnhancement || 0) + ':' + (lib.mindscape || 0);
+  }).join(',');
+}
+
+/* Сессия из голых троек. Решателю нужна ровно эта форма — команды с агентами,
+   — и заводить ради списка вторую его точку входа было бы той самой второй
+   копией, которую проект запрещает: пусть у сессии просто не будет надетого. */
+function gsTeamSession(entries) {
+  return { teams: entries.map(e => ({ roomKey: e.roomKey, agents: e.keys.map(k => ({ key: k })) })) };
+}
+
+/* Отчёт решателя → карта «агент → модель сборки» в том же виде, в каком её ждут
+   tbBuilds и карточка тройки. Своей арифметики нет: модель уже построена
+   решателем через builderModelFromPreset — ту же самую, что строит модели
+   пресетов. */
+function gsGearMap(report, ti) {
+  const map = {};
+  if (!report || !report.ok) return map;
+  for (const a of report.agents) {
+    if (a.ti !== ti || !a.model) continue;
+    map[a.agentKey] = { ...a.model, _score: a.score, _auto: true,
+      _presetId: 'gs:' + a.agentKey, _presetName: 'Built from your library', _from: 'library',
+      _solo: a.soloScore, _four: a.four || null, _steps: a.steps || 0 };
+  }
+  return map;
+}
+
+/* Решить снаряжение нескольким тройкам. shared — набор одного захода (одна
+   сессия, без повторов); иначе альтернативы (каждая против полной библиотеки).
+   Наружу отдаётся карта сборок и отчёт, а НЕ новый скор: считать скор — дело
+   teamScoreSync, и второй его копии здесь не заводится. */
+async function gsSolveForTeams(entries, opts) {
+  const o = opts || {};
+  if (!entries || !entries.length) return [];
+  if (!driveDiscLibrary.length) return [];
+  /* Решатель однопоточен по построению (gsRun — один объект на страницу).
+     Если уже идёт автосборка сессии, список молча остаётся без снаряжения:
+     сказать «занято» честнее, чем сломать чужой счёт. */
+  if (gsRun) return [];
+
+  const fp = gsLibFingerprint();
+  if (gsGearCache.fp !== fp) gsGearCache = { fp, map: new Map() };
+
+  if (o.shared) {
+    const key = 'set|' + entries.map(e => gsTeamCacheKey(e.keys, e.roomKey)).join('#');
+    const hit = gsGearCache.map.get(key);
+    if (hit) return hit;
+    const ctxByRoom = {};
+    entries.forEach(e => { if (e.roomKey != null && e.ctx) ctxByRoom[e.roomKey] = e.ctx; });
+    if (typeof o.onTeam === 'function') o.onTeam(0, entries.length);
+    let report = null;
+    try {
+      report = await gsSolveSession(gsTeamSession(entries),
+                                    { ctxByRoom, skipBangboo: true });
+    } catch (err) { report = null; }
+    const res = entries.map((e, ti) => ({ keys: e.keys, roomKey: e.roomKey, shared: true,
+                                          map: gsGearMap(report, ti), report }));
+    if (report && report.ok) gsGearCache.map.set(key, res);
+    return res;
+  }
+
+  const out = [];
+  for (let i = 0; i < entries.length; i++) {
+    const e = entries[i];
+    const key = gsTeamCacheKey(e.keys, e.roomKey);
+    let one = gsGearCache.map.get(key);
+    if (!one) {
+      if (typeof o.onTeam === 'function') o.onTeam(i, entries.length);
+      let report = null;
+      try {
+        report = await gsSolveSession(gsTeamSession([e]), {
+          ctxByRoom: (e.roomKey != null && e.ctx) ? { [e.roomKey]: e.ctx } : null,
+          skipBangboo: true });
+      } catch (err) { report = null; }
+      one = { keys: e.keys, roomKey: e.roomKey, map: gsGearMap(report, 0), report };
+      if (report && report.ok) gsGearCache.map.set(key, one);
+    }
+    out.push(one);
+  }
+  return out;
+}
+
+/* Пересчёт верхушки списка с посчитанным снаряжением. Своего скора здесь нет:
+   та же teamScoreSync, только контекст получает карту сборок ЭТОЙ тройки — у
+   каждой она своя, потому что решались они независимо.
+
+   Тройка, которой решатель не собрал никого (пустая библиотека, отмена, спор
+   не сошёлся), остаётся в списке БЕЗ снаряжения и помечается: выбросить её
+   значило бы соврать порядком, а тихо оставить — вернуть ровно ту болезнь,
+   ради которой всё это делается. */
+async function gsRankWithGear(teams, ctx, opts) {
+  const o = opts || {};
+  const cfg = (ctx && ctx.bs && ctx.bs.team && ctx.bs.team.gear && ctx.bs.team.gear.solve) || {};
+  const num = (a, b, dflt) => Number.isFinite(a) ? a : (Number.isFinite(b) ? b : dflt);
+  const nSolve = Math.max(1, num(o.candidates, cfg.candidates, 8));
+  const nShow  = Math.max(1, num(o.show, cfg.show, 6));
+  const head = (teams || []).slice(0, nSolve);
+  /* НИЧЬЯ НА МЕСТЕ НОЖА. До подсчёта снаряжения верхушка часто состоит из
+     троек с ОДИНАКОВЫМ скором — на DA-3 идеальную тысячу получают сотни (§10.2
+     разбора вкладки). Тогда «восемь верхних» это восемь ПРОИЗВОЛЬНЫХ из
+     равных, и молчать об этом нельзя: человек прочтёт список как рейтинг.
+     Считаем, сколько равных осталось за отсечением, и говорим это вслух. */
+  const cutScore = head.length ? head[head.length - 1].score : null;
+  const rest = (teams || []).slice(nSolve);
+  const tied = rest.filter(t => t.score === cutScore).length;
+  /* Считать можно только по тому куску списка, который нам дали. Если равными
+     оказались ВСЕ оставшиеся, настоящее число больше — и говорить надо «не
+     меньше», а не точную цифру, которой мы не знаем. */
+  const tiedCapped = tied > 0 && tied === rest.length;
+  const t0 = Date.now();
+  if (!head.length) return { ok: false, reason: 'no-teams', teams: [], solved: 0, considered: 0, show: nShow, ms: 0 };
+  if (!driveDiscLibrary.length)
+    return { ok: false, reason: 'no-discs', teams: (teams || []).slice(0, nShow),
+             solved: 0, considered: head.length, show: nShow, ms: 0 };
+
+  const solved = await gsSolveForTeams(
+    head.map(t => ({ keys: t.keys, ctx, roomKey: ctx.roomKey })),
+    { onTeam: o.onTeam });
+  if (!solved.length)
+    return { ok: false, reason: 'busy', teams: (teams || []).slice(0, nShow),
+             solved: 0, considered: head.length, show: nShow, ms: Date.now() - t0 };
+
+  const out = [];
+  solved.forEach((s, i) => {
+    const t = head[i];
+    if (!s || !Object.keys(s.map).length) { out.push({ ...t, gear: null, gearFailed: true }); return; }
+    const scored = teamScoreSync(t.keys, { ...ctx, builds: s.map });
+    const base = (scored.ok && scored.score !== null) ? scored : t;
+    out.push({ ...base, gear: s.map, gearReport: s.report });
+  });
+  out.sort((a, b) => b.score - a.score);
+  return { ok: true, teams: out.slice(0, nShow), solved: out.filter(t => t.gear).length,
+           considered: head.length, show: nShow, tied, tiedCapped, ms: Date.now() - t0 };
 }
 
 /* ── ПРИМЕНЕНИЕ К СЕССИИ ───────────────────────────────────────────────────
