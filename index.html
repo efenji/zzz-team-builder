@@ -14101,6 +14101,14 @@ function bsSynergyCondOk(cond, recipientKey, team) {
   if (t === 'attribute')
     return { ok: (AGENT_ATTRIBUTE[recipientKey] || {}).base === cond.value, uptime: 1,
              why: `атрибут получателя не ${cond.value}` };
+  /* «Всем, КРОМЕ носителей этого атрибута». Так устроен Ликаон: он режет цели
+     ледяное сопротивление, а урон по ней ДРУГИМИ атрибутами поднимает на 30% —
+     то есть себе этот бонус не даёт. Без отдельного типа такое условие попало
+     бы в ветку «про течение боя» и с названным аптаймом посчиталось бы ВСЕМ,
+     включая ледяных, — тихо и неправильно. */
+  if (t === 'attribute-other')
+    return { ok: (AGENT_ATTRIBUTE[recipientKey] || {}).base !== cond.value, uptime: 1,
+             why: `бонус не для носителей атрибута ${cond.value}` };
   if (t === 'faction')
     return { ok: AGENT_FACTION[recipientKey] === cond.value, uptime: 1,
              why: `фракция получателя не ${cond.value}` };
@@ -14164,6 +14172,305 @@ function bsTeamDefShred(keys, recipientKey, ctx) {
   return sum;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   ПРОИЗВОДНАЯ МЕЙН-СТАТОВ (§4.80, §4.95)
+   ══════════════════════════════════════════════════════════════════════════
+   ЧТО ЭТО И ЗАЧЕМ. До сих пор составляющая `mains` сверяла надетый мейн-стат с
+   ДОЛЯМИ КЛИРНУВШИХ: «так собирают 85% игроков — значит хорошо». Это знание про
+   население, а не про тебя: оно не умеет отвечать «в ЭТОЙ команде против ЭТОГО
+   врага тебе выгоднее другое». А Артём затевал сайт ровно ради этого.
+
+   КЛЮЧ, ИЗ-ЗА КОТОРОГО ЭТО ВОЗМОЖНО БЕЗ ФОРМУЛ УРОНА (§4.80). Урон — это
+   произведение независимых групп: кит × ATK × (1+бонусы урона) × (1+CR×CD) ×
+   множитель защиты × множитель резиста. При сравнении ДВУХ мейн-статов ОДНОГО
+   агента в ОДНОЙ команде против ОДНОГО врага всё, кроме затронутых групп,
+   сокращается. Поэтому здесь нет ни ротации, ни множителей навыков, ни
+   абсолютного урона — только отношение двух чисел.
+
+   ЧТО СЧИТАЕТСЯ ПРЕДЕЛЬНОЙ ЦЕННОСТЬЮ. Вклад стата, делённый на то, сколько
+   этой группы УЖЕ набрано: +30 ATK% стоит 30/(100+весь ATK% сборки), +24
+   крит-шанса стоит 24×CD/(100+CR×CD) и так далее. Отсюда сама собой выходит
+   «деградация статов» словами Артёма (§4.84): чем больше группы уже есть, тем
+   дешевле следующий её процент.
+
+   ОТКУДА БЕРУТСЯ СТАТЫ. Два источника, и разница между ними честно помечена:
+     · ЛИСТ СТАТОВ ИГРОКА (m.sheet) — если он построен, считаем по ТЕБЕ;
+     · ПРОФИЛЬ ИЗ КЛИРОВ (mains.stats) — средние статы тех, кто этим агентом
+       реально закрывает контент. Нужен там, где листа нет: справочник Enka
+       тянется по сети и офлайн не поднимается (§4.67), а решатель перебирает
+       тысячи сборок без листа вовсе. Это не «примерно так»: это замер по
+       выборке в тысячи игроков, и он честно назван в разборе.
+
+   ЧТО ДОБАВЛЯЕТСЯ К СТАТАМ ИЗ МЕНЮ. Три источника баффов, которых в меню нет и
+   которые собраны в предыдущие подходы: собственный кит агента (§4.91), эффекты
+   надетых четырёхпредметных сетов (§4.82) и заливки сокомандников (§4.93).
+   Здесь они считаются ТОЧНО, а не ожиданием: и команда, и враг известны.
+
+   ЧЕТЫРЕ ФОРМЫ УРОНА (§4.80 пункт 3, §4.91). Критовая, аномальная, sheer и
+   «слоты под кап». Для sheer-ДД (урон от Sheer Force, растущего от HP) ATK%
+   стоит треть HP% — правило Артёма из gameRules.sheerDamage.
+
+   МНОЖИТЕЛЬ ЗАЩИТЫ (§4.94) — единственная формула урона в проекте, и нужна она
+   ровно одному стату: пробитию. Остальные группы сокращаются, эта нет.
+
+   ЧЕГО ПРОИЗВОДНАЯ НЕ РАНЖИРУЕТ, И ЭТО НЕ ПРОВАЛ, А ГРАНИЦА: контроль
+   аномалии, импакт, восстановление энергии — это не множители урона, а ЧАСТОТА
+   (как быстро копится аномалия, наступает стан, приходит ульта). Производная по
+   одному удару их не видит по построению. Там она молчит, и слот считается
+   старым путём — по долям клирнувших.
+
+   ПОРЯДОК ИСТОЧНИКОВ ЗНАНИЯ НЕ ПОМЕНЯЛСЯ: выверенные правила Артёма (§4.32 про
+   атаку против атрибута, поимённый preferAtk, мёртвый чужой атрибут) стоят
+   ВЫШЕ производной и решают первыми. Производная заполняет то, про что правил
+   нет. Доли клиров переехали из источника в запасной путь — ровно как обещал
+   §4.80, и они же остались проверкой (tools/mains-check.mjs).
+
+   ВЫКЛЮЧАЕТСЯ ОДНОЙ ПРАВКОЙ ДАННЫХ: mains.derived.mode = "off" возвращает
+   старое поведение целиком.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Кэш профиля: он зависит от агента, команды, врага и пробуждений, но НЕ от
+   надетых дисков, а решатель зовёт скор тысячи раз подряд на одном агенте. */
+let bsProfileCache = new Map();
+function bsProfileKey(m, ctx) {
+  return [m.agentKey, (ctx.team || []).join(','), ctx.enemyDef || '', m.mindscape ?? '',
+          (ctx.mindscapes ? JSON.stringify(ctx.mindscapes) : '')].join('|');
+}
+
+/* Какой четырёхпредметный сет надет — по самой сборке, а не по желаемому. */
+function bsWornFour(m) {
+  const c = m.setCounts || {};
+  return Object.keys(c).find(n => c[n] >= 4) || null;
+}
+
+/* Баффы одного сета в те же корзины, что и всё остальное. Скилловые группы
+   (ultDmg%, basicDmg%) не берём: это «часть урона без названной доли», то же
+   правило, что у китов (§4.91). */
+function bsAddSetFx(acc, name, data, m) {
+  const f = ((data.sets || {}).fx || {})[name];
+  if (!f) return;
+  const need = (f.cond || {}).wearerClass;
+  if (need && !getAgentClasses(m.agentKey).includes(need)) return;
+  const up = Number.isFinite(f.uptime) ? f.uptime : 1;
+  const cls = getAgentClasses(m.agentKey)[0] || '';
+  for (const g of (f.gives || [])) {
+    const v = (g.amount || 0) * up;
+    if (!v) continue;
+    if (g.group === 'critRate') acc.cr += v;
+    else if (g.group === 'critDmg') acc.cd += v;
+    else if (g.group === 'atk%') acc.atkPct += v;
+    else if (g.group === 'dmg%' || g.group === 'attrDmg%') acc.dmg += v;
+    else if (g.group === 'anomalyDmg%' && cls === 'Anomaly') acc.dmg += v;
+    else if (g.group === 'sheerDmg%' && cls === 'Rupture') acc.dmg += v;
+    else if (g.group === 'ap') acc.ap += v;
+  }
+}
+
+/* Строки синергий одного агента — себе или отряду — в корзины. Веса считает та
+   же bsSynergyBuffWeight, что и срез защиты: пробуждение, условие, аптайм. */
+function bsAddSynergyRows(acc, ownerKey, m, ctx, opts) {
+  const d = (typeof synergyDataFile === 'object' && synergyDataFile) || null;
+  const e = d && d[ownerKey];
+  if (!e) return;
+  const self = ownerKey === m.agentKey;
+  for (const b of (e.buffs || [])) {
+    const t = b.target;
+    if (self ? (t !== 'self' && t !== 'squad') : (t !== 'squad' && t !== 'others')) continue;
+    /* Частичный бонус без названной доли не считается — «не знаем, не обещаем». */
+    if (b.scope === 'part' && !Number.isFinite(b.share)) continue;
+    const w = bsSynergyBuffWeight(b, ownerKey, m.agentKey, ctx.team || [], ctx)
+            * (Number.isFinite(b.share) ? b.share : 1);
+    if (!w) continue;
+    /* Величина, считающаяся от стата ИСТОЧНИКА (§4.84): у Астры бонус отряду —
+       это доля её собственной атаки, и брать её надо у неё, а не у получателя. */
+    const src = (opts && opts.stats) ? opts.stats[ownerKey] : null;
+    const base = b.basis === 'selfInitialAtk' ? (src ? src.atk : 0) * (b.value || 0) / 100
+               : b.basis === 'selfInitialHp' ? (src ? src.hp : 0) * (b.value || 0) / 100
+               : (b.value || 0);
+    const v = base * w;
+    if (!v) continue;
+    const cls = getAgentClasses(m.agentKey)[0] || '';
+    if (b.stat === 'critRate') acc.cr += v;
+    else if (b.stat === 'critDmg') acc.cd += v;
+    else if (b.stat === 'dmg' || (b.stat === 'anomalyDmg' && cls === 'Anomaly')) acc.dmg += v;
+    else if (b.stat === 'atk') acc.atk += b.basis === 'pct' ? 0 : v, acc.atkPct += b.basis === 'pct' ? v : 0;
+    else if (b.stat === 'atkPct') acc.atkPct += v;
+    else if (b.stat === 'anomalyProficiency') acc.ap += v;
+    else if (b.stat === 'defIgnore') acc.shred += v;
+    else if (b.stat === 'penRatio') acc.pen += v;
+    else if (b.stat === 'sheerForce' && self) {
+      if (b.basis === 'selfInitialHp') acc.sfPerHp += b.value || 0;
+      else acc.sf += v;
+    }
+  }
+}
+
+/* Статы агента для производной. from говорит, по чему считали. */
+function bsMainProfile(m, data, ctx) {
+  const conf = (data && data.mains) || {};
+  const stats = conf.stats || {};
+  const key = bsProfileKey(m, ctx);
+  let base = bsProfileCache.get(key);
+  if (!base) {
+    const own = stats[m.agentKey] || null;
+    const sheetVal = (fam) => {
+      const row = (m.sheet || []).find(r => r.fam === fam);
+      return row && Number.isFinite(row.total) ? row.total : null;
+    };
+    const ownFam = BS_ATTR_FAM[(AGENT_ATTRIBUTE[m.agentKey] || {}).base] || null;
+    const fromSheet = !!(m.sheet && m.sheet.length && sheetVal('121'));
+    const p = {
+      from: fromSheet ? 'sheet' : (own ? 'stats' : null),
+      atk: fromSheet ? sheetVal('121') : (own ? own.atk : 0),
+      cr: (fromSheet ? sheetVal('201') : (own ? own.cr : 0)) || 5,
+      cd: (fromSheet ? sheetVal('211') : (own ? own.cd : 0)) || 50,
+      dmg: (fromSheet ? sheetVal(ownFam) : (own ? own.dmg : 0)) || 0,
+      ap: (fromSheet ? sheetVal('312') : (own ? own.ap : 0)) || 0,
+      hp: (fromSheet ? sheetVal('111') : (own ? own.hp : 0)) || 0,
+      sf: (own && own.sf) || 0,
+      pen: (fromSheet ? sheetVal('231') : (own ? own.pen : 0)) || 0,
+      penFlat: (own && own.penFlat) || 0,
+      sample: own ? own.n : 0,
+      atkPct: 0, shred: 0, sfPerHp: 0,
+    };
+    if (!p.from) { bsProfileCache.set(key, p); return p; }
+    /* Кит самого агента и заливки сокомандников. Сеты сюда не идут: они зависят
+       от КОНКРЕТНОЙ сборки, а кэш — нет. */
+    const acc = { cr: 0, cd: 0, dmg: 0, atk: 0, atkPct: 0, ap: 0, shred: 0, pen: 0, sf: 0, sfPerHp: 0 };
+    bsAddSynergyRows(acc, m.agentKey, m, ctx, { stats });
+    for (const k of (ctx.team || [])) if (k !== m.agentKey) bsAddSynergyRows(acc, k, m, ctx, { stats });
+    p.cr += acc.cr; p.cd += acc.cd; p.dmg += acc.dmg; p.ap += acc.ap;
+    p.atk += acc.atk; p.atkPct += acc.atkPct; p.sf += acc.sf;
+    p.sfPerHp += acc.sfPerHp; p.shred += acc.shred; p.pen += acc.pen;
+    if (Number.isFinite(ctx.defShred)) p.shred = Math.max(p.shred, ctx.defShred);
+    /* SHEER-ФОРМА УЗНАЁТСЯ ПО ЗАМЕРУ, А НЕ ПО СПИСКУ ИМЁН. Ненулевой Sheer Force
+       в профиле клирнувших — это и есть признак того, что урон агента идёт от
+       него, а не от атаки. Коэффициент 0.1 за очко HP лежит в игровом правиле
+       и там же выведен из этого же замера (пять агентов, один и тот же остаток).
+       Список имён разошёлся бы с игрой на первом же новом агенте — так модель
+       узнала Манато, которого мы в синергиях не описывали. */
+    if (!p.sfPerHp && p.sf > 0) {
+      p.sfPerHp = bsSheerRule(data).perHp;
+    }
+    if (bsProfileCache.size > 500) bsProfileCache.clear();
+    bsProfileCache.set(key, p);
+    base = p;
+  }
+  /* Сет надетой сборки — поверх кэша, он у каждой сборки свой. */
+  const p = { ...base };
+  const four = bsWornFour(m);
+  /* МЁРТВЫЙ ЧЕТЫРЁХПРЕДМЕТНЫЙ НЕ ЛЬЁТ НИЧЕГО. Если такой же командный сет уже
+     надет на сокоманднике, второй не работает вовсе (§4.68) — и его баффы не
+     должны попадать в статы, иначе производная посчитает прибавку, которой в
+     бою нет. Проверка та же, что в bsSets: второй копии правила не заводим. */
+  if (four && !bsNoStackClash(four, data, ctx, m)) {
+    const acc = { cr: 0, cd: 0, dmg: 0, atkPct: 0, ap: 0 };
+    bsAddSetFx(acc, four, data, m);
+    p.cr += acc.cr; p.cd += acc.cd; p.dmg += acc.dmg; p.atkPct += acc.atkPct; p.ap += acc.ap;
+    p.four = four;
+  }
+  p.cr = Math.min(100, p.cr);
+  return p;
+}
+
+/* Предельная прибавка к урону от одного мейн-стата, в разах. null — «эта модель
+   такой стат не ранжирует», и тогда слот считается старым путём. */
+function bsMainGain(stat, value, p, m, data, ctx) {
+  const conf = ((data.mains || {}).derived) || {};
+  const baseAtk = Number.isFinite(conf.baseAtk) ? conf.baseAtk : 1500;
+  const baseHp = Number.isFinite(conf.baseHp) ? conf.baseHp : 8000;
+  const fam = bsFam(stat);
+  const ownFam = BS_ATTR_FAM[(AGENT_ATTRIBUTE[m.agentKey] || {}).base] || null;
+  const ATK = p.atk + baseAtk * (p.atkPct || 0) / 100;
+  const CR = Math.min(100, p.cr) / 100, CD = p.cd / 100;
+  const critM = (cr, cd) => 1 + Math.min(cr, 1) * cd;
+  const sheer = (p.sfPerHp || 0) > 0 && (p.sf || 0) > 0;
+
+  if (stat === 'PEN Ratio') {
+    /* Sheer-урон идёт мимо защиты — пробитие ему мёртво (§4.91). */
+    if (sheer) return 1;
+    const rule = ((data._meta || {}).gameRules || {})['def-multiplier'];
+    if (!rule || !Number.isFinite(ctx.enemyDef)) return null;   // врага не знаем — не судим
+    const K = rule.K, D = ctx.enemyDef;
+    const eff = (pen) => D * (1 - (p.shred || 0) / 100) * (1 - pen / 100) - (p.penFlat || 0);
+    const mult = (e) => K / (K + Math.max(0, e));
+    return mult(eff((p.pen || 0) + value)) / mult(eff(p.pen || 0));
+  }
+  if (sheer) {
+    const hpGain = (baseHp * value / 100) * p.sfPerHp / p.sf;
+    /* Поправка Артёма (§4.92): у sheer-ДД атака не мёртвая, а стоит треть HP. */
+    if (fam === '121') return 1 + hpGain * bsSheerRule(data).atkVsHp;
+    if (fam === '111') return 1 + hpGain;
+  }
+  if (fam === '121') return ATK > 0 ? 1 + (baseAtk * value / 100) / ATK : null;
+  if (fam === '201') return critM(CR + value / 100, CD) / critM(CR, CD);
+  if (fam === '211') return critM(CR, CD + value / 100) / critM(CR, CD);
+  if (fam === '312') {
+    /* Знание аномалии — множитель ТОЛЬКО аномального урона, то есть вопрос не
+       «полезен ли стат», а «идёт ли у агента урон через аномалию» (§4.80,
+       четыре формы). Ответ выводится из уже записанного знания, а не пишется
+       заново: аномалик играет от аномалии, КРОМЕ тех, кому Артём назначил
+       личный порядок двухпредметных с критом выше знания аномалии — это ровно
+       случай Мияби (§4.71-4.72), «уникальный случай в игре» его словами.
+       Второй таблицы «кто играет через крит» не заводим: она разошлась бы. */
+    return bsAnomalyForm(m, data) && p.ap > 0 ? (p.ap + value) / p.ap : null;
+  }
+  if (fam && ELEMENTAL_DMG_FAMS.has(fam))
+    return fam === ownFam ? (1 + p.dmg / 100 + value / 100) / (1 + p.dmg / 100) : 1;
+  return null;                                   // частота, а не множитель урона
+}
+
+/* Правило sheer-урона живёт в файле синергий рядом с остальными игровыми
+   правилами, но скор сборки обязан работать и без него (§4.33): файла может не
+   быть. Поэтому обе величины продублированы в mains.derived, и читаются они
+   отсюда одним местом, а не двумя разными по коду. */
+function bsSheerRule(data) {
+  const syn = (typeof synergyDataFile === 'object' && synergyDataFile
+               && (synergyDataFile._meta.gameRules || {}).sheerDamage) || null;
+  const dv = (data.mains || {}).derived || {};
+  return {
+    perHp: syn && Number.isFinite(syn.perHp) ? syn.perHp
+         : (Number.isFinite(dv.sheerPerHp) ? dv.sheerPerHp : 0),
+    atkVsHp: syn && Number.isFinite(syn.atkVsHp) ? syn.atkVsHp
+           : (Number.isFinite(dv.sheerAtkVsHp) ? dv.sheerAtkVsHp : 0),
+  };
+}
+
+/* Идёт ли у агента урон через аномалию — см. объяснение в bsMainGain. */
+function bsAnomalyForm(m, data) {
+  if (!getAgentClasses(m.agentKey).includes('Anomaly')) return false;
+  const pers = ((data.sets || {}).twoPcPriorityAgent || {})[m.agentKey];
+  if (!Array.isArray(pers)) return true;
+  const at = (fam) => pers.findIndex(tier => [].concat(tier).some(x => bsFam(x) === fam));
+  const ap = at('312'), cr = at('201');
+  return !(ap >= 0 && cr >= 0 && ap > cr);
+}
+
+/* Ранжирование законных мейнов слота и зачёт надетому. Зачёт — не место в
+   списке, а ДОЛЯ прибавки от лучшей: два почти равных стата обязаны получить
+   почти равный зачёт, иначе модель врёт точностью, которой у неё нет (§4.36). */
+function bsMainsDerived(slot, wornStat, m, data, ctx) {
+  const p = bsMainProfile(m, data, ctx);
+  if (!p.from) return null;
+  const opts = discMainStatOptions(slot).map(o => ({
+    stat: o.stat, g: bsMainGain(o.stat, o.value, p, m, data, ctx),
+  })).filter(x => x.g != null);
+  /* МЕНЬШЕ ДВУХ КАНДИДАТОВ — НЕ СРАВНЕНИЕ, А ВИДИМОСТЬ ЕГО. В шестом слоте у
+     большинства агентов из шести мейнов ранжируется ровно один (ATK%), а
+     настоящий выбор там между уроном и ЧАСТОТОЙ — контролем аномалии, импактом,
+     энергией, — которую производная не видит по построению (§4.87). Объявить
+     единственного кандидата «лучшим» значило бы поставить полный зачёт за то,
+     что сравнить было не с чем. Молчим и отдаём слот долям клирнувших. */
+  if (opts.length < 2) return null;
+  const worn = opts.find(x => x.stat === bsNorm(wornStat));
+  if (!worn) return null;                        // носят то, что модель не судит
+  const best = opts.reduce((a, b) => (b.g > a.g ? b : a));
+  const span = best.g - 1;
+  const credit = span <= 0 ? 1 : bsClamp((worn.g - 1) / span);
+  return { credit, best: best.stat, bestGain: best.g, gain: worn.g, from: p.from,
+           sample: p.sample, four: p.four || null };
+}
+
 function bsMains(m, data, ctx) {
   const rec = ctx.recommend;                       // { '4':..., '5':..., '6':... }
   const conf = data && data.mains;
@@ -14200,6 +14507,10 @@ function bsMains(m, data, ctx) {
   /* Реальные мейн-статы клирнувших. Заменяют рекомендацию игры там, где выборка
      достаточна: рекомендация совпадает с реальностью лишь на 76% (§4.40). Доля —
      не сила, поэтому она стоит НИЖЕ выверенных правил игры, а не выше. */
+  /* Включена ли производная — решает файл, а не код: mains.derived.mode.
+     Отсутствие блока означает старое поведение целиком, и это важно для тестов
+     на старых конфигурациях. */
+  const derivedOn = ((conf.derived || {}).mode === 'derive') && !!conf.stats;
   const rc = conf.realCredit || {};
   const realAgent = (conf.real || {})[m.agentKey];
   const realOk = !!(realAgent && realAgent.sample >= (rc.minSample || 0));
@@ -14272,6 +14583,25 @@ function bsMains(m, data, ctx) {
             : 'атака в пятом слоте слабее бонуса атрибута и пробива' });
         continue;
       }
+    }
+
+    /* ── ПРОИЗВОДНАЯ (§4.95) ──
+       Основной источник там, где есть чем считать. Стоит НИЖЕ выверенных правил
+       Артёма — они уже отработали выше и до сюда не доходят — и ВЫШЕ долей
+       клирнувших: доля говорит, как собирает население, а производная — что
+       выгоднее ЭТОМУ агенту в ЭТОЙ команде против ЭТОГО врага. Молчит она там,
+       где стат не про множитель урона (контроль аномалии, импакт, энергия), и
+       тогда слот считается по-старому. */
+    const der = derivedOn ? bsMainsDerived(slot, stat, m, data, ctx) : null;
+    if (der) {
+      const gainPct = (g) => `${((g - 1) * 100).toFixed(1)}%`;
+      detail.push({ slot, stat, credit: der.credit, derived: true, best: der.best,
+        gain: der.gain, bestGain: der.bestGain, from: der.from,
+        why: der.best === bsNorm(stat)
+          ? `лучший выбор по предельной ценности: +${gainPct(der.gain)} урона`
+          : `+${gainPct(der.gain)} урона против +${gainPct(der.bestGain)} у ${der.best}`
+          + ` (статы ${der.from === 'sheet' ? 'твои' : 'средние по клирам'})` });
+      continue;
     }
 
     const real = realCredit(slot, fam);
